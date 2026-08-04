@@ -1,4 +1,4 @@
-# ⚔️ Lenda Forjada
+# ⚔️ Forged Legend
 
 Um RPG completo em pixel art que roda direto no navegador — um único arquivo HTML, sem dependências.
 
@@ -55,6 +55,10 @@ Monstros podem dropar equipamentos em 5 raridades, com chance pesada pela rarida
 
 Mobs mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — o dragão dropa a arma lendária do seu estilo atual. Há 45+ equipamentos em **5 slots** (arma, peitoral, cabeça, botas e amuleto), além de baús escondidos pelo mundo.
 
+## 🐾 Pets
+
+Companheiros com status próprios que seguem você pelo mundo, **atacam junto em batalha** e dão bônus passivos enquanto ativos. Monstros raramente deixam filhotes ao serem derrotados (Slimezinho, Morceguinho, Lobinho, Caveirinha, Golenzinho) — e **cada chefe sempre dá um pet**: Slime Real 👑, Corvo Sombrio e o lendário Dragãozinho. Gerencie na aba Pets do menu (C).
+
 ## 🔮 Encantamento
 
 Monstros dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve-os ao **Altar de Encantamento** (o cristal roxo em cada cidade) para encantar os itens equipados até **+5** — cada nível dá +15% nos bônus do item, e o custo cresce com a raridade e o nível atual.
@@ -82,4 +86,4 @@ Monstros dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Le
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 53 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, drops assinatura, lojas das duas cidades, os três chefes, fuga bloqueada, game over e save/load — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 58 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, pets (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas cidades, os três chefes, fuga bloqueada, game over e save/load — tudo sem erros de JavaScript.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lenda Forjada — RPG em pixels</title>
+<title>Forged Legend — pixel RPG</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 <style>
   html, body {
@@ -548,6 +548,124 @@ const ENEMY_ART = {
       '........................']
   }
 };
+const PET_ART = {
+  slimezinho: {
+    pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c' },
+    rows: [
+      '............',
+      '...OOOOO....',
+      '..OgggggO...',
+      '.OgGGGGGgO..',
+      '.OGWPGGWPO..',
+      '.OGGGGGGGO..',
+      '.OGGOOGGGO..',
+      '.OGGGGGGGO..',
+      '..OGGGGGO...',
+      '...OOOOO....']
+  },
+  morceguinho: {
+    pal: { O: '#171226', P: '#6b4a9e', p: '#8f6cc4', R: '#e05050' },
+    rows: [
+      '............',
+      '.O.......O..',
+      '.OO.OOO.OO..',
+      '.OPOpppOPO..',
+      '.OPPpppPPO..',
+      '..OPpRpPO...',
+      '..OpppppO...',
+      '...OpOpO....',
+      '...OO.OO....']
+  },
+  lobinho: {
+    pal: { O: '#1a1a22', c: '#b8b8c8', C: '#8a8a9a', R: '#d04040' },
+    rows: [
+      '.O......O...',
+      '.OO....OO...',
+      '.OcO..OcO...',
+      '.OccOOccO...',
+      '.OccccccO...',
+      '.OcRccRcO...',
+      '.OccOOccO...',
+      '..OCCCCO....',
+      '..OCO.OCO...',
+      '..OO...OO...']
+  },
+  caveirinha: {
+    pal: { O: '#1a1626', W: '#e8e4d8', R: '#c03030' },
+    rows: [
+      '............',
+      '..OOOOOO....',
+      '.OWWWWWWO...',
+      '.OWOWWOWO...',
+      '.OWRWWRWO...',
+      '.OWWWWWWO...',
+      '..OWOOWO....',
+      '..OWWWWO....',
+      '...OOOO.....']
+  },
+  golenzinho: {
+    pal: { O: '#161622', c: '#8e8ea6', C: '#6a6a80', Y: '#e8c050' },
+    rows: [
+      '..OOOOOO....',
+      '.OccccccO...',
+      '.OcYccYcO...',
+      '.OccccccO...',
+      '.OCCCCCCO...',
+      '.OCcCCcCO...',
+      '..OCCCCO....',
+      '..OCO.OCO...',
+      '..OO...OO...']
+  },
+  slimereal: {
+    pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c', Y: '#f0c050' },
+    rows: [
+      '..Y.Y.Y.....',
+      '..YYYYY.....',
+      '...OOOOO....',
+      '..OgggggO...',
+      '.OgGGGGGgO..',
+      '.OGWPGGWPO..',
+      '.OGGGGGGGO..',
+      '.OGGOOGGGO..',
+      '..OGGGGGO...',
+      '...OOOOO....']
+  },
+  corvo: {
+    pal: { O: '#0e0a16', D: '#2e2440', d: '#453860', G: '#6ee86e', Y: '#e8c050' },
+    rows: [
+      '....OO......',
+      '...ODDO.....',
+      '..ODGDDOYO..',
+      '..ODDDDDO...',
+      '.ODdDDDdO...',
+      '.ODDDDDDO...',
+      '..ODDDDO....',
+      '...ODDO.....',
+      '...OO.OO....']
+  },
+  dragaozinho: {
+    pal: { O: '#1c1020', R: '#c03838', r: '#e05848', Y: '#f0c050', W: '#f0f0e0' },
+    rows: [
+      '.OW....WO...',
+      '.OO....OO...',
+      '..ORRRRO....',
+      '.ORrrrrRO...',
+      '.ORYrrYRO...',
+      '.ORrrrrRO...',
+      '.ORRrrRRO...',
+      '..ORrrRO....',
+      '..OYO.OYO...']
+  }
+};
+function petSprite(id) {
+  const key = 'pet_' + id;
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const a = PET_ART[id];
+  const s = makeSprite(a.rows, a.pal);
+  spriteCache.set(key, s);
+  return s;
+}
+
 function enemySprite(type) {
   const id = 'enemy_' + type;
   if (spriteCache.has(id)) return spriteCache.get(id);
@@ -654,6 +772,23 @@ const EQUIP = {
   amu5: { name: 'Coração do Dragão',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } }
 };
 function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
+
+// ---------- Pets ----------
+// Companheiros com status: bônus passivo + ataque próprio em batalha
+const PETS = {
+  slimezinho:  { name: 'Slimezinho',    rar: 'comum',    atk: 3,  passive: { hp: 5 },                    desc: '+5 HP' },
+  morceguinho: { name: 'Morceguinho',   rar: 'comum',    atk: 3,  passive: { spd: 1 },                   desc: '+1 VEL' },
+  lobinho:     { name: 'Lobinho',       rar: 'incomum',  atk: 6,  passive: { atk: 2 },                   desc: '+2 ATQ' },
+  caveirinha:  { name: 'Caveirinha',    rar: 'incomum',  atk: 5,  passive: { atk: 1, mag: 1 },           desc: '+1 ATQ, +1 MAG' },
+  golenzinho:  { name: 'Golenzinho',    rar: 'raro',     atk: 8,  passive: { def: 4, hp: 10 },           desc: '+4 DEF, +10 HP' },
+  slimereal:   { name: 'Slime Real',    rar: 'raro',     atk: 8,  passive: { hp: 12, def: 2 },           desc: '+12 HP, +2 DEF' },
+  corvo:       { name: 'Corvo Sombrio', rar: 'epico',    atk: 10, passive: { mag: 4, crit: 0.05 },       desc: '+4 MAG, +5% crit' },
+  dragaozinho: { name: 'Dragãozinho',   rar: 'lendario', atk: 14, passive: { atk: 3, mag: 3, hp: 15 },   desc: '+3 ATQ, +3 MAG, +15 HP' }
+};
+// chance de mob deixar um filhote; chefes sempre dão o seu
+const PET_DROPS = { slime: ['slimezinho', 0.05], morcego: ['morceguinho', 0.05], lobo: ['lobinho', 0.04], esqueleto: ['caveirinha', 0.04], golem: ['golenzinho', 0.03] };
+const BOSS_PETS = { reislime: 'slimereal', necromante: 'corvo', dragao: 'dragaozinho' };
+function petDmg(petId) { return PETS[petId].atk + Math.floor(P.lvl / 2); }
 
 // pontos de status por nível e o que cada ponto dá
 const PTS_PER_LEVEL = 3;
@@ -853,6 +988,7 @@ function newPlayer() {
     equip: { arma: 'esp1', corpo: 'arm1', elmo: null, botas: null, amuleto: null },
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
+    pets: [], activePet: null,
     x: START.x, y: START.y,
     dir: 'down', moving: false, animT: 0, frame: 0,
     mapName: 'overworld'
@@ -892,6 +1028,17 @@ function eff() {
     const id = P.equip[slot];
     if (!id) continue;
     const b = enchBonus(id);
+    if (b.atk) e.atk += b.atk;
+    if (b.def) e.def += b.def;
+    if (b.mag) e.mag += b.mag;
+    if (b.spd) e.spd += b.spd;
+    if (b.crit) e.crit += b.crit;
+    if (b.hp) e.maxHp += b.hp;
+    if (b.mp) e.maxMp += b.mp;
+  }
+  // bônus passivo do pet ativo
+  if (P.activePet && PETS[P.activePet]) {
+    const b = PETS[P.activePet].passive;
     if (b.atk) e.atk += b.atk;
     if (b.def) e.def += b.def;
     if (b.mag) e.mag += b.mag;
@@ -1013,6 +1160,7 @@ function loadGame() {
     // compatibilidade com saves antigos
     if (P.frags === undefined) P.frags = 0;
     if (!P.ench) P.ench = {};
+    if (!P.pets) { P.pets = []; P.activePet = null; }
     if (P.equip.botas === undefined) P.equip.botas = null;
     if (!P.equipInv.includes('arc1') && P.equip.arma !== 'arc1' && !Object.keys(P.ench).some(k => k.startsWith('arc'))) {
       // saves antigos não tinham arco inicial
@@ -1041,6 +1189,7 @@ function enterMap(name, px, py) {
   G.map = MAPS[name];
   P.mapName = name;
   P.x = px; P.y = py;
+  G.petX = px - 14; G.petY = py;
   G.entities = [];
   spawnEnemies(true);
   if (name === 'cave') {
@@ -1243,6 +1392,18 @@ function updateWorld(dt) {
   G.spawnTimer -= dt;
   if (G.spawnTimer <= 0) { G.spawnTimer = 6; spawnEnemies(false); }
 
+  // pet seguidor
+  if (P.activePet) {
+    if (G.petX === undefined) { G.petX = P.x - 14; G.petY = P.y; }
+    const off = { up: [0, 16], down: [0, -16], left: [14, 0], right: [-14, 0] }[P.dir];
+    const tx = P.x + off[0], ty = P.y + off[1];
+    const d = Math.hypot(tx - G.petX, ty - G.petY);
+    if (d > 4) {
+      G.petX = lerp(G.petX, tx, Math.min(1, dt * 5));
+      G.petY = lerp(G.petY, ty, Math.min(1, dt * 5));
+    }
+  }
+
   // câmera
   const tcx = clamp(P.x + 8 - VW / 2, 0, G.map.w * TILE - VW);
   const tcy = clamp(P.y + 8 - VH / 2, 0, G.map.h * TILE - VH);
@@ -1273,6 +1434,7 @@ function startBattle(ent) {
     log: e.boss ? e.name + ' bloqueia seu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
     pAnim: 0, eAnim: 0, eFlash: 0, pFlash: 0,
     atkBuff: 0, poison: 0, frozen: false,
+    petStruck: true, petAnim: 0,
     dmgPops: [], rewards: null, swirl: 0
   };
   G.state = 'battle';
@@ -1367,7 +1529,19 @@ function endBattleWin(b) {
   }
   const frags = rollFrags(e.type, e.lvl);
   if (frags) P.frags += frags;
-  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, newSkill: ups.newSkill };
+  // pets: chefes sempre dão o seu; mobs têm chance pequena de deixar um filhote
+  let petTxt = null, petColor = null;
+  let newPet = null;
+  const bp = BOSS_PETS[e.type], pd = PET_DROPS[e.type];
+  if (bp && !P.pets.includes(bp)) newPet = bp;
+  else if (pd && Math.random() < pd[1] && !P.pets.includes(pd[0])) newPet = pd[0];
+  if (newPet) {
+    P.pets.push(newPet);
+    if (!P.activePet) P.activePet = newPet;
+    petTxt = PETS[newPet].name;
+    petColor = RARITY[PETS[newPet].rar].color;
+  }
+  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, petTxt, petColor, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) AU.sfx('level'); else AU.sfx('victory');
   // remove do mapa
@@ -1471,7 +1645,7 @@ function updateBattle(dt) {
           if (b.menuIdx === 0) { // atacar
             const r = playerAttack(b, {});
             battleLog(b, r.crit ? 'Golpe CRÍTICO!' : 'Você atacou!');
-            b.phase = 'playerActDone'; b.t = 0;
+            b.phase = 'playerActDone'; b.t = 0; b.petStruck = false;
           } else if (b.menuIdx === 1) { b.sub = 'skill'; b.subIdx = 0; }
           else if (b.menuIdx === 2) { b.sub = 'item'; b.subIdx = 0; }
           else fleeBattle(b);
@@ -1483,7 +1657,7 @@ function updateBattle(dt) {
         if (tap('down')) { b.subIdx = (b.subIdx + 1) % sk.length; AU.sfx('menu'); }
         if (tap('back')) { b.sub = null; AU.sfx('back'); }
         else if (tap('ok')) {
-          if (useSkill(b, sk[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; }
+          if (useSkill(b, sk[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; b.petStruck = false; }
         }
       } else if (b.sub === 'item') {
         const its = Object.keys(ITEMS).filter(k => P.items[k] > 0);
@@ -1493,12 +1667,23 @@ function updateBattle(dt) {
         b.subIdx = Math.min(b.subIdx, its.length - 1);
         if (tap('back')) { b.sub = null; AU.sfx('back'); }
         else if (tap('ok')) {
-          if (useItemBattle(b, its[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; }
+          if (useItemBattle(b, its[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; b.petStruck = false; }
         }
       }
       break;
     }
     case 'playerActDone':
+      // o pet ataca logo depois do herói
+      if (!b.petStruck && b.t > 0.35 && P.activePet && b.enemy.hp > 0) {
+        b.petStruck = true;
+        b.petAnim = 0.3;
+        const pd = Math.max(1, Math.round(petDmg(P.activePet) - b.enemy.def * 0.3));
+        b.enemy.hp = Math.max(0, b.enemy.hp - pd);
+        b.eFlash = 0.2;
+        addDmgPop(b, 'enemy', pd, RARITY[PETS[P.activePet].rar].color);
+        AU.tone(520, 0.07, 'square', 0.05, -160);
+      }
+      if (b.petAnim > 0) b.petAnim -= dt;
       if (b.t > 0.7) {
         if (b.enemy.hp <= 0) endBattleWin(b);
         else {
@@ -1759,6 +1944,15 @@ function drawWorld() {
       drawTile(t, tx * TILE - sx, ty * TILE - sy, tx, ty);
     }
   }
+  // pet seguidor (desenhado antes das entidades para ficar "atrás")
+  if (P.activePet && G.petX !== undefined) {
+    const spr = petSprite(P.activePet);
+    const pex = Math.round(G.petX - sx) + 2, pey = Math.round(G.petY - sy) + 2;
+    const pbob = Math.round(Math.sin(G.time * 4) * 1.5);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(pex + 2, pey + 10, 8, 2);
+    ctx.drawImage(spr, pex, pey - pbob);
+  }
   // sombras + entidades (ordenar por y)
   const ents = [...G.entities, P].sort((a, b) => a.y - b.y);
   for (const e of ents) {
@@ -1905,6 +2099,18 @@ function drawBattle() {
   ctx.drawImage(ps, px, py, 16 * pscale, 16 * pscale);
   ctx.globalAlpha = 1;
   if (b.atkBuff > 0) { ctx.fillStyle = '#ffd94e'; ctx.font = '8px monospace'; ctx.fillText('▲ATQ', px + 20, py - 2); }
+  // pet ao lado do herói
+  if (P.activePet) {
+    const pspr = petSprite(P.activePet);
+    const lunge = b.petAnim > 0 ? -Math.round(b.petAnim * 60) : 0;
+    const pbob = Math.round(Math.sin(G.time * 3.5) * 2);
+    const petX = 206 + lunge, petY = 118 - 22 + pbob;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(petX + 12, 119, 9, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.drawImage(pspr, petX, petY, pspr.width * 2, pspr.height * 2);
+  }
 
   // barra HP inimigo
   ctx.fillStyle = 'rgba(12,10,20,0.85)';
@@ -2004,7 +2210,11 @@ function drawBattle() {
     if (r.ups.length) {
       ctx.fillStyle = '#6ee86e';
       ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos de status (menu C)', 10, 167);
-      if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova habilidade: ' + r.newSkill, 10, 176); }
+      if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova habilidade: ' + r.newSkill, 118, 176); }
+    }
+    if (r.petTxt) {
+      ctx.fillStyle = r.petColor;
+      ctx.fillText('♥ Novo pet: ' + r.petTxt + '!', 10, 176);
     }
     if (b.t > 0.6 && Math.floor(G.time * 2) % 2) {
       ctx.fillStyle = '#a89ac0';
@@ -2053,9 +2263,9 @@ function drawTitle() {
   ctx.textAlign = 'center';
   ctx.font = 'bold 24px monospace';
   ctx.fillStyle = '#1a1230';
-  ctx.fillText('LENDA FORJADA', VW / 2 + 2, 62 + 2);
+  ctx.fillText('FORGED LEGEND', VW / 2 + 2, 62 + 2);
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText('LENDA FORJADA', VW / 2, 62);
+  ctx.fillText('FORGED LEGEND', VW / 2, 62);
   ctx.font = '8px monospace';
   ctx.fillStyle = '#b8a8d8';
   ctx.fillText('~ sua classe é o que você empunha ~', VW / 2, 76);
@@ -2120,10 +2330,10 @@ function drawPauseMenu() {
   ctx.fillStyle = '#ffd94e';
   ctx.fillText(className() + '  ·  Nível ' + P.lvl, x + 8, y + 12);
   // abas
-  const tabs = ['Status', 'Equipar', 'Itens'];
+  const tabs = ['Status', 'Equipar', 'Itens', 'Pets'];
   ctx.font = '7px monospace';
   tabs.forEach((t, i) => {
-    const tx = x + w - 150 + i * 50;
+    const tx = x + w - 172 + i * 44;
     ctx.fillStyle = i === G.menuTab ? '#ffd94e' : '#705a80';
     ctx.fillText((i === G.menuTab ? '[' + t + ']' : ' ' + t), tx, y + 12);
   });
@@ -2208,6 +2418,41 @@ function drawPauseMenu() {
       if (eq.wtype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, y + 96 + bl.length * 9); }
       if (eq.atype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Tipo: ' + eq.atype, x + 178, y + 96 + bl.length * 9); }
     }
+  } else if (G.menuTab === 3) {
+    // ---- PETS ----
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)', x + 8, y + 26);
+    if (!P.pets.length) {
+      ctx.fillStyle = '#705a80';
+      ctx.fillText('Nenhum pet ainda.', x + 8, y + 40);
+      ctx.fillText('Monstros raramente deixam filhotes', x + 8, y + 50);
+      ctx.fillText('ao serem derrotados. Chefes sempre', x + 8, y + 60);
+      ctx.fillText('dão um companheiro!', x + 8, y + 70);
+    }
+    P.pets.forEach((id, i) => {
+      const pet = PETS[id];
+      const oy = y + 40 + i * 14;
+      const sel = G.menuIdx === i;
+      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+      const spr = petSprite(id);
+      ctx.drawImage(spr, x + 16, oy - 8);
+      ctx.fillStyle = sel ? '#fff' : RARITY[pet.rar].color;
+      ctx.fillText(pet.name, x + 32, oy);
+      if (P.activePet === id) { ctx.fillStyle = '#6ee86e'; ctx.fillText('★ ativo', x + 96, oy); }
+    });
+    // detalhes do pet selecionado
+    const selPet = P.pets[G.menuIdx];
+    if (selPet) {
+      const pet = PETS[selPet];
+      const spr = petSprite(selPet);
+      ctx.drawImage(spr, x + 176, y + 26, spr.width * 2, spr.height * 2);
+      ctx.fillStyle = RARITY[pet.rar].color;
+      ctx.fillText(RARITY[pet.rar].name, x + 176, y + 56);
+      ctx.fillStyle = '#a89ac0';
+      ctx.fillText('Passivo: ' + pet.desc, x + 176, y + 66);
+      ctx.fillText('Ataque: ' + petDmg(selPet) + ' por turno', x + 176, y + 76);
+      ctx.fillStyle = '#705a80';
+      ctx.fillText('Ataca junto com você', x + 176, y + 86);
+    }
   } else {
     // ---- ITENS ----
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Consumíveis (Z usa)', x + 8, y + 26);
@@ -2224,9 +2469,12 @@ function drawPauseMenu() {
   ctx.fillText('◀ ▶ aba · X fechar', x + 8, y + h - 6);
 }
 function updatePauseMenu() {
-  const listLen = G.menuTab === 0 ? ALLOC.length : (G.menuTab === 1 ? Math.max(1, P.equipInv.length) : Object.keys(ITEMS).length);
-  if (tap('left')) { G.menuTab = (G.menuTab + 2) % 3; G.menuIdx = 0; AU.sfx('menu'); }
-  if (tap('right')) { G.menuTab = (G.menuTab + 1) % 3; G.menuIdx = 0; AU.sfx('menu'); }
+  const listLen = G.menuTab === 0 ? ALLOC.length
+    : G.menuTab === 1 ? Math.max(1, P.equipInv.length)
+    : G.menuTab === 3 ? Math.max(1, P.pets.length)
+    : Object.keys(ITEMS).length;
+  if (tap('left')) { G.menuTab = (G.menuTab + 3) % 4; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('right')) { G.menuTab = (G.menuTab + 1) % 4; G.menuIdx = 0; AU.sfx('menu'); }
   if (tap('up')) { G.menuIdx = (G.menuIdx + listLen - 1) % listLen; AU.sfx('menu'); }
   if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % listLen; AU.sfx('menu'); }
   if (tap('ok')) {
@@ -2244,6 +2492,13 @@ function updatePauseMenu() {
       if (P.equipInv[G.menuIdx]) {
         equipFromInv(G.menuIdx);
         G.menuIdx = Math.min(G.menuIdx, Math.max(0, P.equipInv.length - 1));
+        AU.sfx('ok');
+      } else AU.sfx('back');
+    } else if (G.menuTab === 3) {
+      const id = P.pets[G.menuIdx];
+      if (id) {
+        P.activePet = P.activePet === id ? null : id;
+        clampVitals();
         AU.sfx('ok');
       } else AU.sfx('back');
     } else {
@@ -2614,6 +2869,8 @@ window.DBG = {
   },
   addXP(n) { return gainXP(n); },
   addFrags(n) { P.frags += n; },
+  givePet(id) { if (!P.pets.includes(id)) P.pets.push(id); },
+  setPet(id) { P.activePet = id; clampVitals(); },
   eff() { return eff(); },
   equip(idx) { equipFromInv(idx); },
   giveEquip(id) { return addEquipToInv(id); },
