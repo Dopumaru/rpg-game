@@ -19,7 +19,6 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     box-shadow: 0 0 60px rgba(90, 60, 160, 0.35);
-    border-radius: 4px;
   }
   #hint {
     position: absolute; left: 0; right: 0; bottom: -26px;
@@ -41,10 +40,19 @@
    ============================================================ */
 
 // ---------- Constantes ----------
-const VW = 320, VH = 180, SCALE = 3, TILE = 16;
+const VW = 320, VH = 180, TILE = 16;
 const cv = document.getElementById('screen');
 const mainCtx = cv.getContext('2d');
-mainCtx.imageSmoothingEnabled = false;
+// escala inteira dinâmica: preenche a janela mantendo pixels perfeitos
+let SCALE = 3;
+function resizeScreen() {
+  SCALE = Math.max(1, Math.floor(Math.min(window.innerWidth / VW, (window.innerHeight - 34) / VH)));
+  cv.width = VW * SCALE;
+  cv.height = VH * SCALE;
+  mainCtx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resizeScreen);
+resizeScreen();
 const buf = document.createElement('canvas');
 buf.width = VW; buf.height = VH;
 const ctx = buf.getContext('2d');
@@ -294,9 +302,16 @@ const BODIES = {
     '....O...........']
 };
 const CLASS_PAL = {
-  guerreiro: { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#c03a3a', B: '#9aa0b8', L: '#5a3a28' },
-  mago:      { O: '#1a1626', S: '#f0c8a0', H: '#d8d8e8', A: '#4a6ae0', B: '#2c3f8a', L: '#2c3f8a' },
-  ladino:    { O: '#1a1626', S: '#e8bc94', H: '#245c30', A: '#3a9a4a', B: '#245c30', L: '#3a3a2a' }
+  guerreiro:   { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#c03a3a', B: '#9aa0b8', L: '#5a3a28' },
+  mago:        { O: '#1a1626', S: '#f0c8a0', H: '#d8d8e8', A: '#4a6ae0', B: '#2c3f8a', L: '#2c3f8a' },
+  ladino:      { O: '#1a1626', S: '#e8bc94', H: '#245c30', A: '#3a9a4a', B: '#245c30', L: '#3a3a2a' },
+  aventureiro: { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#8a7a5a', B: '#6a5a42', L: '#4a3a2a' }
+};
+// aventureiro: cabeça do guerreiro sem o elmo de aço
+HEADS.aventureiro = {
+  down: HEADS.guerreiro.down.map(r => r.replace(/B/g, 'H')),
+  up: HEADS.guerreiro.up.map(r => r.replace(/B/g, 'H')),
+  side: HEADS.guerreiro.side.map(r => r.replace(/B/g, 'H'))
 };
 function heroSprite(cls, dir, frame) {
   const id = `hero_${cls}_${dir}_${frame}`;
@@ -433,6 +448,74 @@ const ENEMY_ART = {
       '...OOO....OOO...',
       '................']
   },
+  zumbi: {
+    pal: { O: '#16261a', W: '#8aac7a', w: '#6a8a5c', R: '#c03030' },
+    rows: [
+      '................',
+      '.....OOOOOO.....',
+      '....OWWWWWWO....',
+      '...OWWWWWWWWO...',
+      '...OWOWWWWOWO...',
+      '...OWRWWWWRWO...',
+      '...OWWWWWWWWO...',
+      '....OWOOOOWO....',
+      '.....OwwwwO.....',
+      '....OwOwwOwO....',
+      '...OwOOwwOOwO...',
+      '...OO.OwwO.OO...',
+      '......OwwO......',
+      '.....OwOOwO.....',
+      '.....OO..OO.....',
+      '................']
+  },
+  necromante: {
+    pal: { O: '#150f22', P: '#4a3070', p: '#5e4090', D: '#241838', G: '#6ee86e', W: '#8a6a42', Y: '#b06ae8' },
+    rows: [
+      '.Y...OOOOOO.....',
+      '.W..OPPPPPPO....',
+      '.W.OPPPPPPPPO...',
+      '.W.OPDDDDDDPO...',
+      '.W.OPDGDDGDPO...',
+      '.W.OPDDDDDDPO...',
+      '.W.OPPPPPPPPO...',
+      '.W.OpPPPPPPpO...',
+      '.WOppPPPPPPppO..',
+      '.WOppPPPPPPppO..',
+      '.WOpPPPPPPPPpO..',
+      '.W.OPPPPPPPPO...',
+      '.W.OPPPPPPPPO...',
+      '.W.OPPPPPPPPO...',
+      '...OOOOOOOOOO...',
+      '................']
+  },
+  reislime: {
+    pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c', Y: '#f0c050', y: '#c89a30' },
+    rows: [
+      '........................',
+      '......Y...Y...Y.........',
+      '......YY.YYY.YY.........',
+      '......YYYYYYYYY.........',
+      '......yyyyyyyyy.........',
+      '........................',
+      '.........OOOOOO.........',
+      '......OOOggggggOOO......',
+      '....OOgggggggggggOO.....',
+      '...OgggggggggggggggO....',
+      '..OggGGGGGGGGGGGGggO....',
+      '..OgGGWWPGGGGWWPGGgO....',
+      '.OgGGGWWPGGGGWWPGGGgO...',
+      '.OgGGGGGGGGGGGGGGGGgO...',
+      '.OgGGGGGGOOOOGGGGGGgO...',
+      '.OgGGGGGOGGGGOGGGGGgO...',
+      '.OgGGGGGGGGGGGGGGGGgO...',
+      '..OGGGGGGGGGGGGGGGGO....',
+      '..OGGGGGGGGGGGGGGGGO....',
+      '...OGGGGGGGGGGGGGGO.....',
+      '....OOGGGGGGGGGGOO......',
+      '......OOOOOOOOOO........',
+      '........................',
+      '........................']
+  },
   dragao: {
     pal: { O: '#1c1020', R: '#c03838', r: '#e05848', D: '#8a2828', Y: '#f0c050', W: '#f0f0e0', G: '#50c060' },
     rows: [
@@ -472,46 +555,107 @@ function enemySprite(type) {
 }
 
 // ---------- Definições de jogo ----------
-const CLASSES = {
-  guerreiro: {
-    name: 'Guerreiro', desc: 'Forte e resistente.\nEspada e escudo.',
-    base: { hp: 46, mp: 12, atk: 9, def: 8, mag: 3, spd: 5, crit: 0.06 },
-    growth: { hp: 13, mp: 3, atk: 3, def: 3, mag: 1, spd: 1 },
-    skills: [
-      { id: 'golpe', name: 'Golpe Forte', lvl: 1, mp: 5, desc: 'Dano físico 1.8x' },
-      { id: 'grito', name: 'Grito de Guerra', lvl: 4, mp: 8, desc: 'Aumenta ATQ por 3 turnos' },
-      { id: 'furia', name: 'Fúria', lvl: 7, mp: 14, desc: 'Dano físico 3x' }
-    ]
-  },
-  mago: {
-    name: 'Mago', desc: 'Mestre das artes\narcanas. Frágil.',
-    base: { hp: 32, mp: 26, atk: 4, def: 4, mag: 11, spd: 6, crit: 0.05 },
-    growth: { hp: 8, mp: 7, atk: 1, def: 1, mag: 4, spd: 2 },
-    skills: [
-      { id: 'fogo', name: 'Bola de Fogo', lvl: 1, mp: 6, desc: 'Dano mágico 2.2x' },
-      { id: 'gelo', name: 'Raio de Gelo', lvl: 4, mp: 10, desc: 'Dano 1.8x, pode congelar' },
-      { id: 'meteoro', name: 'Meteoro', lvl: 8, mp: 18, desc: 'Dano mágico 3.5x' }
-    ]
-  },
-  ladino: {
-    name: 'Ladino', desc: 'Rápido e mortal.\nGolpes críticos.',
-    base: { hp: 38, mp: 16, atk: 7, def: 5, mag: 5, spd: 9, crit: 0.15 },
-    growth: { hp: 10, mp: 4, atk: 2, def: 2, mag: 2, spd: 3 },
-    skills: [
-      { id: 'duplo', name: 'Golpe Duplo', lvl: 1, mp: 5, desc: 'Ataca 2x com 0.9x dano' },
-      { id: 'veneno', name: 'Lâmina Venenosa', lvl: 4, mp: 8, desc: 'Dano + veneno por 3 turnos' },
-      { id: 'exec', name: 'Execução', lvl: 7, mp: 15, desc: 'Dano 2x, sempre crítico' }
-    ]
-  }
+// A "classe" é definida pelo equipamento: espada=Guerreiro, cajado=Mago, adaga=Ladino
+const CLASS_BY_WEAPON = { espada: 'guerreiro', cajado: 'mago', adaga: 'ladino' };
+const CLASS_NAMES = { guerreiro: 'Guerreiro', mago: 'Mago', ladino: 'Ladino', aventureiro: 'Aventureiro' };
+const SET_MATCH = { espada: 'pesada', cajado: 'robe', adaga: 'couro' };
+
+const SKILLS = {
+  golpe:   { name: 'Golpe Forte',      mp: 5,  desc: 'Dano físico 1.8x' },
+  grito:   { name: 'Grito de Guerra',  mp: 8,  desc: 'Aumenta ATQ por 3 turnos' },
+  furia:   { name: 'Fúria',            mp: 14, desc: 'Dano físico 3x' },
+  fogo:    { name: 'Bola de Fogo',     mp: 6,  desc: 'Dano mágico 2.2x' },
+  gelo:    { name: 'Raio de Gelo',     mp: 10, desc: 'Dano 1.8x, pode congelar' },
+  meteoro: { name: 'Meteoro',          mp: 18, desc: 'Dano mágico 3.5x' },
+  duplo:   { name: 'Golpe Duplo',      mp: 5,  desc: 'Ataca 2x com 0.9x dano' },
+  veneno:  { name: 'Lâmina Venenosa',  mp: 8,  desc: 'Dano + veneno por 3 turnos' },
+  exec:    { name: 'Execução',         mp: 15, desc: 'Dano 2x, sempre crítico' }
 };
+const WEAPON_SKILLS = {
+  espada: [['golpe', 1], ['grito', 5], ['furia', 9]],
+  cajado: [['fogo', 1], ['gelo', 5], ['meteoro', 9]],
+  adaga:  [['duplo', 1], ['veneno', 5], ['exec', 9]]
+};
+
+// ---------- Raridade e equipamentos ----------
+const RARITY = {
+  comum:    { name: 'Comum',    color: '#c8c8d0', w: 58, price: 15 },
+  incomum:  { name: 'Incomum',  color: '#4ec065', w: 26, price: 55 },
+  raro:     { name: 'Raro',     color: '#4ea8e8', w: 11, price: 140 },
+  epico:    { name: 'Épico',    color: '#b06ae8', w: 4,  price: 380 },
+  lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 999 }
+};
+const RAR_KEYS = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
+const SLOTS = ['arma', 'corpo', 'elmo', 'amuleto'];
+const SLOT_NAMES = { arma: 'Arma', corpo: 'Corpo', elmo: 'Elmo', amuleto: 'Amuleto' };
+
+// bonus: atk/def/mag/spd/hp/mp/crit
+const EQUIP = {
+  // espadas
+  esp1: { name: 'Espada Enferrujada', slot: 'arma', rar: 'comum',    wtype: 'espada', bonus: { atk: 2 } },
+  esp2: { name: 'Espada de Ferro',    slot: 'arma', rar: 'incomum',  wtype: 'espada', bonus: { atk: 5 } },
+  esp3: { name: 'Lâmina de Aço',      slot: 'arma', rar: 'raro',     wtype: 'espada', bonus: { atk: 9, def: 2 } },
+  esp4: { name: 'Espada Flamejante',  slot: 'arma', rar: 'epico',    wtype: 'espada', bonus: { atk: 14, mag: 4 } },
+  esp5: { name: 'Lâmina do Dragão',   slot: 'arma', rar: 'lendario', wtype: 'espada', bonus: { atk: 22, hp: 20 } },
+  // cajados
+  caj1: { name: 'Galho Torto',        slot: 'arma', rar: 'comum',    wtype: 'cajado', bonus: { mag: 3 } },
+  caj2: { name: 'Cajado de Carvalho', slot: 'arma', rar: 'incomum',  wtype: 'cajado', bonus: { mag: 6 } },
+  caj3: { name: 'Cajado de Cristal',  slot: 'arma', rar: 'raro',     wtype: 'cajado', bonus: { mag: 11, mp: 10 } },
+  caj4: { name: 'Cajado Tempestade',  slot: 'arma', rar: 'epico',    wtype: 'cajado', bonus: { mag: 16, spd: 2 } },
+  caj5: { name: 'Olho do Vazio',      slot: 'arma', rar: 'lendario', wtype: 'cajado', bonus: { mag: 25, mp: 25 } },
+  // adagas
+  ada1: { name: 'Faca Cega',          slot: 'arma', rar: 'comum',    wtype: 'adaga', bonus: { atk: 1, spd: 1 } },
+  ada2: { name: 'Adaga Curva',        slot: 'arma', rar: 'incomum',  wtype: 'adaga', bonus: { atk: 3, spd: 2, crit: 0.03 } },
+  ada3: { name: 'Adaga Sombria',      slot: 'arma', rar: 'raro',     wtype: 'adaga', bonus: { atk: 6, spd: 4, crit: 0.06 } },
+  ada4: { name: 'Presa da Serpente',  slot: 'arma', rar: 'epico',    wtype: 'adaga', bonus: { atk: 10, spd: 5, crit: 0.10 } },
+  ada5: { name: 'Beijo da Morte',     slot: 'arma', rar: 'lendario', wtype: 'adaga', bonus: { atk: 15, spd: 8, crit: 0.15 } },
+  // corpo
+  arm1: { name: 'Túnica de Pano',     slot: 'corpo', rar: 'comum',   atype: 'robe',   bonus: { def: 1 } },
+  arm2: { name: 'Armadura de Couro',  slot: 'corpo', rar: 'incomum', atype: 'couro',  bonus: { def: 3, spd: 1 } },
+  arm3: { name: 'Cota de Malha',      slot: 'corpo', rar: 'raro',    atype: 'pesada', bonus: { def: 6 } },
+  arm4: { name: 'Robe Arcano',        slot: 'corpo', rar: 'raro',    atype: 'robe',   bonus: { def: 3, mp: 12, mag: 3 } },
+  arm5: { name: 'Armadura de Placas', slot: 'corpo', rar: 'epico',   atype: 'pesada', bonus: { def: 10, hp: 15 } },
+  arm6: { name: 'Manto Sombrio',      slot: 'corpo', rar: 'epico',   atype: 'couro',  bonus: { def: 6, spd: 4, crit: 0.05 } },
+  arm7: { name: 'Robe do Arquimago',  slot: 'corpo', rar: 'epico',   atype: 'robe',   bonus: { def: 5, mag: 8, mp: 20 } },
+  arm8: { name: 'Escama de Dragão',   slot: 'corpo', rar: 'lendario', atype: 'pesada', bonus: { def: 15, hp: 30 } },
+  // elmos
+  elm1: { name: 'Capuz de Pano',      slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
+  elm2: { name: 'Elmo de Ferro',      slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
+  elm3: { name: 'Chapéu do Mago',     slot: 'elmo', rar: 'raro',    bonus: { mag: 5, mp: 8 } },
+  elm4: { name: 'Capuz do Assassino', slot: 'elmo', rar: 'raro',    bonus: { spd: 3, crit: 0.04 } },
+  elm5: { name: 'Coroa Real',         slot: 'elmo', rar: 'epico',   bonus: { def: 4, hp: 10, mag: 4 } },
+  // amuletos
+  amu1: { name: 'Anel de Cobre',      slot: 'amuleto', rar: 'comum',    bonus: { hp: 5 } },
+  amu2: { name: 'Colar de Jade',      slot: 'amuleto', rar: 'incomum',  bonus: { mp: 8 } },
+  amu3: { name: 'Anel de Rubi',       slot: 'amuleto', rar: 'raro',     bonus: { atk: 3, mag: 3 } },
+  amu4: { name: 'Olho de Corvo',      slot: 'amuleto', rar: 'epico',    bonus: { crit: 0.08, spd: 2 } },
+  amu5: { name: 'Coração do Dragão',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } }
+};
+function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
+
+// pontos de status por nível e o que cada ponto dá
+const PTS_PER_LEVEL = 3;
+const ALLOC = [
+  { key: 'atk',   name: 'FOR', desc: '+1 ATQ' },
+  { key: 'maxHp', name: 'VIT', desc: '+6 HP', gain: 6 },
+  { key: 'def',   name: 'DEF', desc: '+1 DEF' },
+  { key: 'mag',   name: 'INT', desc: '+1 MAG' },
+  { key: 'maxMp', name: 'ESP', desc: '+4 MP', gain: 4 },
+  { key: 'spd',   name: 'VEL', desc: '+1 VEL' }
+];
+// tier: raridade máxima que o mob costuma dropar (índice em RAR_KEYS)
 const ENEMIES = {
-  slime:     { name: 'Slime',        hp: 16, atk: 5,  def: 2, spd: 3,  xp: 8,   gold: [3, 7],   drop: 0.25 },
-  morcego:   { name: 'Morcego',      hp: 14, atk: 6,  def: 1, spd: 8,  xp: 10,  gold: [4, 8],   drop: 0.2 },
-  lobo:      { name: 'Lobo Cinzento',hp: 26, atk: 9,  def: 3, spd: 7,  xp: 18,  gold: [8, 14],  drop: 0.25 },
-  esqueleto: { name: 'Esqueleto',    hp: 34, atk: 11, def: 5, spd: 5,  xp: 26,  gold: [12, 20], drop: 0.3,  skill: { name: 'Golpe de Osso', mult: 1.5, chance: 0.25 } },
-  orc:       { name: 'Orc Bruto',    hp: 48, atk: 14, def: 6, spd: 4,  xp: 40,  gold: [18, 30], drop: 0.35, skill: { name: 'Esmagar', mult: 1.7, chance: 0.3 } },
-  golem:     { name: 'Golem de Pedra', hp: 70, atk: 16, def: 10, spd: 2, xp: 60, gold: [30, 45], drop: 0.4, skill: { name: 'Terremoto', mult: 1.6, chance: 0.3 } },
-  dragao:    { name: 'Vorax, o Dragão', hp: 220, atk: 22, def: 10, spd: 7, xp: 300, gold: [200, 200], drop: 1, boss: true, skill: { name: 'Sopro de Fogo', mult: 1.8, chance: 0.4 } }
+  slime:      { name: 'Slime',          hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1 },
+  morcego:    { name: 'Morcego',        hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1 },
+  lobo:       { name: 'Lobo Cinzento',  hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2 },
+  esqueleto:  { name: 'Esqueleto',      hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, skill: { name: 'Golpe de Osso', mult: 1.5, chance: 0.25 } },
+  zumbi:      { name: 'Zumbi',          hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, skill: { name: 'Mordida Podre', mult: 1.4, chance: 0.3 } },
+  orc:        { name: 'Orc Bruto',      hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, skill: { name: 'Esmagar', mult: 1.7, chance: 0.3 } },
+  golem:      { name: 'Golem de Pedra', hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, skill: { name: 'Terremoto', mult: 1.6, chance: 0.3 } },
+  // chefes (stats fixos, drop assinatura garantido)
+  reislime:   { name: 'Rei Slime',        hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, boss: true, sig: 'elm5', skill: { name: 'Salto Esmagador', mult: 1.6, chance: 0.3 } },
+  necromante: { name: 'Malakar, o Necromante', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, boss: true, sig: 'amu4', skill: { name: 'Raio Sombrio', mult: 1.8, chance: 0.4 } },
+  dragao:     { name: 'Vorax, o Dragão',  hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, boss: true, sig: 'weapon', skill: { name: 'Sopro de Fogo', mult: 1.8, chance: 0.4 } }
 };
 const ITEMS = {
   pocao: { name: 'Poção', desc: 'Recupera 45% do HP', price: 25 },
@@ -524,66 +668,101 @@ const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 // tiles: 0 grama 1 árvore 2 água 3 caminho 4 flor 5 muro-pedra 6 piso-pedra
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
-const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18]);
+// 20 lápide
+const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20]);
 const MAPS = {};
 
 function genOverworld() {
-  const W = 64, H = 48;
+  const W = 96, H = 64;
   const t = [];
   for (let y = 0; y < H; y++) { t.push(new Array(W).fill(0)); }
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
   const rect = (x, y, w, h, v) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(i, j, v); };
   // bordas de árvores
   rect(0, 0, W, 2, 1); rect(0, H - 2, W, 2, 1); rect(0, 0, 2, H, 1); rect(W - 2, 0, 2, H, 1);
-  // montanhas ao norte
-  rect(0, 0, W, 8, 8);
-  // entrada da caverna
-  rect(31, 6, 3, 2, 8); set(32, 7, 11); set(31, 8, 3); set(32, 8, 3); set(33, 8, 3);
-  // rio horizontal
-  rect(2, 20, 60, 3, 2);
-  // pontes
-  rect(20, 20, 2, 3, 7); rect(44, 20, 2, 3, 7);
-  // floresta leste (densa, com clareiras)
-  for (let y = 24; y < 46; y++) for (let x = 46; x < 62; x++) {
-    if (hash2(x, y) < 0.55) set(x, y, 1);
+  // montanhas ao norte + entrada da caverna
+  rect(0, 0, W, 10, 8);
+  set(48, 9, 11); set(47, 10, 3); set(48, 10, 3); set(49, 10, 3);
+  // rio horizontal + pontes
+  rect(2, 28, 92, 3, 2);
+  rect(20, 28, 2, 3, 7); rect(48, 28, 2, 3, 7); rect(76, 28, 2, 3, 7);
+  // FLORESTA UMBRIA (oeste) com clareira do Rei Slime
+  for (let y = 32; y < 43; y++) for (let x = 6; x < 27; x++) {
+    if (hash2(x, y) < 0.6) set(x, y, 1);
   }
-  // bolsões de árvores
-  for (let i = 0; i < 26; i++) {
-    const cx = irnd(4, 59), cy = irnd(10, 44), r = irnd(1, 2);
-    if (cx > 8 && cx < 26 && cy > 32) continue; // não na vila
+  rect(11, 35, 7, 5, 0);
+  // BOSQUE SOMBRIO (leste)
+  for (let y = 34; y < 49; y++) for (let x = 56; x < 91; x++) {
+    if (hash2(x + 7, y + 3) < 0.55) set(x, y, 1);
+  }
+  // bolsões de árvores no norte e campos
+  for (let i = 0; i < 40; i++) {
+    const cx = irnd(4, 91), cy = irnd(11, 60), r = irnd(1, 2);
+    if (cx > 10 && cx < 30 && cy > 42) continue;      // Aldeia Verde
+    if (cx > 64 && cx < 86 && cy > 12 && cy < 26) continue; // Vila Rocha
+    if (cx > 72 && cy > 48) continue;                  // cemitério
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (hash2(x * 3, y * 3) < 0.7 && t[y] && t[y][x] === 0) set(x, y, 1);
     }
   }
-  // lago sudoeste
-  for (let y = 38; y < 45; y++) for (let x = 4; x < 12; x++) {
-    const d = Math.hypot(x - 7.5, y - 41.5);
-    if (d < 3.4) set(x, y, 2);
+  // lagoa central
+  for (let y = 35; y < 42; y++) for (let x = 31; x < 39; x++) {
+    if (Math.hypot(x - 34.5, y - 38) < 3.2) set(x, y, 2);
   }
-  // VILA (x 10..24, y 34..45)
-  rect(10, 34, 15, 12, 0);
-  // casas (telhado + porta)
-  rect(11, 35, 4, 2, 18); rect(11, 37, 4, 2, 5); set(12, 38, 19);
-  rect(20, 35, 4, 2, 18); rect(20, 37, 4, 2, 5); set(21, 38, 19);
-  // fonte central
-  set(17, 40, 13);
-  // loja
-  rect(20, 42, 3, 1, 18); set(20, 43, 5); set(21, 43, 14); set(22, 43, 5);
-  // caminhos
-  rect(17, 34, 1, 12, 3); rect(11, 40, 13, 1, 3);
-  set(17, 40, 13);
-  // caminho da vila até a ponte oeste e ao norte
-  rect(17, 24, 1, 10, 3); rect(17, 23, 4, 1, 3); rect(20, 12, 1, 11, 3);
-  rect(20, 11, 13, 1, 3); rect(32, 9, 1, 3, 3);
+  // ALDEIA VERDE (sul)
+  rect(12, 44, 17, 13, 0);
+  rect(14, 45, 4, 2, 18); rect(14, 47, 4, 2, 5); set(15, 48, 19);
+  rect(23, 45, 4, 2, 18); rect(23, 47, 4, 2, 5); set(24, 48, 19);
+  set(20, 50, 13); // fonte
+  rect(23, 52, 3, 1, 18); set(23, 53, 5); set(24, 53, 14); set(25, 53, 5); // loja
+  rect(20, 44, 1, 13, 3); rect(13, 50, 15, 1, 3);
+  set(20, 50, 13);
+  // VILA ROCHA (nordeste, junto às montanhas)
+  rect(66, 13, 19, 12, 0);
+  rect(68, 14, 4, 2, 18); rect(68, 16, 4, 2, 5); set(69, 17, 19);
+  rect(80, 14, 4, 2, 18); rect(80, 16, 4, 2, 5); set(81, 17, 19);
+  set(74, 20, 13); // fonte
+  rect(77, 21, 3, 1, 18); set(77, 22, 5); set(78, 22, 14); set(79, 22, 5); // loja
+  rect(76, 13, 1, 12, 3); rect(67, 20, 17, 1, 3);
+  set(74, 20, 13);
+  // CEMITÉRIO ANTIGO (sudeste)
+  for (let y = 50; y < 61; y++) for (let x = 74; x < 91; x++) {
+    if (t[y][x] === 1) set(x, y, 0);
+    if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
+  }
+  // estradas
+  rect(20, 31, 1, 13, 3);              // ponte oeste -> Aldeia Verde
+  rect(20, 11, 1, 17, 3);              // ponte oeste -> norte
+  rect(20, 11, 29, 1, 3);              // norte -> caverna
+  rect(48, 11, 1, 17, 3);              // caverna -> ponte central
+  rect(48, 31, 1, 19, 3);              // ponte central -> estrada sul
+  rect(21, 50, 56, 1, 3);              // estrada sul: aldeia -> cemitério
+  rect(76, 25, 1, 3, 3);               // Vila Rocha -> ponte leste
+  rect(76, 31, 1, 19, 3);              // ponte leste -> estrada sul
   // placas
-  set(16, 36, 15); set(19, 24, 15); set(31, 10, 15);
-  // flores espalhadas
+  set(19, 46, 15); set(19, 32, 15); set(47, 12, 15); set(73, 50, 15); set(73, 19, 15);
+  // flores
   for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
-    if (t[y][x] === 0 && hash2(x * 7, y * 7) < 0.06) set(x, y, 4);
+    if (t[y][x] === 0 && hash2(x * 7, y * 7) < 0.05) set(x, y, 4);
   }
-  // baú na floresta
-  set(55, 30, 16);
+  // baús escondidos
+  set(8, 33, 16); set(88, 36, 16); set(89, 59, 16);
   return { w: W, h: H, tiles: t, name: 'overworld' };
+}
+
+// regiões nomeadas (toast ao entrar)
+const REGIONS = [
+  { x1: 12, y1: 44, x2: 28, y2: 56, name: 'Aldeia Verde' },
+  { x1: 66, y1: 13, x2: 84, y2: 24, name: 'Vila Rocha' },
+  { x1: 6,  y1: 32, x2: 26, y2: 42, name: 'Floresta Umbria' },
+  { x1: 74, y1: 49, x2: 90, y2: 61, name: 'Cemitério Antigo' },
+  { x1: 56, y1: 33, x2: 90, y2: 49, name: 'Bosque Sombrio' },
+  { x1: 2,  y1: 10, x2: 93, y2: 27, name: 'Terras do Norte' },
+  { x1: 2,  y1: 31, x2: 93, y2: 61, name: 'Campos Verdejantes' }
+];
+function regionAt(tx, ty) {
+  for (const r of REGIONS) if (tx >= r.x1 && tx <= r.x2 && ty >= r.y1 && ty <= r.y2) return r.name;
+  return null;
 }
 
 function genCave() {
@@ -613,7 +792,7 @@ function genCave() {
 
 // ---------- Estado global ----------
 const G = {
-  state: 'title',     // title | classSelect | world | battle | dialog | menu | shop | gameover | victory
+  state: 'title',     // title | world | battle | dialog | menu | shop | gameover | victory
   time: 0,
   map: null,
   camX: 0, camY: 0,
@@ -627,34 +806,97 @@ const G = {
   battle: null,
   menuIdx: 0, menuTab: 0,
   shopIdx: 0,
-  classIdx: 0,
   titleIdx: 0,
-  bossDefeated: false,
+  flags: { reislime: false, necromante: false, dragao: false },
   chests: {},         // id -> true (abertos)
-  respawnPos: null,
+  region: null,
+  shopId: 'aldeia',
   victoryShown: false,
   stats: { kills: 0, battles: 0 }
 };
 let P = null; // jogador
 
-function newPlayer(cls) {
-  const c = CLASSES[cls];
+const START = { x: 20 * TILE, y: 52 * TILE };
+function newPlayer() {
   return {
-    cls, name: c.name,
-    lvl: 1, xp: 0,
-    hp: c.base.hp, maxHp: c.base.hp,
-    mp: c.base.mp, maxMp: c.base.mp,
-    atk: c.base.atk, def: c.base.def, mag: c.base.mag, spd: c.base.spd,
-    crit: c.base.crit,
+    lvl: 1, xp: 0, pts: 0,
+    hp: 40, maxHp: 40,
+    mp: 15, maxMp: 15,
+    atk: 6, def: 5, mag: 6, spd: 6, crit: 0.05,
     gold: 30,
     items: { pocao: 3, eter: 1, elixir: 0 },
-    x: 17 * TILE, y: 42 * TILE,
+    equip: { arma: 'esp1', corpo: 'arm1', elmo: null, amuleto: null },
+    equipInv: ['caj1', 'ada1'],
+    x: START.x, y: START.y,
     dir: 'down', moving: false, animT: 0, frame: 0,
     mapName: 'overworld'
   };
 }
+
+// classe derivada da arma equipada
+function weaponType() { const w = P.equip.arma; return w ? EQUIP[w].wtype : null; }
+function curClass() { const t = weaponType(); return t ? CLASS_BY_WEAPON[t] : 'aventureiro'; }
+function className() { return CLASS_NAMES[curClass()]; }
+// conjunto: arma + armadura do tipo correspondente
+function setActive() {
+  const t = weaponType();
+  if (!t) return false;
+  const c = P.equip.corpo;
+  return !!(c && EQUIP[c].atype === SET_MATCH[t]);
+}
+// status efetivos = base (pontos) + equipamentos + bônus de conjunto
+function eff() {
+  const e = { atk: P.atk, def: P.def, mag: P.mag, spd: P.spd, crit: P.crit, maxHp: P.maxHp, maxMp: P.maxMp };
+  for (const slot of SLOTS) {
+    const id = P.equip[slot];
+    if (!id) continue;
+    const b = EQUIP[id].bonus;
+    if (b.atk) e.atk += b.atk;
+    if (b.def) e.def += b.def;
+    if (b.mag) e.mag += b.mag;
+    if (b.spd) e.spd += b.spd;
+    if (b.crit) e.crit += b.crit;
+    if (b.hp) e.maxHp += b.hp;
+    if (b.mp) e.maxMp += b.mp;
+  }
+  if (setActive()) {
+    const t = weaponType();
+    if (t === 'espada') { e.atk = Math.round(e.atk * 1.15); e.def = Math.round(e.def * 1.10); }
+    if (t === 'cajado') { e.mag = Math.round(e.mag * 1.15); e.maxMp = Math.round(e.maxMp * 1.10); }
+    if (t === 'adaga')  { e.atk = Math.round(e.atk * 1.08); e.spd += 2; e.crit += 0.05; }
+  }
+  return e;
+}
+function clampVitals() {
+  const e = eff();
+  P.hp = Math.min(P.hp, e.maxHp);
+  P.mp = Math.min(P.mp, e.maxMp);
+}
+function addEquipToInv(id) {
+  if (P.equipInv.length >= 18) {
+    const g = Math.max(5, Math.round(equipPrice(id) / 2));
+    P.gold += g;
+    return { full: true, gold: g };
+  }
+  P.equipInv.push(id);
+  return { full: false };
+}
+function equipFromInv(idx) {
+  const id = P.equipInv[idx];
+  if (!id) return;
+  const slot = EQUIP[id].slot;
+  const old = P.equip[slot];
+  P.equip[slot] = id;
+  P.equipInv.splice(idx, 1);
+  if (old) P.equipInv.push(old);
+  clampVitals();
+}
+
 function playerSkills() {
-  return CLASSES[P.cls].skills.filter(s => P.lvl >= s.lvl);
+  const t = weaponType();
+  if (!t) return [];
+  return WEAPON_SKILLS[t].filter(([id, lvl]) => P.lvl >= lvl)
+    .map(([id, lvl]) => ({ id, lvl, ...SKILLS[id] }));
 }
 function gainXP(amt) {
   P.xp += amt;
@@ -662,33 +904,64 @@ function gainXP(amt) {
   while (P.xp >= XP_NEXT(P.lvl)) {
     P.xp -= XP_NEXT(P.lvl);
     P.lvl++;
-    const g = CLASSES[P.cls].growth;
-    P.maxHp += g.hp; P.maxMp += g.mp;
-    P.atk += g.atk; P.def += g.def; P.mag += g.mag; P.spd += g.spd;
-    P.hp = P.maxHp; P.mp = P.maxMp;
+    P.maxHp += 4; P.maxMp += 2;      // crescimento básico
+    P.pts += PTS_PER_LEVEL;          // pontos livres para distribuir
+    const e = eff();
+    P.hp = e.maxHp; P.mp = e.maxMp;  // cura total ao subir
     ups.push(P.lvl);
-    // nova habilidade?
-    const ns = CLASSES[P.cls].skills.find(s => s.lvl === P.lvl);
-    if (ns) ups.newSkill = ns.name;
+    const t = weaponType();
+    if (t) {
+      const ns = WEAPON_SKILLS[t].find(([id, lvl]) => lvl === P.lvl);
+      if (ns) ups.newSkill = SKILLS[ns[0]].name;
+    }
   }
   return ups;
 }
 
+// ---------- Loot por raridade ----------
+function rollRarity(maxTier) {
+  let total = 0;
+  for (let i = 0; i <= maxTier; i++) total += RARITY[RAR_KEYS[i]].w;
+  let r = Math.random() * total;
+  for (let i = 0; i <= maxTier; i++) {
+    r -= RARITY[RAR_KEYS[i]].w;
+    if (r <= 0) return RAR_KEYS[i];
+  }
+  return RAR_KEYS[0];
+}
+function rollLoot(type) {
+  const d = ENEMIES[type];
+  if (d.boss) {
+    // drop assinatura: dragão dá a arma lendária do estilo atual
+    if (d.sig === 'weapon') {
+      const t = weaponType();
+      return t === 'cajado' ? 'caj5' : t === 'adaga' ? 'ada5' : 'esp5';
+    }
+    return d.sig;
+  }
+  if (Math.random() > d.drop) return null;
+  // 55% consumível, 45% equipamento
+  if (Math.random() < 0.55) return Math.random() < 0.7 ? 'c:pocao' : 'c:eter';
+  const rar = rollRarity(Math.min(d.tier, RAR_KEYS.length - 1));
+  const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !['esp5', 'caj5', 'ada5', 'elm5', 'amu4', 'amu5', 'arm8'].includes(k));
+  return pool.length ? pick(pool) : null;
+}
+
 // ---------- Save / Load ----------
-const SAVE_KEY = 'cronicas_pixel_save_v1';
+const SAVE_KEY = 'cronicas_pixel_save_v2';
 function saveGame() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      p: { ...P }, bossDefeated: G.bossDefeated, chests: G.chests, stats: G.stats, victoryShown: G.victoryShown
+      p: { ...P }, flags: G.flags, chests: G.chests, stats: G.stats, victoryShown: G.victoryShown
     }));
   } catch (e) {}
 }
 function loadGame() {
   try {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!d || !d.p || !CLASSES[d.p.cls]) return false;
+    if (!d || !d.p || !d.p.equip) return false;
     P = d.p;
-    G.bossDefeated = !!d.bossDefeated;
+    G.flags = d.flags || { reislime: false, necromante: false, dragao: false };
     G.chests = d.chests || {};
     G.stats = d.stats || { kills: 0, battles: 0 };
     G.victoryShown = !!d.victoryShown;
@@ -713,20 +986,30 @@ function enterMap(name, px, py) {
   P.x = px; P.y = py;
   G.entities = [];
   spawnEnemies(true);
-  if (name === 'cave' && !G.bossDefeated) {
-    G.entities.push(makeEntity('dragao', 18 * TILE, 4 * TILE, 10, true));
+  if (name === 'cave') {
+    if (!G.flags.dragao) G.entities.push(makeEntity('dragao', 18 * TILE, 4 * TILE, 12, true));
+    G.region = 'Caverna de Vorax';
+    toast('Caverna de Vorax');
+  } else {
+    if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 14 * TILE, 37 * TILE, 5, true));
+    if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 82 * TILE, 55 * TILE, 8, true));
+    G.region = null;
   }
   AU.setTrack(name === 'cave' ? AU.CAVE : AU.WORLD);
 }
 
 const SPAWN_ZONES = {
   overworld: [
-    { x1: 4, y1: 24, x2: 44, y2: 45, types: ['slime', 'morcego'], lv: [1, 2], count: 7, exclude: { x1: 9, y1: 33, x2: 25, y2: 46 } },
-    { x1: 4, y1: 9, x2: 60, y2: 19, types: ['lobo', 'esqueleto'], lv: [3, 5], count: 7 },
-    { x1: 46, y1: 24, x2: 61, y2: 45, types: ['morcego', 'lobo'], lv: [3, 5], count: 5 }
+    { x1: 6, y1: 32, x2: 70, y2: 61, types: ['slime', 'morcego'], lv: [1, 2], count: 8,
+      exclude: [{ x1: 11, y1: 43, x2: 29, y2: 57 }, { x1: 5, y1: 31, x2: 27, y2: 43 }] },
+    { x1: 6, y1: 32, x2: 26, y2: 42, types: ['lobo', 'morcego'], lv: [3, 5], count: 5 },
+    { x1: 6, y1: 11, x2: 90, y2: 26, types: ['lobo', 'esqueleto'], lv: [4, 6], count: 8,
+      exclude: [{ x1: 65, y1: 12, x2: 85, y2: 25 }] },
+    { x1: 56, y1: 34, x2: 90, y2: 48, types: ['esqueleto', 'lobo'], lv: [5, 7], count: 6 },
+    { x1: 74, y1: 50, x2: 90, y2: 60, types: ['zumbi', 'esqueleto'], lv: [6, 8], count: 5 }
   ],
   cave: [
-    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['esqueleto', 'orc', 'golem'], lv: [6, 9], count: 8 }
+    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['esqueleto', 'orc', 'golem'], lv: [7, 9], count: 8 }
   ]
 };
 function makeEntity(type, x, y, lvl, isBoss) {
@@ -744,7 +1027,7 @@ function spawnEnemies(initial) {
     for (let i = cur; i < want; i++) {
       for (let tries = 0; tries < 30; tries++) {
         const tx = irnd(z.x1, z.x2), ty = irnd(z.y1, z.y2);
-        if (z.exclude && tx >= z.exclude.x1 && tx <= z.exclude.x2 && ty >= z.exclude.y1 && ty <= z.exclude.y2) continue;
+        if (z.exclude && z.exclude.some(ex => tx >= ex.x1 && tx <= ex.x2 && ty >= ex.y1 && ty <= ex.y2)) continue;
         if (isSolid(G.map, tx, ty)) continue;
         const px = tx * TILE, py = ty * TILE;
         if (Math.hypot(px - P.x, py - P.y) < TILE * 7) continue;
@@ -788,9 +1071,11 @@ function facingTile() {
 }
 
 const SIGNS = {
-  '16,36': 'Vila de Aldeia Verde.\nBem-vindo, aventureiro!',
-  '19,24': 'Ao norte: terras selvagens.\nPerigo! Monstros nível 3+.',
-  '31,10': 'CUIDADO! Caverna de Vorax.\nApenas heróis experientes.'
+  '19,46': 'Aldeia Verde.\nBem-vindo, aventureiro!',
+  '19,32': 'Floresta Umbria a oeste.\nDizem que um slime gigante\nvive na clareira...',
+  '47,12': 'CUIDADO! Caverna de Vorax.\nApenas heróis experientes.',
+  '73,50': 'Cemitério Antigo.\nOs mortos não descansam...\nMalakar os comanda.',
+  '73,19': 'Vila Rocha.\nMineradores e bons negócios.'
 };
 
 function updateWorld(dt) {
@@ -819,7 +1104,12 @@ function updateWorld(dt) {
   if (cur === 11) { // entrada caverna
     fadeTo(() => { enterMap('cave', 18 * TILE, 21 * TILE); P.dir = 'up'; saveGame(); });
   } else if (cur === 12) { // saída caverna
-    fadeTo(() => { enterMap('overworld', 32 * TILE, 9 * TILE); P.dir = 'down'; saveGame(); });
+    fadeTo(() => { enterMap('overworld', 48 * TILE, 10 * TILE); P.dir = 'down'; saveGame(); });
+  }
+  // toast de região
+  if (G.map.name === 'overworld') {
+    const rg = regionAt(ptx, pty);
+    if (rg && rg !== G.region) { G.region = rg; toast(rg); }
   }
 
   // interação (Z)
@@ -827,14 +1117,16 @@ function updateWorld(dt) {
     const f = facingTile();
     const key = f.tx + ',' + f.ty;
     if (f.t === 13) { // fonte
-      if (P.hp < P.maxHp || P.mp < P.maxMp) {
-        P.hp = P.maxHp; P.mp = P.maxMp;
+      const E0 = eff();
+      if (P.hp < E0.maxHp || P.mp < E0.maxMp) {
+        P.hp = E0.maxHp; P.mp = E0.maxMp;
         AU.sfx('heal');
         addFloater(P.x + 8, P.y - 4, '+HP/MP', '#6ee86e');
         showMsg('A fonte mágica restaurou\nsuas forças! (jogo salvo)');
         saveGame();
       } else showMsg('A água da fonte brilha\ncom energia mágica.');
-    } else if (f.t === 14) { // loja
+    } else if (f.t === 14) { // loja (estoque depende da cidade)
+      G.shopId = f.tx < 50 ? 'aldeia' : 'rocha';
       G.state = 'shop'; G.shopIdx = 0; AU.sfx('ok');
     } else if (f.t === 15 && SIGNS[key]) {
       showMsg(SIGNS[key]);
@@ -844,8 +1136,14 @@ function updateWorld(dt) {
         G.chests[cid] = true;
         G.map.tiles[f.ty][f.tx] = 17;
         AU.sfx('chest');
-        const loot = G.map.name === 'cave' ? pick([{ gold: 60 }, { item: 'elixir' }]) : { item: 'pocao', n: 2 };
+        const loot = G.map.name === 'cave'
+          ? pick([{ gold: 80 }, { item: 'elixir' }, { eq: pick(['arm5', 'esp4', 'caj4', 'ada4']) }])
+          : pick([{ item: 'pocao', n: 2 }, { gold: 45 }, { eq: pick(['esp3', 'caj3', 'ada3', 'arm3', 'arm4', 'elm3', 'elm4', 'amu3']) }]);
         if (loot.gold) { P.gold += loot.gold; showMsg('Você encontrou ' + loot.gold + ' de ouro!'); }
+        else if (loot.eq) {
+          const r = addEquipToInv(loot.eq);
+          showMsg('Você encontrou:\n' + EQUIP[loot.eq].name + ' [' + RARITY[EQUIP[loot.eq].rar].name + ']' + (r.full ? '\n(inventário cheio: +' + r.gold + ' ouro)' : ''));
+        }
         else { const n = loot.n || 1; P.items[loot.item] += n; showMsg('Você encontrou ' + (n > 1 ? n + 'x ' : '') + ITEMS[loot.item].name + '!'); }
         saveGame();
       }
@@ -896,8 +1194,8 @@ function updateWorld(dt) {
 // ---------- Batalha ----------
 function enemyStats(type, lvl) {
   const d = ENEMIES[type];
-  // chefes já têm stats de chefe: escala fixa e moderada
-  const f = d.boss ? 1.6 : 1 + (lvl - 1) * 0.22;
+  // chefes já têm stats de chefe definidos; mobs comuns escalam com o nível
+  const f = d.boss ? 1 : 1 + (lvl - 1) * 0.22;
   return {
     type, lvl, name: d.name,
     hp: Math.round(d.hp * f), maxHp: Math.round(d.hp * f),
@@ -913,7 +1211,7 @@ function startBattle(ent) {
     enemy: e, ent,
     phase: 'intro', t: 0,
     menuIdx: 0, sub: null, subIdx: 0,
-    log: e.boss ? 'Vorax, o Dragão, bloqueia\nseu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
+    log: e.boss ? e.name + ' bloqueia seu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
     pAnim: 0, eAnim: 0, eFlash: 0, pFlash: 0,
     atkBuff: 0, poison: 0, frozen: false,
     dmgPops: [], rewards: null, swirl: 0
@@ -934,11 +1232,12 @@ function addDmgPop(b, who, val, color) {
 function playerAttack(b, opts) {
   const o = opts || {};
   const mult = o.mult || 1;
+  const E = eff();
   let dmg;
-  let crit = o.forceCrit || Math.random() < P.crit;
-  const atkNow = P.atk + (b.atkBuff > 0 ? Math.round(P.atk * 0.5) : 0);
+  let crit = o.forceCrit || Math.random() < E.crit;
+  const atkNow = E.atk + (b.atkBuff > 0 ? Math.round(E.atk * 0.5) : 0);
   if (o.magic) {
-    dmg = calcDamage(P.mag, b.enemy.def, mult, true);
+    dmg = calcDamage(E.mag, b.enemy.def, mult, true);
     crit = false;
   } else {
     dmg = calcDamage(atkNow, b.enemy.def, mult);
@@ -975,7 +1274,7 @@ function enemyTurn(b) {
 }
 function applyEnemyHit(b) {
   const pe = b.pendingEnemy || { mult: 1 };
-  const dmg = calcDamage(b.enemy.atk, P.def, pe.mult);
+  const dmg = calcDamage(b.enemy.atk, eff().def, pe.mult);
   P.hp = Math.max(0, P.hp - dmg);
   b.pFlash = 0.25;
   G.shake = 4;
@@ -990,25 +1289,35 @@ function endBattleWin(b) {
   const e = b.enemy;
   const ups = gainXP(e.xp);
   P.gold += e.gold;
-  let dropTxt = null;
-  if (Math.random() < e.drop) {
-    const it = e.boss ? 'elixir' : (Math.random() < 0.7 ? 'pocao' : 'eter');
-    P.items[it] = Math.min(9, P.items[it] + 1);
-    dropTxt = ITEMS[it].name;
+  // loot por raridade
+  let dropTxt = null, dropColor = null;
+  const loot = rollLoot(e.type);
+  if (loot) {
+    if (loot.startsWith('c:')) {
+      const it = loot.slice(2);
+      P.items[it] = Math.min(9, P.items[it] + 1);
+      dropTxt = ITEMS[it].name;
+      dropColor = '#c8c8d0';
+    } else {
+      const r = addEquipToInv(loot);
+      const eq = EQUIP[loot];
+      dropTxt = eq.name + ' [' + RARITY[eq.rar].name + ']' + (r.full ? ' → +' + r.gold + ' ouro' : '');
+      dropColor = RARITY[eq.rar].color;
+    }
   }
-  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, newSkill: ups.newSkill };
+  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) AU.sfx('level'); else AU.sfx('victory');
   // remove do mapa
   const i = G.entities.indexOf(b.ent);
   if (i >= 0) G.entities.splice(i, 1);
-  if (e.boss) G.bossDefeated = true;
+  if (e.boss) G.flags[e.type] = true;
   saveGame();
 }
 
 function fleeBattle(b) {
-  const chance = clamp(0.5 + (P.spd - b.enemy.spd) * 0.06, 0.25, 0.95);
-  if (b.enemy.boss) { battleLog(b, 'Não há como fugir do dragão!'); b.phase = 'menu'; return; }
+  const chance = clamp(0.5 + (eff().spd - b.enemy.spd) * 0.06, 0.25, 0.95);
+  if (b.enemy.boss) { battleLog(b, 'Não dá para fugir de um chefe!'); b.phase = 'menu'; return; }
   if (Math.random() < chance) {
     AU.sfx('flee');
     battleLog(b, 'Você fugiu!');
@@ -1022,18 +1331,19 @@ function fleeBattle(b) {
 function useItemBattle(b, id) {
   if (P.items[id] <= 0) return false;
   P.items[id]--;
+  const E = eff();
   if (id === 'pocao') {
-    const h = Math.round(P.maxHp * 0.45);
-    P.hp = Math.min(P.maxHp, P.hp + h);
+    const h = Math.round(E.maxHp * 0.45);
+    P.hp = Math.min(E.maxHp, P.hp + h);
     addDmgPop(b, 'player', '+' + h, '#6ee86e');
     battleLog(b, 'Poção! Recuperou ' + h + ' HP.');
   } else if (id === 'eter') {
-    const m = Math.round(P.maxMp * 0.4);
-    P.mp = Math.min(P.maxMp, P.mp + m);
+    const m = Math.round(E.maxMp * 0.4);
+    P.mp = Math.min(E.maxMp, P.mp + m);
     addDmgPop(b, 'player', '+' + m + 'MP', '#6ea8ff');
     battleLog(b, 'Éter! Recuperou ' + m + ' MP.');
   } else if (id === 'elixir') {
-    P.hp = P.maxHp; P.mp = P.maxMp;
+    P.hp = E.maxHp; P.mp = E.maxMp;
     addDmgPop(b, 'player', 'MAX', '#ffd94e');
     battleLog(b, 'Elixir! HP e MP restaurados!');
   }
@@ -1140,12 +1450,17 @@ function updateBattle(dt) {
       break;
     case 'result':
       if (b.t > 0.35 && tap('ok')) {
-        if (b.enemy.boss && !G.victoryShown) {
+        if (b.enemy.type === 'dragao' && !G.victoryShown) {
           G.victoryShown = true;
           G.state = 'victory'; G.battle = null;
           saveGame();
         } else {
-          fadeTo(() => { G.state = 'world'; G.battle = null; AU.setTrack(G.map.name === 'cave' ? AU.CAVE : AU.WORLD); });
+          const wasBoss = b.enemy.boss, bossName = b.enemy.name;
+          fadeTo(() => {
+            G.state = 'world'; G.battle = null;
+            AU.setTrack(G.map.name === 'cave' ? AU.CAVE : AU.WORLD);
+            if (wasBoss) showMsg(bossName + ' foi derrotado!\nA região está mais segura.');
+          });
         }
       }
       break;
@@ -1339,6 +1654,14 @@ function drawTile(t, x, y, tx, ty) {
       ctx.fillStyle = '#e8c050'; ctx.fillRect(x + 10, y + 9, 2, 2);
       break;
     }
+    case 20: { // lápide
+      ctx.fillStyle = '#38583a'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#1a1626'; ctx.fillRect(x + 4, y + 4, 8, 11);
+      ctx.fillStyle = '#8a8a9a'; ctx.fillRect(x + 5, y + 5, 6, 9);
+      ctx.fillStyle = '#9e9eae'; ctx.fillRect(x + 6, y + 4, 4, 2);
+      ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x + 6, y + 8, 4, 1); ctx.fillRect(x + 7, y + 6, 2, 5);
+      break;
+    }
   }
 }
 
@@ -1364,7 +1687,7 @@ function drawWorld() {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(ex + 3, ey + 14, 10, 2);
     if (e === P) {
-      ctx.drawImage(heroSprite(P.cls, P.dir, P.frame), ex, ey);
+      ctx.drawImage(heroSprite(curClass(), P.dir, P.frame), ex, ey);
     } else {
       const bob = e.type === 'morcego' ? Math.round(Math.sin(e.animT * 6) * 2) : (Math.floor(e.animT * 4) % 2);
       ctx.drawImage(enemySprite(e.type), ex, ey - (e.isBoss ? 6 : 0) - bob);
@@ -1403,19 +1726,21 @@ function drawWorldHUD() {
   ctx.fillRect(3, 3, 96, 40);
   ctx.strokeStyle = '#5a4a8a'; ctx.lineWidth = 1;
   ctx.strokeRect(3.5, 3.5, 95, 39);
+  const E = eff();
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
-  ctx.fillText(P.name + '  Nv.' + P.lvl, 8, 12);
-  barRect(8, 16, 62, 4, P.hp / P.maxHp, P.hp / P.maxHp < 0.3 ? '#e05050' : '#50c060');
-  ctx.fillStyle = '#cfc8e0'; ctx.fillText(P.hp + '/' + P.maxHp, 73, 21);
-  barRect(8, 24, 62, 3, P.mp / P.maxMp, '#5080e0');
+  ctx.fillText(className() + '  Nv.' + P.lvl, 8, 12);
+  barRect(8, 16, 62, 4, P.hp / E.maxHp, P.hp / E.maxHp < 0.3 ? '#e05050' : '#50c060');
+  ctx.fillStyle = '#cfc8e0'; ctx.fillText(P.hp + '/' + E.maxHp, 73, 21);
+  barRect(8, 24, 62, 3, P.mp / E.maxMp, '#5080e0');
   ctx.fillStyle = '#cfc8e0'; ctx.fillText('' + P.mp, 73, 28);
   barRect(8, 31, 62, 2, P.xp / XP_NEXT(P.lvl), '#e8c050');
   ctx.fillStyle = '#b8a8d8'; ctx.fillText('XP', 73, 35);
   ctx.fillStyle = '#ffd94e';
   ctx.fillText('$' + P.gold, 8, 41);
+  if (P.pts > 0) { ctx.fillStyle = '#6ee86e'; ctx.fillText('+' + P.pts + ' pts (C)', 40, 41); }
   // HP baixo: vinheta
-  if (P.hp / P.maxHp < 0.25) {
+  if (P.hp / E.maxHp < 0.25) {
     const a = 0.15 + Math.sin(G.time * 6) * 0.08;
     ctx.fillStyle = 'rgba(200,30,30,' + a + ')';
     ctx.fillRect(0, 0, VW, 3); ctx.fillRect(0, VH - 3, VW, 3);
@@ -1427,21 +1752,29 @@ function drawWorldHUD() {
 function drawBattle() {
   const b = G.battle;
   const cave = G.map.name === 'cave';
+  const dusk = !cave && G.region === 'Cemitério Antigo';
   // fundo
   const grd = ctx.createLinearGradient(0, 0, 0, VH);
   if (cave) { grd.addColorStop(0, '#1c1626'); grd.addColorStop(1, '#2e2440'); }
+  else if (dusk) { grd.addColorStop(0, '#2a2040'); grd.addColorStop(1, '#6a4058'); }
   else { grd.addColorStop(0, '#4a86c6'); grd.addColorStop(1, '#8ab6e0'); }
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, VW, VH);
   // chão
-  ctx.fillStyle = cave ? '#3a3446' : '#3f7a3a';
+  ctx.fillStyle = cave ? '#3a3446' : (dusk ? '#38583a' : '#3f7a3a');
   ctx.fillRect(0, 118, VW, 62);
-  ctx.fillStyle = cave ? '#443e52' : '#4c8a44';
+  ctx.fillStyle = cave ? '#443e52' : (dusk ? '#446444' : '#4c8a44');
   for (let i = 0; i < 20; i++) {
     const vx = (i * 53) % VW, vy = 122 + (i * 31) % 50;
     ctx.fillRect(vx, vy, 4, 2);
   }
-  if (!cave) {
+  if (dusk) {
+    // lua e lápides ao fundo
+    ctx.fillStyle = '#d8d4c0'; ctx.beginPath(); ctx.arc(260, 30, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4a4456';
+    ctx.fillRect(40, 104, 10, 14); ctx.fillRect(42, 101, 6, 4);
+    ctx.fillRect(240, 106, 9, 12); ctx.fillRect(242, 103, 5, 4);
+  } else if (!cave) {
     // nuvens
     ctx.fillStyle = 'rgba(255,255,255,0.75)';
     const cx1 = (G.time * 6) % (VW + 60) - 30;
@@ -1479,7 +1812,7 @@ function drawBattle() {
     if (b.poison > 0) { ctx.fillStyle = '#a0e84e'; ctx.font = '8px monospace'; ctx.fillText('☠', ex + ew - 6, ey + 8); }
   }
   // jogador (direita)
-  const ps = heroSprite(P.cls, 'left', Math.floor(G.time * 3) % 2);
+  const ps = heroSprite(curClass(), 'left', Math.floor(G.time * 3) % 2);
   const pscale = 4;
   const px = 236 + (b.phase === 'playerActDone' && b.t < 0.3 ? -Math.round((0.3 - b.t) * 60) : 0);
   const py = 118 - 16 * pscale + 12;
@@ -1524,13 +1857,14 @@ function drawBattle() {
   ctx.strokeRect(0.5, 132.5, VW - 1, 47);
 
   // status do jogador (direita)
+  const PE = eff();
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
-  ctx.fillText(P.name + ' Nv.' + P.lvl, 216, 143);
-  barRect(216, 147, 72, 5, P.hp / P.maxHp, P.hp / P.maxHp < 0.3 ? '#e05050' : '#50c060');
-  ctx.fillStyle = '#cfc8e0'; ctx.fillText('HP ' + P.hp + '/' + P.maxHp, 216, 160);
-  barRect(216, 163, 72, 4, P.mp / P.maxMp, '#5080e0');
-  ctx.fillStyle = '#cfc8e0'; ctx.fillText('MP ' + P.mp + '/' + P.maxMp, 216, 175);
+  ctx.fillText(className() + ' Nv.' + P.lvl, 216, 143);
+  barRect(216, 147, 72, 5, P.hp / PE.maxHp, P.hp / PE.maxHp < 0.3 ? '#e05050' : '#50c060');
+  ctx.fillStyle = '#cfc8e0'; ctx.fillText('HP ' + P.hp + '/' + PE.maxHp, 216, 160);
+  barRect(216, 163, 72, 4, P.mp / PE.maxMp, '#5080e0');
+  ctx.fillStyle = '#cfc8e0'; ctx.fillText('MP ' + P.mp + '/' + PE.maxMp, 216, 175);
 
   // log (com faixa escura para legibilidade)
   ctx.fillStyle = 'rgba(10,8,18,0.75)';
@@ -1581,10 +1915,14 @@ function drawBattle() {
     ctx.fillText('VITÓRIA!', 10, 146);
     ctx.font = '7px monospace';
     ctx.fillStyle = '#e8e0f0';
-    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro' + (r.dropTxt ? '   +' + r.dropTxt : ''), 10, 157);
+    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro', 10, 157);
+    if (r.dropTxt) {
+      ctx.fillStyle = r.dropColor || '#c8c8d0';
+      ctx.fillText('Loot: ' + r.dropTxt, 90, 157);
+    }
     if (r.ups.length) {
       ctx.fillStyle = '#6ee86e';
-      ctx.fillText('SUBIU PARA O NÍVEL ' + r.ups[r.ups.length - 1] + '!', 10, 167);
+      ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos de status (menu C)', 10, 167);
       if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova habilidade: ' + r.newSkill, 10, 176); }
     }
     if (b.t > 0.6 && Math.floor(G.time * 2) % 2) {
@@ -1664,77 +2002,24 @@ function updateTitle() {
   if (tap('ok')) {
     AU.sfx('ok');
     const isContinue = hasSave() && G.titleIdx === 0;
-    if (isContinue) {
-      if (!loadGame()) { G.state = 'classSelect'; G.classIdx = 0; }
-    } else {
-      G.state = 'classSelect'; G.classIdx = 0;
-    }
+    if (isContinue && loadGame()) return;
+    startNewGame();
   }
 }
-
-function drawClassSelect() {
-  const grd = ctx.createLinearGradient(0, 0, 0, VH);
-  grd.addColorStop(0, '#141024'); grd.addColorStop(1, '#2a1c46');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, VW, VH);
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 11px monospace';
-  ctx.fillStyle = '#f0e8f8';
-  ctx.fillText('Escolha sua classe', VW / 2, 20);
-  const clsKeys = Object.keys(CLASSES);
-  const cw = 92, gap = 8;
-  const x0 = (VW - (cw * 3 + gap * 2)) / 2;
-  for (let i = 0; i < 3; i++) {
-    const k = clsKeys[i], c = CLASSES[k];
-    const cx = x0 + i * (cw + gap);
-    const sel = i === G.classIdx;
-    ctx.fillStyle = sel ? 'rgba(70,50,120,0.9)' : 'rgba(30,24,50,0.9)';
-    ctx.fillRect(cx, 30, cw, 128);
-    ctx.strokeStyle = sel ? '#ffd94e' : '#4a3a6a';
-    ctx.strokeRect(cx + 0.5, 30.5, cw - 1, 127);
-    const t = sel ? Math.floor(G.time * 3) % 2 : 0;
-    ctx.drawImage(heroSprite(k, 'down', t), cx + cw / 2 - 16, 36, 32, 32);
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = sel ? '#ffd94e' : '#c8b8e0';
-    ctx.fillText(c.name, cx + cw / 2, 80);
-    ctx.font = '7px monospace';
-    ctx.fillStyle = '#a89ac0';
-    const dl = c.desc.split('\n');
-    dl.forEach((l, j) => ctx.fillText(l, cx + cw / 2, 90 + j * 8));
-    // barras de status
-    const stats = [['HP', c.base.hp / 50], ['ATQ', c.base.atk / 12], ['MAG', c.base.mag / 12], ['VEL', c.base.spd / 10]];
-    ctx.textAlign = 'left';
-    stats.forEach(([nm, v], j) => {
-      ctx.fillStyle = '#8a7ab0';
-      ctx.fillText(nm, cx + 6, 114 + j * 9);
-      barRect(cx + 26, 108 + j * 9, 58, 4, v, sel ? '#ffd94e' : '#7a6aa0');
-    });
-    ctx.textAlign = 'center';
-  }
-  ctx.font = '7px monospace';
-  ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('◀ ▶ escolher  ·  Z confirmar', VW / 2, 172);
-  ctx.textAlign = 'left';
-}
-function updateClassSelect() {
-  if (tap('left')) { G.classIdx = (G.classIdx + 2) % 3; AU.sfx('menu'); }
-  if (tap('right')) { G.classIdx = (G.classIdx + 1) % 3; AU.sfx('menu'); }
-  if (tap('back')) { G.state = 'title'; AU.sfx('back'); }
-  if (tap('ok')) {
-    AU.sfx('ok');
-    const cls = Object.keys(CLASSES)[G.classIdx];
-    P = newPlayer(cls);
-    G.bossDefeated = false; G.chests = {}; G.victoryShown = false;
-    G.stats = { kills: 0, battles: 0 };
-    MAPS.overworld = genOverworld(); MAPS.cave = genCave();
-    fadeTo(() => {
-      enterMap('overworld', 17 * TILE, 42 * TILE);
-      G.state = 'world';
-      showMsg('Bem-vindo a Aldeia Verde!\nDerrote Vorax, o dragão da\ncaverna ao norte!');
-      showMsg('Use a fonte da vila para\ncurar e salvar. Bom jogo!');
-      saveGame();
-    });
-  }
+function startNewGame() {
+  P = newPlayer();
+  G.flags = { reislime: false, necromante: false, dragao: false };
+  G.chests = {}; G.victoryShown = false;
+  G.stats = { kills: 0, battles: 0 };
+  MAPS.overworld = genOverworld(); MAPS.cave = genCave();
+  fadeTo(() => {
+    enterMap('overworld', START.x, START.y);
+    G.state = 'world';
+    showMsg('Bem-vindo a Aldeia Verde!\nSua classe vem do que você\nequipa: espada, cajado ou adaga.');
+    showMsg('Abra o menu (C) para trocar\nde equipamento e distribuir\npontos ao subir de nível.');
+    showMsg('Três chefes ameaçam a região.\nDerrote Vorax, o dragão,\npara trazer a paz!');
+    saveGame();
+  });
 }
 
 // ---------- Menu do jogador ----------
@@ -1742,117 +2027,229 @@ function drawPauseMenu() {
   drawWorld();
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
   ctx.fillRect(0, 0, VW, VH);
-  const x = 40, y = 14, w = VW - 80, h = VH - 28;
+  const x = 26, y = 10, w = VW - 52, h = VH - 20;
   ctx.fillStyle = 'rgba(24,18,44,0.97)';
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = '#5a4a8a';
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const E = eff();
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText(P.name + '  ·  Nível ' + P.lvl, x + 10, y + 14);
+  ctx.fillText(className() + '  ·  Nível ' + P.lvl, x + 8, y + 12);
+  // abas
+  const tabs = ['Status', 'Equipar', 'Itens'];
   ctx.font = '7px monospace';
-  // coluna esquerda: status
-  const st = [
-    ['HP', P.hp + '/' + P.maxHp], ['MP', P.mp + '/' + P.maxMp],
-    ['ATQ', P.atk], ['DEF', P.def], ['MAG', P.mag], ['VEL', P.spd],
-    ['Crítico', Math.round(P.crit * 100) + '%'],
-    ['XP', P.xp + '/' + XP_NEXT(P.lvl)],
-    ['Ouro', P.gold],
-    ['Vitórias', G.stats.kills]
-  ];
-  st.forEach(([nm, v], i) => {
-    ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 10, y + 28 + i * 10);
-    ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 56, y + 28 + i * 10);
+  tabs.forEach((t, i) => {
+    const tx = x + w - 150 + i * 50;
+    ctx.fillStyle = i === G.menuTab ? '#ffd94e' : '#705a80';
+    ctx.fillText((i === G.menuTab ? '[' + t + ']' : ' ' + t), tx, y + 12);
   });
-  // coluna direita: itens e habilidades
-  ctx.fillStyle = '#ffd94e'; ctx.fillText('Itens (Z usa)', x + 108, y + 28);
-  const its = Object.keys(ITEMS);
-  its.forEach((k, i) => {
-    const sel = G.menuIdx === i;
-    ctx.fillStyle = sel ? '#fff' : '#a89ac0';
-    ctx.fillText((sel ? '▶' : ' ') + ITEMS[k].name + ' x' + P.items[k], x + 108, y + 38 + i * 9);
-  });
-  ctx.fillStyle = '#ffd94e'; ctx.fillText('Habilidades', x + 108, y + 74);
-  const sks = playerSkills();
-  if (sks.length === 0) { ctx.fillStyle = '#705a80'; ctx.fillText('(nenhuma)', x + 108, y + 84); }
-  sks.forEach((s, i) => {
-    ctx.fillStyle = '#a89ac0';
-    ctx.fillText(s.name + ' (' + s.mp + 'MP)', x + 108, y + 84 + i * 9);
-  });
-  const next = CLASSES[P.cls].skills.find(s => s.lvl > P.lvl);
-  if (next) { ctx.fillStyle = '#705a80'; ctx.fillText('Nv.' + next.lvl + ': ' + next.name, x + 108, y + 84 + sks.length * 9); }
+
+  if (G.menuTab === 0) {
+    // ---- STATUS: distribuir pontos ----
+    ctx.fillStyle = P.pts > 0 ? '#6ee86e' : '#8a7ab0';
+    ctx.fillText('Pontos: ' + P.pts + (P.pts > 0 ? ' (Z aplica)' : ''), x + 8, y + 26);
+    ALLOC.forEach((a, i) => {
+      const oy = y + 38 + i * 11;
+      const sel = G.menuIdx === i;
+      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+      ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+      const baseV = a.key === 'maxHp' || a.key === 'maxMp' ? P[a.key] : P[a.key];
+      const effV = E[a.key];
+      const bonus = effV - baseV;
+      ctx.fillText(a.name + '  ' + baseV + (bonus ? ' +' + bonus : ''), x + 16, oy);
+      ctx.fillStyle = '#705a80';
+      ctx.fillText(a.desc, x + 76, oy);
+    });
+    // resumo à direita
+    const st = [
+      ['HP', P.hp + '/' + E.maxHp], ['MP', P.mp + '/' + E.maxMp],
+      ['ATQ', E.atk], ['DEF', E.def], ['MAG', E.mag], ['VEL', E.spd],
+      ['Crítico', Math.round(E.crit * 100) + '%'],
+      ['XP', P.xp + '/' + XP_NEXT(P.lvl)],
+      ['Ouro', P.gold], ['Vitórias', G.stats.kills]
+    ];
+    st.forEach(([nm, v], i) => {
+      ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, y + 26 + i * 10);
+      ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 206, y + 26 + i * 10);
+    });
+    // habilidades (abaixo da alocação)
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Habilidades da arma:', x + 8, y + 114);
+    const sks = playerSkills();
+    if (!sks.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(sem arma equipada)', x + 8, y + 124); }
+    sks.forEach((s, i) => {
+      ctx.fillStyle = '#a89ac0';
+      ctx.fillText(s.name + ' (' + s.mp + 'MP)', x + 8, y + 124 + i * 9);
+    });
+    const t = weaponType();
+    if (t) {
+      const nx = WEAPON_SKILLS[t].find(([id, lvl]) => lvl > P.lvl);
+      if (nx) { ctx.fillStyle = '#705a80'; ctx.fillText('Nv.' + nx[1] + ': ' + SKILLS[nx[0]].name, x + 8, y + 124 + sks.length * 9); }
+    }
+  } else if (G.menuTab === 1) {
+    // ---- EQUIPAR ----
+    ctx.fillStyle = '#8a7ab0';
+    SLOTS.forEach((s, i) => {
+      const oy = y + 26 + i * 9;
+      ctx.fillStyle = '#8a7ab0'; ctx.fillText(SLOT_NAMES[s] + ':', x + 8, oy);
+      const id = P.equip[s];
+      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(EQUIP[id].name, x + 48, oy); }
+      else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 48, oy); }
+    });
+    // bônus de conjunto
+    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo! (+bônus)', x + 8, y + 64); }
+    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 64); }
+    // inventário de equipamentos
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 78);
+    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 88); }
+    const maxShow = 7;
+    const start = clamp(G.menuIdx - 3, 0, Math.max(0, P.equipInv.length - maxShow));
+    P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
+      const i = start + j;
+      const oy = y + 88 + j * 9;
+      const sel = G.menuIdx === i;
+      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+      ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
+      ctx.fillText(EQUIP[id].name + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
+    });
+    // detalhes do item selecionado
+    const selId = P.equipInv[G.menuIdx];
+    if (selId) {
+      const eq = EQUIP[selId];
+      ctx.fillStyle = RARITY[eq.rar].color;
+      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 78);
+      const bl = Object.entries(eq.bonus).map(([k, v]) =>
+        (k === 'crit' ? '+' + Math.round(v * 100) + '% crit' : '+' + v + ' ' + k.toUpperCase().replace('MAXHP', 'HP')));
+      bl.forEach((s, i) => { ctx.fillStyle = '#a89ac0'; ctx.fillText(s, x + 178, y + 88 + i * 9); });
+      if (eq.wtype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, y + 88 + bl.length * 9); }
+      if (eq.atype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Tipo: ' + eq.atype, x + 178, y + 88 + bl.length * 9); }
+    }
+  } else {
+    // ---- ITENS ----
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Consumíveis (Z usa)', x + 8, y + 26);
+    Object.keys(ITEMS).forEach((k, i) => {
+      const oy = y + 38 + i * 11;
+      const sel = G.menuIdx === i;
+      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+      ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+      ctx.fillText(ITEMS[k].name + ' x' + P.items[k], x + 16, oy);
+      ctx.fillStyle = '#705a80'; ctx.fillText(ITEMS[k].desc, x + 96, oy);
+    });
+  }
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('X fechar · jogo salvo ao usar a fonte', x + 10, y + h - 8);
+  ctx.fillText('◀ ▶ aba · X fechar', x + 8, y + h - 6);
 }
 function updatePauseMenu() {
-  const its = Object.keys(ITEMS);
-  if (tap('up')) { G.menuIdx = (G.menuIdx + its.length - 1) % its.length; AU.sfx('menu'); }
-  if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % its.length; AU.sfx('menu'); }
+  const listLen = G.menuTab === 0 ? ALLOC.length : (G.menuTab === 1 ? Math.max(1, P.equipInv.length) : Object.keys(ITEMS).length);
+  if (tap('left')) { G.menuTab = (G.menuTab + 2) % 3; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('right')) { G.menuTab = (G.menuTab + 1) % 3; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('up')) { G.menuIdx = (G.menuIdx + listLen - 1) % listLen; AU.sfx('menu'); }
+  if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % listLen; AU.sfx('menu'); }
   if (tap('ok')) {
-    const id = its[G.menuIdx];
-    if (P.items[id] > 0) {
-      if (id === 'pocao' && P.hp < P.maxHp) {
-        P.items[id]--; P.hp = Math.min(P.maxHp, P.hp + Math.round(P.maxHp * 0.45));
-        AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e');
-      } else if (id === 'eter' && P.mp < P.maxMp) {
-        P.items[id]--; P.mp = Math.min(P.maxMp, P.mp + Math.round(P.maxMp * 0.4));
-        AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+MP', '#6ea8ff');
-      } else if (id === 'elixir' && (P.hp < P.maxHp || P.mp < P.maxMp)) {
-        P.items[id]--; P.hp = P.maxHp; P.mp = P.maxMp;
-        AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, 'MAX!', '#ffd94e');
+    if (G.menuTab === 0) {
+      // aplicar ponto de status
+      if (P.pts > 0) {
+        const a = ALLOC[G.menuIdx];
+        P.pts--;
+        P[a.key] += a.gain || 1;
+        if (a.key === 'maxHp') P.hp += a.gain;
+        if (a.key === 'maxMp') P.mp += a.gain;
+        AU.sfx('ok');
       } else AU.sfx('back');
-    } else AU.sfx('back');
+    } else if (G.menuTab === 1) {
+      if (P.equipInv[G.menuIdx]) {
+        equipFromInv(G.menuIdx);
+        G.menuIdx = Math.min(G.menuIdx, Math.max(0, P.equipInv.length - 1));
+        AU.sfx('ok');
+      } else AU.sfx('back');
+    } else {
+      const its = Object.keys(ITEMS);
+      const id = its[G.menuIdx];
+      const E = eff();
+      if (P.items[id] > 0) {
+        if (id === 'pocao' && P.hp < E.maxHp) {
+          P.items[id]--; P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.45));
+          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e');
+        } else if (id === 'eter' && P.mp < E.maxMp) {
+          P.items[id]--; P.mp = Math.min(E.maxMp, P.mp + Math.round(E.maxMp * 0.4));
+          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+MP', '#6ea8ff');
+        } else if (id === 'elixir' && (P.hp < E.maxHp || P.mp < E.maxMp)) {
+          P.items[id]--; P.hp = E.maxHp; P.mp = E.maxMp;
+          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, 'MAX!', '#ffd94e');
+        } else AU.sfx('back');
+      } else AU.sfx('back');
+    }
   }
   if (tap('back') || tap('menu')) { G.state = 'world'; AU.sfx('back'); saveGame(); }
 }
-
 // ---------- Loja ----------
+// estoque por cidade: 'i:' consumível, senão id de equipamento
+const SHOP_STOCK = {
+  aldeia: ['i:pocao', 'i:eter', 'esp2', 'caj2', 'ada2', 'arm2'],
+  rocha:  ['i:pocao', 'i:eter', 'i:elixir', 'esp3', 'caj3', 'ada3', 'arm3', 'arm4', 'elm2', 'elm3']
+};
+function shopEntry(s) {
+  if (s.startsWith('i:')) {
+    const id = s.slice(2);
+    return { kind: 'item', id, name: ITEMS[id].name, desc: ITEMS[id].desc, price: ITEMS[id].price, color: '#c8c8d0' };
+  }
+  const eq = EQUIP[s];
+  return { kind: 'equip', id: s, name: eq.name, desc: RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot], price: equipPrice(s), color: RARITY[eq.rar].color };
+}
 function drawShop() {
   drawWorld();
   ctx.fillStyle = 'rgba(8,6,16,0.8)';
   ctx.fillRect(0, 0, VW, VH);
-  const x = 60, y = 30, w = VW - 120, h = VH - 70;
+  const x = 44, y = 16, w = VW - 88, h = VH - 40;
   ctx.fillStyle = 'rgba(24,18,44,0.97)';
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = '#5a4a8a';
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText('LOJA DO MERCADOR', x + 10, y + 14);
+  ctx.fillText(G.shopId === 'aldeia' ? 'LOJA DA ALDEIA VERDE' : 'EMPÓRIO DE VILA ROCHA', x + 10, y + 13);
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
-  ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 26);
-  const its = Object.keys(ITEMS);
-  its.forEach((k, i) => {
-    const it = ITEMS[k];
+  ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
+  const stock = SHOP_STOCK[G.shopId];
+  stock.forEach((s, i) => {
+    const e = shopEntry(s);
     const sel = i === G.shopIdx;
-    const oy = y + 40 + i * 12;
-    const can = P.gold >= it.price;
-    if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
-    ctx.fillStyle = sel ? (can ? '#fff' : '#e07070') : (can ? '#a89ac0' : '#705a70');
-    ctx.fillText(it.name + '  $' + it.price + '  (tem ' + P.items[k] + ')', x + 18, oy);
+    const oy = y + 36 + i * 10;
+    const owned = e.kind === 'item' ? P.items[e.id] : (P.equipInv.includes(e.id) ? 1 : 0) + (Object.values(P.equip).includes(e.id) ? 1 : 0);
+    const can = P.gold >= e.price;
+    if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 6, oy); }
+    ctx.fillStyle = sel ? (can ? '#fff' : '#e07070') : (can ? e.color : '#705a70');
+    ctx.fillText(e.name, x + 14, oy);
+    ctx.fillStyle = can ? '#ffd94e' : '#705a70';
+    ctx.fillText('$' + e.price, x + 128, oy);
+    ctx.fillStyle = '#705a80';
+    ctx.fillText(e.kind === 'item' ? 'tem ' + owned : (owned ? 'obtido' : ''), x + 158, oy);
   });
-  const cur = ITEMS[its[G.shopIdx]];
-  ctx.fillStyle = '#8a7ab0';
-  ctx.fillText(cur.desc, x + 10, y + h - 18);
+  const cur = shopEntry(stock[G.shopIdx]);
+  ctx.fillStyle = cur.color;
+  ctx.fillText(cur.desc, x + 10, y + h - 16);
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z comprar · X sair', x + 10, y + h - 8);
+  ctx.fillText('Z comprar · X sair', x + 10, y + h - 7);
 }
 function updateShop() {
-  const its = Object.keys(ITEMS);
-  if (tap('up')) { G.shopIdx = (G.shopIdx + its.length - 1) % its.length; AU.sfx('menu'); }
-  if (tap('down')) { G.shopIdx = (G.shopIdx + 1) % its.length; AU.sfx('menu'); }
+  const stock = SHOP_STOCK[G.shopId];
+  if (tap('up')) { G.shopIdx = (G.shopIdx + stock.length - 1) % stock.length; AU.sfx('menu'); }
+  if (tap('down')) { G.shopIdx = (G.shopIdx + 1) % stock.length; AU.sfx('menu'); }
   if (tap('ok')) {
-    const k = its[G.shopIdx], it = ITEMS[k];
-    if (P.gold >= it.price && P.items[k] < 9) {
-      P.gold -= it.price; P.items[k]++;
-      AU.sfx('coin');
-      saveGame();
+    const e = shopEntry(stock[G.shopIdx]);
+    if (P.gold >= e.price) {
+      if (e.kind === 'item') {
+        if (P.items[e.id] < 9) { P.gold -= e.price; P.items[e.id]++; AU.sfx('coin'); saveGame(); }
+        else AU.sfx('back');
+      } else {
+        if (P.equipInv.length < 18) { P.gold -= e.price; P.equipInv.push(e.id); AU.sfx('coin'); saveGame(); }
+        else { toast('Mochila cheia!'); AU.sfx('back'); }
+      }
     } else AU.sfx('back');
   }
   if (tap('back')) { G.state = 'world'; AU.sfx('back'); }
 }
-
 // ---------- Game over / vitória ----------
 function drawGameOver() {
   ctx.fillStyle = '#0c0a14';
@@ -1876,9 +2273,10 @@ function drawGameOver() {
 function updateGameOver() {
   if (tap('ok')) {
     P.gold = Math.floor(P.gold / 2);
-    P.hp = P.maxHp; P.mp = P.maxMp;
+    const E = eff();
+    P.hp = E.maxHp; P.mp = E.maxMp;
     fadeTo(() => {
-      enterMap('overworld', 17 * TILE, 42 * TILE);
+      enterMap('overworld', START.x, START.y);
       P.dir = 'down';
       G.state = 'world';
       saveGame();
@@ -1909,9 +2307,9 @@ function drawVictory() {
   ctx.fillText('Vorax, o Dragão, foi derrotado!', VW / 2, 74);
   ctx.fillText('A paz retorna a Aldeia Verde.', VW / 2, 86);
   ctx.fillStyle = '#c8b8e0';
-  ctx.fillText(P.name + ' · Nível ' + P.lvl + ' · ' + G.stats.kills + ' monstros derrotados', VW / 2, 106);
+  ctx.fillText(className() + ' · Nível ' + P.lvl + ' · ' + G.stats.kills + ' monstros derrotados', VW / 2, 106);
   const t = Math.floor(G.time * 2) % 2;
-  ctx.drawImage(heroSprite(P.cls, 'down', t), VW / 2 - 16, 116, 32, 32);
+  ctx.drawImage(heroSprite(curClass(), 'down', t), VW / 2 - 16, 116, 32, 32);
   if (t) {
     ctx.fillStyle = '#ffd94e';
     ctx.fillText('Z para continuar explorando', VW / 2, 166);
@@ -1978,7 +2376,6 @@ function frame(now) {
     } else {
       switch (G.state) {
         case 'title': updateTitle(); break;
-        case 'classSelect': updateClassSelect(); break;
         case 'world': if (G.fadeDir === 0) updateWorld(dt); break;
         case 'battle': updateBattle(dt); break;
         case 'menu': updatePauseMenu(); break;
@@ -2000,7 +2397,6 @@ function frame(now) {
   if (G.shake > 0.5) ctx.translate(irnd(-G.shake, G.shake) * 0.5, irnd(-G.shake, G.shake) * 0.5);
   switch (G.state) {
     case 'title': drawTitle(); break;
-    case 'classSelect': drawClassSelect(); break;
     case 'world': drawWorld(); break;
     case 'battle': drawBattle(); break;
     case 'menu': drawPauseMenu(); break;
@@ -2055,19 +2451,23 @@ requestAnimationFrame(frame);
 window.DBG = {
   get G() { return G; },
   get P() { return P; },
-  start(cls) {
-    P = newPlayer(cls || 'guerreiro');
+  start() {
+    P = newPlayer();
     MAPS.overworld = genOverworld(); MAPS.cave = genCave();
-    enterMap('overworld', 17 * TILE, 42 * TILE);
+    enterMap('overworld', START.x, START.y);
     G.state = 'world';
   },
   teleport(tx, ty) { P.x = tx * TILE; P.y = ty * TILE; },
   battle(type, lvl) {
-    const e = makeEntity(type || 'slime', P.x + 20, P.y, lvl || 1);
+    const e = makeEntity(type || 'slime', P.x + 20, P.y, lvl || 1, ENEMIES[type] && ENEMIES[type].boss);
     G.entities.push(e);
     startBattle(e);
   },
   addXP(n) { return gainXP(n); },
+  eff() { return eff(); },
+  equip(idx) { equipFromInv(idx); },
+  giveEquip(id) { return addEquipToInv(id); },
+  loot(type) { return rollLoot(type); },
   clearEnemies() { G.entities = G.entities.filter(e => e.isBoss); G.spawnTimer = 60; },
   clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 };
