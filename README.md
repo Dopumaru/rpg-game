@@ -1,4 +1,4 @@
-# ⚔️ Crônicas de Pixel
+# ⚔️ Lenda Forjada
 
 Um RPG completo em pixel art que roda direto no navegador — um único arquivo HTML, sem dependências.
 
@@ -33,8 +33,9 @@ Não existe seleção de classe: **sua classe é definida pela arma equipada**.
 - **Espada** → Guerreiro (Golpe Forte, Grito de Guerra, Fúria)
 - **Cajado** → Mago (Bola de Fogo, Raio de Gelo, Meteoro)
 - **Adaga** → Ladino (Golpe Duplo, Lâmina Venenosa, Execução)
+- **Arco** → Arqueiro (Flecha Precisa, Chuva de Flechas, Flecha Fantasma)
 
-Você começa com as três armas básicas e pode trocar de estilo a qualquer momento no menu (C → Equipar). Vestir uma armadura do tipo correspondente à arma (pesada/robe/couro) ativa o **bônus de conjunto**. Habilidades novas desbloqueiam nos níveis 5 e 9.
+Você começa com as quatro armas básicas e pode trocar de estilo a qualquer momento no menu (C → Equipar). Vestir um peitoral do tipo correspondente à arma (pesada/robe/couro/caça) ativa o **bônus de conjunto**. Habilidades novas desbloqueiam nos níveis 5 e 9.
 
 ## 📈 Progressão por pontos
 
@@ -52,7 +53,11 @@ Monstros podem dropar equipamentos em 5 raridades, com chance pesada pela rarida
 | Épico | roxo | 4 |
 | Lendário | laranja | 1 |
 
-Mobs mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — o dragão dropa a arma lendária do seu estilo atual. Há 30+ equipamentos (armas, armaduras, elmos e amuletos), além de baús escondidos pelo mundo.
+Mobs mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — o dragão dropa a arma lendária do seu estilo atual. Há 45+ equipamentos em **5 slots** (arma, peitoral, cabeça, botas e amuleto), além de baús escondidos pelo mundo.
+
+## 🔮 Encantamento
+
+Monstros dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve-os ao **Altar de Encantamento** (o cristal roxo em cada cidade) para encantar os itens equipados até **+5** — cada nível dá +15% nos bônus do item, e o custo cresce com a raridade e o nível atual.
 
 ## 🗺️ O mundo (96×64)
 
@@ -77,4 +82,4 @@ Mobs mais fortes destravam raridades maiores. **Chefes têm drop assinatura gara
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 41 verificações cobrindo resolução responsiva, classe por equipamento, bônus de conjunto, pontos de status, distribuição de loot por raridade, drops assinatura, lojas das duas cidades, os três chefes, fuga bloqueada, game over e save/load — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 53 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, drops assinatura, lojas das duas cidades, os três chefes, fuga bloqueada, game over e save/load — tudo sem erros de JavaScript.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crônicas de Pixel — RPG</title>
+<title>Lenda Forjada — RPG em pixels</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 <style>
   html, body {
@@ -305,6 +305,7 @@ const CLASS_PAL = {
   guerreiro:   { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#c03a3a', B: '#9aa0b8', L: '#5a3a28' },
   mago:        { O: '#1a1626', S: '#f0c8a0', H: '#d8d8e8', A: '#4a6ae0', B: '#2c3f8a', L: '#2c3f8a' },
   ladino:      { O: '#1a1626', S: '#e8bc94', H: '#245c30', A: '#3a9a4a', B: '#245c30', L: '#3a3a2a' },
+  arqueiro:    { O: '#1a1626', S: '#f0c8a0', H: '#7a5220', A: '#b8863a', B: '#7a5220', L: '#4a3222' },
   aventureiro: { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#8a7a5a', B: '#6a5a42', L: '#4a3a2a' }
 };
 // aventureiro: cabeça do guerreiro sem o elmo de aço
@@ -313,6 +314,8 @@ HEADS.aventureiro = {
   up: HEADS.guerreiro.up.map(r => r.replace(/B/g, 'H')),
   side: HEADS.guerreiro.side.map(r => r.replace(/B/g, 'H'))
 };
+// arqueiro: capuz como o ladino, em tons de couro
+HEADS.arqueiro = HEADS.ladino;
 function heroSprite(cls, dir, frame) {
   const id = `hero_${cls}_${dir}_${frame}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
@@ -555,10 +558,10 @@ function enemySprite(type) {
 }
 
 // ---------- Definições de jogo ----------
-// A "classe" é definida pelo equipamento: espada=Guerreiro, cajado=Mago, adaga=Ladino
-const CLASS_BY_WEAPON = { espada: 'guerreiro', cajado: 'mago', adaga: 'ladino' };
-const CLASS_NAMES = { guerreiro: 'Guerreiro', mago: 'Mago', ladino: 'Ladino', aventureiro: 'Aventureiro' };
-const SET_MATCH = { espada: 'pesada', cajado: 'robe', adaga: 'couro' };
+// A "classe" é definida pelo equipamento: espada=Guerreiro, cajado=Mago, adaga=Ladino, arco=Arqueiro
+const CLASS_BY_WEAPON = { espada: 'guerreiro', cajado: 'mago', adaga: 'ladino', arco: 'arqueiro' };
+const CLASS_NAMES = { guerreiro: 'Guerreiro', mago: 'Mago', ladino: 'Ladino', arqueiro: 'Arqueiro', aventureiro: 'Aventureiro' };
+const SET_MATCH = { espada: 'pesada', cajado: 'robe', adaga: 'couro', arco: 'caça' };
 
 const SKILLS = {
   golpe:   { name: 'Golpe Forte',      mp: 5,  desc: 'Dano físico 1.8x' },
@@ -569,12 +572,16 @@ const SKILLS = {
   meteoro: { name: 'Meteoro',          mp: 18, desc: 'Dano mágico 3.5x' },
   duplo:   { name: 'Golpe Duplo',      mp: 5,  desc: 'Ataca 2x com 0.9x dano' },
   veneno:  { name: 'Lâmina Venenosa',  mp: 8,  desc: 'Dano + veneno por 3 turnos' },
-  exec:    { name: 'Execução',         mp: 15, desc: 'Dano 2x, sempre crítico' }
+  exec:    { name: 'Execução',         mp: 15, desc: 'Dano 2x, sempre crítico' },
+  precisa: { name: 'Flecha Precisa',   mp: 5,  desc: 'Dano 1.7x, +25% crítico' },
+  chuva:   { name: 'Chuva de Flechas', mp: 10, desc: 'Ataca 3x com 0.7x dano' },
+  fantasma:{ name: 'Flecha Fantasma',  mp: 15, desc: 'Dano 2.2x, ignora defesa' }
 };
 const WEAPON_SKILLS = {
   espada: [['golpe', 1], ['grito', 5], ['furia', 9]],
   cajado: [['fogo', 1], ['gelo', 5], ['meteoro', 9]],
-  adaga:  [['duplo', 1], ['veneno', 5], ['exec', 9]]
+  adaga:  [['duplo', 1], ['veneno', 5], ['exec', 9]],
+  arco:   [['precisa', 1], ['chuva', 5], ['fantasma', 9]]
 };
 
 // ---------- Raridade e equipamentos ----------
@@ -586,8 +593,8 @@ const RARITY = {
   lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 999 }
 };
 const RAR_KEYS = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-const SLOTS = ['arma', 'corpo', 'elmo', 'amuleto'];
-const SLOT_NAMES = { arma: 'Arma', corpo: 'Corpo', elmo: 'Elmo', amuleto: 'Amuleto' };
+const SLOTS = ['arma', 'corpo', 'elmo', 'botas', 'amuleto'];
+const SLOT_NAMES = { arma: 'Arma', corpo: 'Peitoral', elmo: 'Cabeça', botas: 'Botas', amuleto: 'Amuleto' };
 
 // bonus: atk/def/mag/spd/hp/mp/crit
 const EQUIP = {
@@ -609,6 +616,12 @@ const EQUIP = {
   ada3: { name: 'Adaga Sombria',      slot: 'arma', rar: 'raro',     wtype: 'adaga', bonus: { atk: 6, spd: 4, crit: 0.06 } },
   ada4: { name: 'Presa da Serpente',  slot: 'arma', rar: 'epico',    wtype: 'adaga', bonus: { atk: 10, spd: 5, crit: 0.10 } },
   ada5: { name: 'Beijo da Morte',     slot: 'arma', rar: 'lendario', wtype: 'adaga', bonus: { atk: 15, spd: 8, crit: 0.15 } },
+  // arcos
+  arc1: { name: 'Arco Simples',       slot: 'arma', rar: 'comum',    wtype: 'arco', bonus: { atk: 2, crit: 0.02 } },
+  arc2: { name: 'Arco Recurvo',       slot: 'arma', rar: 'incomum',  wtype: 'arco', bonus: { atk: 4, spd: 1, crit: 0.03 } },
+  arc3: { name: 'Arco Longo',         slot: 'arma', rar: 'raro',     wtype: 'arco', bonus: { atk: 8, spd: 2, crit: 0.05 } },
+  arc4: { name: 'Arco Élfico',        slot: 'arma', rar: 'epico',    wtype: 'arco', bonus: { atk: 12, spd: 4, crit: 0.08 } },
+  arc5: { name: 'Sussurro da Tempestade', slot: 'arma', rar: 'lendario', wtype: 'arco', bonus: { atk: 18, spd: 6, crit: 0.12 } },
   // corpo
   arm1: { name: 'Túnica de Pano',     slot: 'corpo', rar: 'comum',   atype: 'robe',   bonus: { def: 1 } },
   arm2: { name: 'Armadura de Couro',  slot: 'corpo', rar: 'incomum', atype: 'couro',  bonus: { def: 3, spd: 1 } },
@@ -618,6 +631,15 @@ const EQUIP = {
   arm6: { name: 'Manto Sombrio',      slot: 'corpo', rar: 'epico',   atype: 'couro',  bonus: { def: 6, spd: 4, crit: 0.05 } },
   arm7: { name: 'Robe do Arquimago',  slot: 'corpo', rar: 'epico',   atype: 'robe',   bonus: { def: 5, mag: 8, mp: 20 } },
   arm8: { name: 'Escama de Dragão',   slot: 'corpo', rar: 'lendario', atype: 'pesada', bonus: { def: 15, hp: 30 } },
+  arm9: { name: 'Gibão do Caçador',   slot: 'corpo', rar: 'incomum', atype: 'caça',   bonus: { def: 3, atk: 1 } },
+  arm10:{ name: 'Traje do Patrulheiro', slot: 'corpo', rar: 'raro',  atype: 'caça',   bonus: { def: 5, spd: 2, atk: 2 } },
+  arm11:{ name: 'Manto da Floresta',  slot: 'corpo', rar: 'epico',   atype: 'caça',   bonus: { def: 7, atk: 4, spd: 3 } },
+  // botas
+  bot1: { name: 'Sandálias Gastas',   slot: 'botas', rar: 'comum',    bonus: { spd: 1 } },
+  bot2: { name: 'Botas de Couro',     slot: 'botas', rar: 'incomum',  bonus: { spd: 2, def: 1 } },
+  bot3: { name: 'Botas de Ferro',     slot: 'botas', rar: 'raro',     bonus: { def: 4, hp: 8 } },
+  bot4: { name: 'Botas Aladas',       slot: 'botas', rar: 'epico',    bonus: { spd: 6, crit: 0.03 } },
+  bot5: { name: 'Passos do Vento',    slot: 'botas', rar: 'lendario', bonus: { spd: 9, atk: 5, crit: 0.05 } },
   // elmos
   elm1: { name: 'Capuz de Pano',      slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
   elm2: { name: 'Elmo de Ferro',      slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
@@ -668,8 +690,8 @@ const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 // tiles: 0 grama 1 árvore 2 água 3 caminho 4 flor 5 muro-pedra 6 piso-pedra
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
-// 20 lápide
-const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20]);
+// 20 lápide · 21 altar de encantamento
+const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21]);
 const MAPS = {};
 
 function genOverworld() {
@@ -717,6 +739,7 @@ function genOverworld() {
   rect(23, 52, 3, 1, 18); set(23, 53, 5); set(24, 53, 14); set(25, 53, 5); // loja
   rect(20, 44, 1, 13, 3); rect(13, 50, 15, 1, 3);
   set(20, 50, 13);
+  set(16, 53, 21); // altar de encantamento
   // VILA ROCHA (nordeste, junto às montanhas)
   rect(66, 13, 19, 12, 0);
   rect(68, 14, 4, 2, 18); rect(68, 16, 4, 2, 5); set(69, 17, 19);
@@ -725,6 +748,7 @@ function genOverworld() {
   rect(77, 21, 3, 1, 18); set(77, 22, 5); set(78, 22, 14); set(79, 22, 5); // loja
   rect(76, 13, 1, 12, 3); rect(67, 20, 17, 1, 3);
   set(74, 20, 13);
+  set(71, 22, 21); // altar de encantamento
   // CEMITÉRIO ANTIGO (sudeste)
   for (let y = 50; y < 61; y++) for (let x = 74; x < 91; x++) {
     if (t[y][x] === 1) set(x, y, 0);
@@ -824,9 +848,11 @@ function newPlayer() {
     mp: 15, maxMp: 15,
     atk: 6, def: 5, mag: 6, spd: 6, crit: 0.05,
     gold: 30,
+    frags: 0,
     items: { pocao: 3, eter: 1, elixir: 0 },
-    equip: { arma: 'esp1', corpo: 'arm1', elmo: null, amuleto: null },
-    equipInv: ['caj1', 'ada1'],
+    equip: { arma: 'esp1', corpo: 'arm1', elmo: null, botas: null, amuleto: null },
+    equipInv: ['caj1', 'ada1', 'arc1'],
+    ench: {},
     x: START.x, y: START.y,
     dir: 'down', moving: false, animT: 0, frame: 0,
     mapName: 'overworld'
@@ -844,13 +870,28 @@ function setActive() {
   const c = P.equip.corpo;
   return !!(c && EQUIP[c].atype === SET_MATCH[t]);
 }
-// status efetivos = base (pontos) + equipamentos + bônus de conjunto
+// ---------- Encantamento ----------
+const ENCH_MAX = 5;
+function enchLvl(id) { return (P.ench && P.ench[id]) || 0; }
+function enchCost(id) { return (RAR_KEYS.indexOf(EQUIP[id].rar) + 1) * (enchLvl(id) + 1) * 4; }
+function eqName(id) { const l = enchLvl(id); return EQUIP[id].name + (l ? ' +' + l : ''); }
+// bônus do item multiplicado por 1 + 0.15 por nível de encantamento
+function enchBonus(id) {
+  const f = 1 + 0.15 * enchLvl(id);
+  const out = {};
+  for (const [k, v] of Object.entries(EQUIP[id].bonus)) {
+    out[k] = k === 'crit' ? v * f : Math.ceil(v * f);
+  }
+  return out;
+}
+
+// status efetivos = base (pontos) + equipamentos (com encantos) + bônus de conjunto
 function eff() {
   const e = { atk: P.atk, def: P.def, mag: P.mag, spd: P.spd, crit: P.crit, maxHp: P.maxHp, maxMp: P.maxMp };
   for (const slot of SLOTS) {
     const id = P.equip[slot];
     if (!id) continue;
-    const b = EQUIP[id].bonus;
+    const b = enchBonus(id);
     if (b.atk) e.atk += b.atk;
     if (b.def) e.def += b.def;
     if (b.mag) e.mag += b.mag;
@@ -864,6 +905,7 @@ function eff() {
     if (t === 'espada') { e.atk = Math.round(e.atk * 1.15); e.def = Math.round(e.def * 1.10); }
     if (t === 'cajado') { e.mag = Math.round(e.mag * 1.15); e.maxMp = Math.round(e.maxMp * 1.10); }
     if (t === 'adaga')  { e.atk = Math.round(e.atk * 1.08); e.spd += 2; e.crit += 0.05; }
+    if (t === 'arco')   { e.atk = Math.round(e.atk * 1.12); e.spd += 3; }
   }
   return e;
 }
@@ -935,7 +977,7 @@ function rollLoot(type) {
     // drop assinatura: dragão dá a arma lendária do estilo atual
     if (d.sig === 'weapon') {
       const t = weaponType();
-      return t === 'cajado' ? 'caj5' : t === 'adaga' ? 'ada5' : 'esp5';
+      return { cajado: 'caj5', adaga: 'ada5', arco: 'arc5' }[t] || 'esp5';
     }
     return d.sig;
   }
@@ -943,8 +985,15 @@ function rollLoot(type) {
   // 55% consumível, 45% equipamento
   if (Math.random() < 0.55) return Math.random() < 0.7 ? 'c:pocao' : 'c:eter';
   const rar = rollRarity(Math.min(d.tier, RAR_KEYS.length - 1));
-  const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !['esp5', 'caj5', 'ada5', 'elm5', 'amu4', 'amu5', 'arm8'].includes(k));
+  const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'amu4', 'amu5', 'arm8'].includes(k));
   return pool.length ? pick(pool) : null;
+}
+// fragmentos arcanos: moeda de encantamento dropada por mobs
+function rollFrags(type, lvl) {
+  const d = ENEMIES[type];
+  if (d.boss) return { reislime: 8, necromante: 12, dragao: 20 }[type] || 8;
+  if (Math.random() < 0.4) return 1 + Math.floor(lvl / 3);
+  return 0;
 }
 
 // ---------- Save / Load ----------
@@ -961,6 +1010,14 @@ function loadGame() {
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!d || !d.p || !d.p.equip) return false;
     P = d.p;
+    // compatibilidade com saves antigos
+    if (P.frags === undefined) P.frags = 0;
+    if (!P.ench) P.ench = {};
+    if (P.equip.botas === undefined) P.equip.botas = null;
+    if (!P.equipInv.includes('arc1') && P.equip.arma !== 'arc1' && !Object.keys(P.ench).some(k => k.startsWith('arc'))) {
+      // saves antigos não tinham arco inicial
+      if (P.equipInv.length < 18) P.equipInv.push('arc1');
+    }
     G.flags = d.flags || { reislime: false, necromante: false, dragao: false };
     G.chests = d.chests || {};
     G.stats = d.stats || { kills: 0, battles: 0 };
@@ -1128,6 +1185,8 @@ function updateWorld(dt) {
     } else if (f.t === 14) { // loja (estoque depende da cidade)
       G.shopId = f.tx < 50 ? 'aldeia' : 'rocha';
       G.state = 'shop'; G.shopIdx = 0; AU.sfx('ok');
+    } else if (f.t === 21) { // altar de encantamento
+      G.state = 'enchant'; G.menuIdx = 0; AU.sfx('magic');
     } else if (f.t === 15 && SIGNS[key]) {
       showMsg(SIGNS[key]);
     } else if (f.t === 16) { // baú
@@ -1137,8 +1196,8 @@ function updateWorld(dt) {
         G.map.tiles[f.ty][f.tx] = 17;
         AU.sfx('chest');
         const loot = G.map.name === 'cave'
-          ? pick([{ gold: 80 }, { item: 'elixir' }, { eq: pick(['arm5', 'esp4', 'caj4', 'ada4']) }])
-          : pick([{ item: 'pocao', n: 2 }, { gold: 45 }, { eq: pick(['esp3', 'caj3', 'ada3', 'arm3', 'arm4', 'elm3', 'elm4', 'amu3']) }]);
+          ? pick([{ gold: 80 }, { item: 'elixir' }, { eq: pick(['arm5', 'esp4', 'caj4', 'ada4', 'arc4', 'bot4', 'arm11']) }, { eq: pick(['arm8', 'amu5', 'bot5']) }])
+          : pick([{ item: 'pocao', n: 2 }, { gold: 45 }, { eq: pick(['esp3', 'caj3', 'ada3', 'arc3', 'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'amu3', 'bot3']) }]);
         if (loot.gold) { P.gold += loot.gold; showMsg('Você encontrou ' + loot.gold + ' de ouro!'); }
         else if (loot.eq) {
           const r = addEquipToInv(loot.eq);
@@ -1234,13 +1293,14 @@ function playerAttack(b, opts) {
   const mult = o.mult || 1;
   const E = eff();
   let dmg;
-  let crit = o.forceCrit || Math.random() < E.crit;
+  let crit = o.forceCrit || Math.random() < E.crit + (o.critBonus || 0);
   const atkNow = E.atk + (b.atkBuff > 0 ? Math.round(E.atk * 0.5) : 0);
+  const defNow = o.ignoreDef ? 0 : b.enemy.def;
   if (o.magic) {
-    dmg = calcDamage(E.mag, b.enemy.def, mult, true);
+    dmg = calcDamage(E.mag, defNow, mult, true);
     crit = false;
   } else {
-    dmg = calcDamage(atkNow, b.enemy.def, mult);
+    dmg = calcDamage(atkNow, defNow, mult);
     if (crit) dmg = Math.round(dmg * 1.8);
   }
   b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
@@ -1305,7 +1365,9 @@ function endBattleWin(b) {
       dropColor = RARITY[eq.rar].color;
     }
   }
-  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, newSkill: ups.newSkill };
+  const frags = rollFrags(e.type, e.lvl);
+  if (frags) P.frags += frags;
+  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) AU.sfx('level'); else AU.sfx('victory');
   // remove do mapa
@@ -1374,6 +1436,15 @@ function useSkill(b, sk) {
     }
     case 'veneno': playerAttack(b, { mult: 1.2 }); b.poison = 3; battleLog(b, 'Lâmina Venenosa! Envenenado!'); break;
     case 'exec': playerAttack(b, { mult: 2, forceCrit: true }); battleLog(b, 'EXECUÇÃO!'); break;
+    case 'precisa': playerAttack(b, { mult: 1.7, critBonus: 0.25 }); battleLog(b, 'Flecha Precisa!'); break;
+    case 'chuva': {
+      playerAttack(b, { mult: 0.7 });
+      setTimeout(() => { if (G.battle === b && b.enemy.hp > 0) playerAttack(b, { mult: 0.7 }); }, 160);
+      setTimeout(() => { if (G.battle === b && b.enemy.hp > 0) playerAttack(b, { mult: 0.7 }); }, 320);
+      battleLog(b, 'Chuva de Flechas!');
+      break;
+    }
+    case 'fantasma': playerAttack(b, { mult: 2.2, ignoreDef: true }); battleLog(b, 'Flecha Fantasma!'); break;
   }
   return true;
 }
@@ -1662,6 +1733,16 @@ function drawTile(t, x, y, tx, ty) {
       ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x + 6, y + 8, 4, 1); ctx.fillRect(x + 7, y + 6, 2, 5);
       break;
     }
+    case 21: { // altar de encantamento
+      ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#5c5c6e'; ctx.fillRect(x + 3, y + 9, 10, 6);
+      ctx.fillStyle = '#8e8ea2'; ctx.fillRect(x + 4, y + 8, 8, 2);
+      const fl = Math.floor(G.time * 4) % 2;
+      ctx.fillStyle = '#b06ae8'; ctx.fillRect(x + 6, y + 2 + fl, 4, 5);
+      ctx.fillStyle = '#d8a0ff'; ctx.fillRect(x + 7, y + 3 + fl, 2, 3);
+      ctx.fillStyle = 'rgba(176,106,232,0.35)'; ctx.fillRect(x + 5, y + 7 + fl, 6, 1);
+      break;
+    }
   }
 }
 
@@ -1915,10 +1996,10 @@ function drawBattle() {
     ctx.fillText('VITÓRIA!', 10, 146);
     ctx.font = '7px monospace';
     ctx.fillStyle = '#e8e0f0';
-    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro', 10, 157);
+    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro' + (r.frags ? '   +' + r.frags + '◆' : ''), 10, 157);
     if (r.dropTxt) {
       ctx.fillStyle = r.dropColor || '#c8c8d0';
-      ctx.fillText('Loot: ' + r.dropTxt, 90, 157);
+      ctx.fillText('Loot: ' + r.dropTxt, 118, 157);
     }
     if (r.ups.length) {
       ctx.fillStyle = '#6ee86e';
@@ -1963,20 +2044,21 @@ function drawTitle() {
   ctx.fill();
   // sprites decorativos
   const t = Math.floor(G.time * 2) % 2;
-  ctx.drawImage(heroSprite('guerreiro', 'down', t), 88, 128, 32, 32);
-  ctx.drawImage(heroSprite('mago', 'down', 1 - t), 144, 132, 32, 32);
-  ctx.drawImage(heroSprite('ladino', 'down', t), 200, 128, 32, 32);
+  ctx.drawImage(heroSprite('guerreiro', 'down', t), 64, 128, 32, 32);
+  ctx.drawImage(heroSprite('mago', 'down', 1 - t), 120, 132, 32, 32);
+  ctx.drawImage(heroSprite('ladino', 'down', t), 176, 128, 32, 32);
+  ctx.drawImage(heroSprite('arqueiro', 'down', 1 - t), 232, 132, 32, 32);
 
   // título
   ctx.textAlign = 'center';
-  ctx.font = 'bold 22px monospace';
+  ctx.font = 'bold 24px monospace';
   ctx.fillStyle = '#1a1230';
-  ctx.fillText('CRÔNICAS DE PIXEL', VW / 2 + 2, 62 + 2);
+  ctx.fillText('LENDA FORJADA', VW / 2 + 2, 62 + 2);
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText('CRÔNICAS DE PIXEL', VW / 2, 62);
+  ctx.fillText('LENDA FORJADA', VW / 2, 62);
   ctx.font = '8px monospace';
   ctx.fillStyle = '#b8a8d8';
-  ctx.fillText('~ uma aventura em pixels ~', VW / 2, 76);
+  ctx.fillText('~ sua classe é o que você empunha ~', VW / 2, 76);
 
   const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
   for (let i = 0; i < opts.length; i++) {
@@ -1992,7 +2074,7 @@ function drawTitle() {
   }
   ctx.font = '7px monospace';
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z/Enter para escolher', VW / 2, 172);
+  ctx.fillText('Z/Enter para começar', VW / 2, 172);
   ctx.textAlign = 'left';
 }
 function updateTitle() {
@@ -2015,8 +2097,9 @@ function startNewGame() {
   fadeTo(() => {
     enterMap('overworld', START.x, START.y);
     G.state = 'world';
-    showMsg('Bem-vindo a Aldeia Verde!\nSua classe vem do que você\nequipa: espada, cajado ou adaga.');
-    showMsg('Abra o menu (C) para trocar\nde equipamento e distribuir\npontos ao subir de nível.');
+    showMsg('Bem-vindo a Aldeia Verde!\nSua classe vem da arma equipada:\nespada, cajado, adaga ou arco.');
+    showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas habilidades.');
+    showMsg('Monstros dropam Fragmentos ◆.\nUse-os no altar roxo da vila\npara encantar equipamentos!');
     showMsg('Três chefes ameaçam a região.\nDerrote Vorax, o dragão,\npara trazer a paz!');
     saveGame();
   });
@@ -2093,36 +2176,37 @@ function drawPauseMenu() {
       const oy = y + 26 + i * 9;
       ctx.fillStyle = '#8a7ab0'; ctx.fillText(SLOT_NAMES[s] + ':', x + 8, oy);
       const id = P.equip[s];
-      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(EQUIP[id].name, x + 48, oy); }
+      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(eqName(id), x + 48, oy); }
       else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 48, oy); }
     });
-    // bônus de conjunto
-    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo! (+bônus)', x + 8, y + 64); }
-    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 64); }
+    // bônus de conjunto + fragmentos
+    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo! (+bônus)', x + 8, y + 74); }
+    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 74); }
+    ctx.fillStyle = '#b06ae8'; ctx.fillText('◆ ' + P.frags + ' fragmentos', x + 178, y + 74);
     // inventário de equipamentos
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 78);
-    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 88); }
-    const maxShow = 7;
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 86);
+    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 96); }
+    const maxShow = 6;
     const start = clamp(G.menuIdx - 3, 0, Math.max(0, P.equipInv.length - maxShow));
     P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
       const i = start + j;
-      const oy = y + 88 + j * 9;
+      const oy = y + 96 + j * 9;
       const sel = G.menuIdx === i;
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
       ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
-      ctx.fillText(EQUIP[id].name + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
+      ctx.fillText(eqName(id) + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
     });
     // detalhes do item selecionado
     const selId = P.equipInv[G.menuIdx];
     if (selId) {
       const eq = EQUIP[selId];
       ctx.fillStyle = RARITY[eq.rar].color;
-      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 78);
-      const bl = Object.entries(eq.bonus).map(([k, v]) =>
+      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 86);
+      const bl = Object.entries(enchBonus(selId)).map(([k, v]) =>
         (k === 'crit' ? '+' + Math.round(v * 100) + '% crit' : '+' + v + ' ' + k.toUpperCase().replace('MAXHP', 'HP')));
-      bl.forEach((s, i) => { ctx.fillStyle = '#a89ac0'; ctx.fillText(s, x + 178, y + 88 + i * 9); });
-      if (eq.wtype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, y + 88 + bl.length * 9); }
-      if (eq.atype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Tipo: ' + eq.atype, x + 178, y + 88 + bl.length * 9); }
+      bl.forEach((s, i) => { ctx.fillStyle = '#a89ac0'; ctx.fillText(s, x + 178, y + 96 + i * 9); });
+      if (eq.wtype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, y + 96 + bl.length * 9); }
+      if (eq.atype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Tipo: ' + eq.atype, x + 178, y + 96 + bl.length * 9); }
     }
   } else {
     // ---- ITENS ----
@@ -2185,8 +2269,8 @@ function updatePauseMenu() {
 // ---------- Loja ----------
 // estoque por cidade: 'i:' consumível, senão id de equipamento
 const SHOP_STOCK = {
-  aldeia: ['i:pocao', 'i:eter', 'esp2', 'caj2', 'ada2', 'arm2'],
-  rocha:  ['i:pocao', 'i:eter', 'i:elixir', 'esp3', 'caj3', 'ada3', 'arm3', 'arm4', 'elm2', 'elm3']
+  aldeia: ['i:pocao', 'i:eter', 'esp2', 'caj2', 'ada2', 'arc2', 'arm2', 'arm9', 'bot2', 'elm2'],
+  rocha:  ['i:pocao', 'i:eter', 'i:elixir', 'esp3', 'caj3', 'ada3', 'arc3', 'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3']
 };
 function shopEntry(s) {
   if (s.startsWith('i:')) {
@@ -2212,10 +2296,13 @@ function drawShop() {
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
   const stock = SHOP_STOCK[G.shopId];
-  stock.forEach((s, i) => {
+  const maxShow = 9;
+  const first = clamp(G.shopIdx - 4, 0, Math.max(0, stock.length - maxShow));
+  stock.slice(first, first + maxShow).forEach((s, j) => {
+    const i = first + j;
     const e = shopEntry(s);
     const sel = i === G.shopIdx;
-    const oy = y + 36 + i * 10;
+    const oy = y + 36 + j * 10;
     const owned = e.kind === 'item' ? P.items[e.id] : (P.equipInv.includes(e.id) ? 1 : 0) + (Object.values(P.equip).includes(e.id) ? 1 : 0);
     const can = P.gold >= e.price;
     if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 6, oy); }
@@ -2226,6 +2313,8 @@ function drawShop() {
     ctx.fillStyle = '#705a80';
     ctx.fillText(e.kind === 'item' ? 'tem ' + owned : (owned ? 'obtido' : ''), x + 158, oy);
   });
+  if (first > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + w - 14, y + 36); }
+  if (first + maxShow < stock.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + w - 14, y + 36 + (maxShow - 1) * 10); }
   const cur = shopEntry(stock[G.shopIdx]);
   ctx.fillStyle = cur.color;
   ctx.fillText(cur.desc, x + 10, y + h - 16);
@@ -2250,6 +2339,64 @@ function updateShop() {
   }
   if (tap('back')) { G.state = 'world'; AU.sfx('back'); }
 }
+// ---------- Altar de encantamento ----------
+function drawEnchant() {
+  drawWorld();
+  ctx.fillStyle = 'rgba(8,6,16,0.85)';
+  ctx.fillRect(0, 0, VW, VH);
+  const x = 40, y = 16, w = VW - 80, h = VH - 36;
+  ctx.fillStyle = 'rgba(28,18,48,0.97)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#b06ae8';
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#d8a0ff';
+  ctx.fillText('ALTAR DE ENCANTAMENTO', x + 10, y + 13);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#b06ae8';
+  ctx.fillText('◆ ' + P.frags + ' fragmentos arcanos', x + 10, y + 25);
+  ctx.fillStyle = '#8a7ab0';
+  ctx.fillText('Cada nível: +15% nos bônus do item (máx +' + ENCH_MAX + ')', x + 10, y + 35);
+  SLOTS.forEach((s, i) => {
+    const oy = y + 50 + i * 12;
+    const sel = G.menuIdx === i;
+    const id = P.equip[s];
+    if (sel) { ctx.fillStyle = '#d8a0ff'; ctx.fillText('▶', x + 6, oy); }
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText(SLOT_NAMES[s], x + 14, oy);
+    if (id) {
+      const l = enchLvl(id);
+      ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
+      ctx.fillText(eqName(id), x + 62, oy);
+      if (l >= ENCH_MAX) { ctx.fillStyle = '#ffd94e'; ctx.fillText('MÁX', x + 186, oy); }
+      else {
+        const c = enchCost(id);
+        ctx.fillStyle = P.frags >= c ? '#6ee86e' : '#e07070';
+        ctx.fillText('◆' + c, x + 186, oy);
+      }
+    } else {
+      ctx.fillStyle = '#4a3a5a'; ctx.fillText('— vazio —', x + 62, oy);
+    }
+  });
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('Z encantar · X sair · fragmentos vêm de monstros', x + 10, y + h - 7);
+}
+function updateEnchant() {
+  if (tap('up')) { G.menuIdx = (G.menuIdx + SLOTS.length - 1) % SLOTS.length; AU.sfx('menu'); }
+  if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % SLOTS.length; AU.sfx('menu'); }
+  if (tap('ok')) {
+    const id = P.equip[SLOTS[G.menuIdx]];
+    if (id && enchLvl(id) < ENCH_MAX && P.frags >= enchCost(id)) {
+      P.frags -= enchCost(id);
+      P.ench[id] = enchLvl(id) + 1;
+      AU.sfx('level');
+      addFloater(P.x + 8, P.y - 4, '+' + P.ench[id], '#d8a0ff');
+      saveGame();
+    } else AU.sfx('back');
+  }
+  if (tap('back')) { G.state = 'world'; AU.sfx('back'); saveGame(); }
+}
+
 // ---------- Game over / vitória ----------
 function drawGameOver() {
   ctx.fillStyle = '#0c0a14';
@@ -2380,6 +2527,7 @@ function frame(now) {
         case 'battle': updateBattle(dt); break;
         case 'menu': updatePauseMenu(); break;
         case 'shop': updateShop(); break;
+        case 'enchant': updateEnchant(); break;
         case 'gameover': updateGameOver(); break;
         case 'victory': updateVictory(); break;
       }
@@ -2401,6 +2549,7 @@ function frame(now) {
     case 'battle': drawBattle(); break;
     case 'menu': drawPauseMenu(); break;
     case 'shop': drawShop(); break;
+    case 'enchant': drawEnchant(); break;
     case 'gameover': drawGameOver(); break;
     case 'victory': drawVictory(); break;
   }
@@ -2464,6 +2613,7 @@ window.DBG = {
     startBattle(e);
   },
   addXP(n) { return gainXP(n); },
+  addFrags(n) { P.frags += n; },
   eff() { return eff(); },
   equip(idx) { equipFromInv(idx); },
   giveEquip(id) { return addEquipToInv(id); },
