@@ -43,12 +43,21 @@
 const VW = 320, VH = 180, TILE = 16;
 const cv = document.getElementById('screen');
 const mainCtx = cv.getContext('2d');
-// escala inteira dinâmica: preenche a janela mantendo pixels perfeitos
+// camada de texto em resolução cheia (texto nítido sobre a arte em pixels)
+const overlay = document.createElement('canvas');
+const octx = overlay.getContext('2d');
+// escala inteira dinâmica para a arte + esticada via CSS para preencher a janela
 let SCALE = 3;
 function resizeScreen() {
-  SCALE = Math.max(1, Math.floor(Math.min(window.innerWidth / VW, (window.innerHeight - 34) / VH)));
+  const availW = window.innerWidth, availH = window.innerHeight - 30;
+  SCALE = Math.max(1, Math.floor(Math.min(availW / VW, availH / VH)));
   cv.width = VW * SCALE;
   cv.height = VH * SCALE;
+  overlay.width = cv.width;
+  overlay.height = cv.height;
+  const fit = Math.max(1, Math.min(availW / VW, availH / VH));
+  cv.style.width = Math.round(VW * fit) + 'px';
+  cv.style.height = Math.round(VH * fit) + 'px';
   mainCtx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', resizeScreen);
@@ -57,6 +66,27 @@ const buf = document.createElement('canvas');
 buf.width = VW; buf.height = VH;
 const ctx = buf.getContext('2d');
 ctx.imageSmoothingEnabled = false;
+
+// Redireciona todo fillText do buffer para a camada de alta resolução:
+// o transform atual (câmera/tremor) é espelhado multiplicado pela escala e o
+// canvas rasteriza o texto vetorialmente depois do transform — sai nítido,
+// no mesmo tamanho e posição lógicos.
+ctx.fillText = function (text, x, y) {
+  const m = ctx.getTransform();
+  octx.save();
+  octx.setTransform(m.a * SCALE, m.b * SCALE, m.c * SCALE, m.d * SCALE, m.e * SCALE, m.f * SCALE);
+  octx.font = ctx.font;
+  octx.textAlign = ctx.textAlign;
+  octx.textBaseline = ctx.textBaseline;
+  octx.fillStyle = ctx.fillStyle;
+  octx.globalAlpha = ctx.globalAlpha;
+  octx.fillText(text, x, y);
+  octx.restore();
+};
+ctx.measureText = function (text) {
+  octx.font = ctx.font;
+  return { width: octx.measureText(text).width };
+};
 
 // ---------- Utilidades ----------
 const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
@@ -1404,11 +1434,9 @@ function updateWorld(dt) {
     }
   }
 
-  // câmera
-  const tcx = clamp(P.x + 8 - VW / 2, 0, G.map.w * TILE - VW);
-  const tcy = clamp(P.y + 8 - VH / 2, 0, G.map.h * TILE - VH);
-  G.camX = lerp(G.camX, tcx, Math.min(1, dt * 8));
-  G.camY = lerp(G.camY, tcy, Math.min(1, dt * 8));
+  // câmera: segue o herói travada em pixel inteiro (zero tremor ao andar)
+  G.camX = clamp(Math.round(P.x) + 8 - VW / 2, 0, G.map.w * TILE - VW);
+  G.camY = clamp(Math.round(P.y) + 11 - VH / 2, 0, G.map.h * TILE - VH);
 }
 
 // ---------- Batalha ----------
@@ -1932,9 +1960,9 @@ function drawTile(t, x, y, tx, ty) {
 }
 
 // ---------- Desenho: mundo ----------
-function drawWorld() {
+function drawWorld(noHud) {
   const m = G.map;
-  const sx = Math.floor(G.camX), sy = Math.floor(G.camY);
+  const sx = G.camX, sy = G.camY;
   const tx0 = Math.floor(sx / TILE), ty0 = Math.floor(sy / TILE);
   ctx.fillStyle = m.name === 'cave' ? '#16121e' : '#2a5a2a';
   ctx.fillRect(0, 0, VW, VH);
@@ -1956,7 +1984,7 @@ function drawWorld() {
   // sombras + entidades (ordenar por y)
   const ents = [...G.entities, P].sort((a, b) => a.y - b.y);
   for (const e of ents) {
-    const ex = Math.round(e.x - sx), ey = Math.round(e.y - sy);
+    const ex = Math.round(e.x) - sx, ey = Math.round(e.y) - sy;
     if (ex < -20 || ey < -20 || ex > VW + 20 || ey > VH + 20) continue;
     // sombra
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -1983,7 +2011,7 @@ function drawWorld() {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, VW, VH);
   }
-  drawWorldHUD();
+  if (!noHud) drawWorldHUD();
 }
 
 function barRect(x, y, w, h, pct, fg, bg) {
@@ -2317,7 +2345,7 @@ function startNewGame() {
 
 // ---------- Menu do jogador ----------
 function drawPauseMenu() {
-  drawWorld();
+  drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
   ctx.fillRect(0, 0, VW, VH);
   const x = 26, y = 10, w = VW - 52, h = VH - 20;
@@ -2536,7 +2564,7 @@ function shopEntry(s) {
   return { kind: 'equip', id: s, name: eq.name, desc: RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot], price: equipPrice(s), color: RARITY[eq.rar].color };
 }
 function drawShop() {
-  drawWorld();
+  drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.8)';
   ctx.fillRect(0, 0, VW, VH);
   const x = 44, y = 16, w = VW - 88, h = VH - 40;
@@ -2596,7 +2624,7 @@ function updateShop() {
 }
 // ---------- Altar de encantamento ----------
 function drawEnchant() {
-  drawWorld();
+  drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
   ctx.fillRect(0, 0, VW, VH);
   const x = 40, y = 16, w = VW - 80, h = VH - 36;
@@ -2767,6 +2795,8 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000 || 0.016);
   lastT = now;
   G.time += dt;
+  octx.setTransform(1, 0, 0, 1, 0, 0);
+  octx.clearRect(0, 0, overlay.width, overlay.height);
 
   AU.update(dt);
   updateFade(dt);
@@ -2834,16 +2864,20 @@ function frame(now) {
   });
   ctx.restore();
 
-  // fade
+  // fade (também sobre a camada de texto)
   if (G.fade > 0) {
     ctx.fillStyle = 'rgba(6,4,12,' + G.fade + ')';
     ctx.fillRect(0, 0, VW, VH);
+    octx.setTransform(1, 0, 0, 1, 0, 0);
+    octx.fillStyle = 'rgba(6,4,12,' + G.fade + ')';
+    octx.fillRect(0, 0, overlay.width, overlay.height);
   }
 
   // blit para tela
   mainCtx.imageSmoothingEnabled = false;
   mainCtx.clearRect(0, 0, cv.width, cv.height);
   mainCtx.drawImage(buf, 0, 0, cv.width, cv.height);
+  mainCtx.drawImage(overlay, 0, 0);
 
   // limpa taps não consumidos
   for (const k in pressed) pressed[k] = false;
