@@ -30,7 +30,7 @@
 <body>
 <div id="wrap">
   <canvas id="screen" width="960" height="540"></canvas>
-  <div id="hint">Setas/WASD mover &nbsp;·&nbsp; Z/Enter confirmar &nbsp;·&nbsp; X/Esc voltar &nbsp;·&nbsp; C menu &nbsp;·&nbsp; M som</div>
+  <div id="hint">Setas/WASD mover &nbsp;·&nbsp; Shift correr &nbsp;·&nbsp; Z confirmar &nbsp;·&nbsp; X voltar &nbsp;·&nbsp; C menu &nbsp;·&nbsp; M som</div>
 </div>
 <script>
 'use strict';
@@ -109,7 +109,8 @@ const KEYMAP = {
   W: 'up', S: 'down', A: 'left', D: 'right',
   z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok',
   x: 'back', X: 'back', Escape: 'back',
-  c: 'menu', C: 'menu', m: 'mute', M: 'mute'
+  c: 'menu', C: 'menu', m: 'mute', M: 'mute',
+  Shift: 'run'
 };
 window.addEventListener('keydown', e => {
   const k = KEYMAP[e.key];
@@ -329,8 +330,29 @@ const BODIES = {
     '....OLLLLLO.....',
     '...OLL.OLLO.....',
     '...OLO...OO.....',
-    '....O...........']
+    '....O...........'],
+  // poses neutras (parado / passagem entre passos)
+  downN: [
+    '...OAAAAAAAAO...',
+    '..OSAABBBBAASO..',
+    '..OSABBBBBBASO..',
+    '...OABBBBBBAO...',
+    '...OLLLLLLLLO...',
+    '....OLLLLLLO....',
+    '....OLO..OLO....',
+    '....OO....OO....'],
+  sideN: [
+    '...OAAAAAAAO....',
+    '...OAABBBBAO....',
+    '...OAABBBBSO....',
+    '...OAABBBBAO....',
+    '...OLLLLLLO.....',
+    '....OLLLLO......',
+    '....OLLLO.......',
+    '....OOOO........']
 };
+// ciclo de caminhada: neutro → passo A → neutro → passo B
+const WALK_CYCLE = ['N', 'A', 'N', 'B'];
 const CLASS_PAL = {
   guerreiro:   { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#c03a3a', B: '#9aa0b8', L: '#5a3a28' },
   mago:        { O: '#1a1626', S: '#f0c8a0', H: '#d8d8e8', A: '#4a6ae0', B: '#2c3f8a', L: '#2c3f8a' },
@@ -347,12 +369,13 @@ HEADS.aventureiro = {
 // arqueiro: capuz como o ladino, em tons de couro
 HEADS.arqueiro = HEADS.ladino;
 function heroSprite(cls, dir, frame) {
-  const id = `hero_${cls}_${dir}_${frame}`;
+  const step = WALK_CYCLE[(frame | 0) % WALK_CYCLE.length];
+  const id = `hero_${cls}_${dir}_${step}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
   const pal = CLASS_PAL[cls];
   const headDir = dir === 'left' ? 'side' : (dir === 'right' ? 'side' : dir);
   const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
-  const rows = HEADS[cls][headDir].concat(BODIES[bodyDir + (frame ? 'B' : 'A')]);
+  const rows = HEADS[cls][headDir].concat(BODIES[bodyDir + step]);
   let spr = makeSprite(rows, pal);
   if (dir === 'left') spr = flipSprite(spr);
   spriteCache.set(id, spr);
@@ -549,6 +572,106 @@ const ENEMY_ART = {
       '........................',
       '........................']
   },
+  goblin: {
+    pal: { O: '#16220f', G: '#7a9a3a', g: '#96b84e', B: '#6a4a2e', R: '#c03030', W: '#e8e4d0' },
+    rows: [
+      '................',
+      '.....OOOOOO.....',
+      '..OOGGGGGGGGOO..',
+      '.OGGGGGGGGGGGGO.',
+      '.OGGOGGGGGGOGGO.',
+      '..OGRGGGGGGRGO..',
+      '..OGGGWWWWGGGO..',
+      '...OGGGOOGGGO...',
+      '....OGBBBBGO....',
+      '...OGgBBBBgGO...',
+      '...OGgBBBBgGO...',
+      '....OOBBBBOO....',
+      '.....OBOOBO.....',
+      '.....OO..OO.....',
+      '................',
+      '................']
+  },
+  aranha: {
+    pal: { O: '#140e18', D: '#3a2a44', d: '#54406a', R: '#e04040', W: '#e8e0f0' },
+    rows: [
+      '................',
+      '.O.O......O.O...',
+      '..OO......OO....',
+      '.OdO.OOOO.OdO...',
+      '.OdOOddddOOdO...',
+      '.OddOddddOddO...',
+      '..OdddddddddO...',
+      '.OddDDDDDDddO...',
+      '.OdDRDDDDRDdO...',
+      '.OdDDDDDDDDdO...',
+      '.OddDDWWDDddO...',
+      '..OdDDDDDDdO....',
+      '.OdO.OOOO.OdO...',
+      '.OdO......OdO...',
+      '.OO........OO...',
+      '................']
+  },
+  fantasma: {
+    pal: { O: '#0e1420', P: '#7a94c8', p: '#a8c0e8', W: '#dce8ff', R: '#8ac0ff' },
+    rows: [
+      '................',
+      '.....OOOOOO.....',
+      '...OOppppppOO...',
+      '..OpppppppppO...',
+      '..OppppppppppO..',
+      '..OpROppppORpO..',
+      '..OppppppppppO..',
+      '..OpppPPPPpppO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPOPPPPOPPO..',
+      '...OPO.OO.OPO...',
+      '....O......O....',
+      '................']
+  },
+  elemental: {
+    pal: { O: '#2a0e08', R: '#e05020', r: '#f08030', Y: '#f8d040', W: '#fff0b0' },
+    rows: [
+      '.......OO.......',
+      '......OYYO......',
+      '.....OYWWYO.....',
+      '.....OYWWYO.....',
+      '....OrYWWYrO....',
+      '....OrrYYrrO....',
+      '...ORrrrrrrRO...',
+      '...ORrrYYrrRO...',
+      '..ORRrrYYrrRRO..',
+      '..ORRrrrrrrRRO..',
+      '..ORRRrrrrRRRO..',
+      '...ORRRrrRRRO...',
+      '...OORRRRRROO...',
+      '.....OORROO.....',
+      '................',
+      '................']
+  },
+  harpia: {
+    pal: { O: '#1a1420', B: '#6a4a9c', b: '#a888e0', S: '#f0c8a0', Y: '#e8c050', R: '#c03030', W: '#c8b0f0' },
+    rows: [
+      '................',
+      '......OOOO......',
+      '.....ObSSbO.....',
+      '.O...ObSSbO...O.',
+      'OBO..OSRRSO..OBO',
+      'OBBO.OSYYSO.OBBO',
+      'OBWBOOSSSSOOBWBO',
+      'OBWWBObbbbOBWWBO',
+      'OBWWWBbbbbBWWWBO',
+      '.OBWWBbbbbBWWBO.',
+      '..OBWBbbbbBWBO..',
+      '...OBObbbbOBO...',
+      '....OObbbbOO....',
+      '.....ObbbbO.....',
+      '.....OYOOYO.....',
+      '.....OO..OO.....']
+  },
   dragao: {
     pal: { O: '#1c1020', R: '#c03838', r: '#e05848', D: '#8a2828', Y: '#f0c050', W: '#f0f0e0', G: '#50c060' },
     rows: [
@@ -660,6 +783,59 @@ const PET_ART = {
       '..OGGGGGO...',
       '...OOOOO....']
   },
+  goblinzinho: {
+    pal: { O: '#16220f', G: '#7a9a3a', g: '#96b84e', B: '#6a4a2e', R: '#c03030' },
+    rows: [
+      '............',
+      '..OOOOOO....',
+      '.OGGGGGGO...',
+      '.OGOGGOGO...',
+      '.OGRGGRGO...',
+      '..OGGGGO....',
+      '..OGBBGO....',
+      '.OGgBBgGO...',
+      '..OBBBBO....',
+      '..OO..OO....']
+  },
+  aranhinha: {
+    pal: { O: '#140e18', D: '#3a2a44', d: '#54406a', R: '#e04040' },
+    rows: [
+      '............',
+      '.O.O..O.O...',
+      '.OdOOOOdO...',
+      '..OddddO....',
+      '.OdDDDDdO...',
+      '.OdRDDRdO...',
+      '.OdDDDDdO...',
+      '..OddddO....',
+      '.O.O..O.O...']
+  },
+  fantasminha: {
+    pal: { O: '#0e1420', P: '#7a94c8', p: '#a8c0e8', R: '#8ac0ff' },
+    rows: [
+      '............',
+      '..OOOOOO....',
+      '.OpppppppO..',
+      '.OpROppRpO..',
+      '.OpppppppO..',
+      '.OPPPPPPPO..',
+      '.OPPPPPPPO..',
+      '.OPOPPOPPO..',
+      '..O.OO.OO...']
+  },
+  chaminha: {
+    pal: { O: '#2a0e08', R: '#e05020', r: '#f08030', Y: '#f8d040', W: '#fff0b0' },
+    rows: [
+      '.....OO.....',
+      '....OYYO....',
+      '...OYWWYO...',
+      '...OrYYrO...',
+      '..ORrrrrRO..',
+      '..ORrYYrRO..',
+      '..ORRrrRRO..',
+      '...ORRRRO...',
+      '....OOOO....']
+  },
   corvo: {
     pal: { O: '#0e0a16', D: '#2e2440', d: '#453860', G: '#6ee86e', Y: '#e8c050' },
     rows: [
@@ -741,8 +917,8 @@ const RARITY = {
   lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 999 }
 };
 const RAR_KEYS = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-const SLOTS = ['arma', 'corpo', 'elmo', 'botas', 'amuleto'];
-const SLOT_NAMES = { arma: 'Arma', corpo: 'Peitoral', elmo: 'Cabeça', botas: 'Botas', amuleto: 'Amuleto' };
+const SLOTS = ['arma', 'corpo', 'elmo', 'luvas', 'botas', 'amuleto'];
+const SLOT_NAMES = { arma: 'Arma', corpo: 'Peitoral', elmo: 'Cabeça', luvas: 'Luvas', botas: 'Botas', amuleto: 'Amuleto' };
 
 // bonus: atk/def/mag/spd/hp/mp/crit
 const EQUIP = {
@@ -752,8 +928,12 @@ const EQUIP = {
   esp3: { name: 'Lâmina de Aço',      slot: 'arma', rar: 'raro',     wtype: 'espada', bonus: { atk: 9, def: 2 } },
   esp4: { name: 'Espada Flamejante',  slot: 'arma', rar: 'epico',    wtype: 'espada', bonus: { atk: 14, mag: 4 } },
   esp5: { name: 'Lâmina do Dragão',   slot: 'arma', rar: 'lendario', wtype: 'espada', bonus: { atk: 22, hp: 20 } },
+  esp6: { name: 'Machado de Batalha', slot: 'arma', rar: 'incomum',  wtype: 'espada', bonus: { atk: 6, spd: -1 } },
+  esp7: { name: 'Alabarda',           slot: 'arma', rar: 'raro',     wtype: 'espada', bonus: { atk: 10, def: 1 } },
   // cajados
   caj1: { name: 'Galho Torto',        slot: 'arma', rar: 'comum',    wtype: 'cajado', bonus: { mag: 3 } },
+  caj6: { name: 'Varinha de Osso',    slot: 'arma', rar: 'incomum',  wtype: 'cajado', bonus: { mag: 5, mp: 5 } },
+  caj7: { name: 'Grimório Selado',    slot: 'arma', rar: 'raro',     wtype: 'cajado', bonus: { mag: 10, def: 2 } },
   caj2: { name: 'Cajado de Carvalho', slot: 'arma', rar: 'incomum',  wtype: 'cajado', bonus: { mag: 6 } },
   caj3: { name: 'Cajado de Cristal',  slot: 'arma', rar: 'raro',     wtype: 'cajado', bonus: { mag: 11, mp: 10 } },
   caj4: { name: 'Cajado Tempestade',  slot: 'arma', rar: 'epico',    wtype: 'cajado', bonus: { mag: 16, spd: 2 } },
@@ -761,12 +941,14 @@ const EQUIP = {
   // adagas
   ada1: { name: 'Faca Cega',          slot: 'arma', rar: 'comum',    wtype: 'adaga', bonus: { atk: 1, spd: 1 } },
   ada2: { name: 'Adaga Curva',        slot: 'arma', rar: 'incomum',  wtype: 'adaga', bonus: { atk: 3, spd: 2, crit: 0.03 } },
+  ada6: { name: 'Estilete',           slot: 'arma', rar: 'incomum',  wtype: 'adaga', bonus: { atk: 2, crit: 0.06 } },
   ada3: { name: 'Adaga Sombria',      slot: 'arma', rar: 'raro',     wtype: 'adaga', bonus: { atk: 6, spd: 4, crit: 0.06 } },
   ada4: { name: 'Presa da Serpente',  slot: 'arma', rar: 'epico',    wtype: 'adaga', bonus: { atk: 10, spd: 5, crit: 0.10 } },
   ada5: { name: 'Beijo da Morte',     slot: 'arma', rar: 'lendario', wtype: 'adaga', bonus: { atk: 15, spd: 8, crit: 0.15 } },
   // arcos
   arc1: { name: 'Arco Simples',       slot: 'arma', rar: 'comum',    wtype: 'arco', bonus: { atk: 2, crit: 0.02 } },
   arc2: { name: 'Arco Recurvo',       slot: 'arma', rar: 'incomum',  wtype: 'arco', bonus: { atk: 4, spd: 1, crit: 0.03 } },
+  arc6: { name: 'Besta de Caça',      slot: 'arma', rar: 'raro',     wtype: 'arco', bonus: { atk: 10, crit: 0.04 } },
   arc3: { name: 'Arco Longo',         slot: 'arma', rar: 'raro',     wtype: 'arco', bonus: { atk: 8, spd: 2, crit: 0.05 } },
   arc4: { name: 'Arco Élfico',        slot: 'arma', rar: 'epico',    wtype: 'arco', bonus: { atk: 12, spd: 4, crit: 0.08 } },
   arc5: { name: 'Sussurro da Tempestade', slot: 'arma', rar: 'lendario', wtype: 'arco', bonus: { atk: 18, spd: 6, crit: 0.12 } },
@@ -788,18 +970,31 @@ const EQUIP = {
   bot3: { name: 'Botas de Ferro',     slot: 'botas', rar: 'raro',     bonus: { def: 4, hp: 8 } },
   bot4: { name: 'Botas Aladas',       slot: 'botas', rar: 'epico',    bonus: { spd: 6, crit: 0.03 } },
   bot5: { name: 'Passos do Vento',    slot: 'botas', rar: 'lendario', bonus: { spd: 9, atk: 5, crit: 0.05 } },
-  // elmos
+  // elmos e chapéus
   elm1: { name: 'Capuz de Pano',      slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
   elm2: { name: 'Elmo de Ferro',      slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
   elm3: { name: 'Chapéu do Mago',     slot: 'elmo', rar: 'raro',    bonus: { mag: 5, mp: 8 } },
   elm4: { name: 'Capuz do Assassino', slot: 'elmo', rar: 'raro',    bonus: { spd: 3, crit: 0.04 } },
   elm5: { name: 'Coroa Real',         slot: 'elmo', rar: 'epico',   bonus: { def: 4, hp: 10, mag: 4 } },
+  elm6: { name: 'Chapéu do Caçador',  slot: 'elmo', rar: 'incomum', bonus: { spd: 2, atk: 1 } },
+  elm7: { name: 'Elmo Alado',         slot: 'elmo', rar: 'epico',   bonus: { def: 6, spd: 3 } },
+  elm8: { name: 'Elmo do Dragão',     slot: 'elmo', rar: 'lendario',bonus: { def: 10, hp: 25, atk: 4 } },
+  // luvas
+  luv1: { name: 'Manoplas de Pano',   slot: 'luvas', rar: 'comum',    bonus: { def: 1 } },
+  luv2: { name: 'Luvas de Couro',     slot: 'luvas', rar: 'incomum',  bonus: { atk: 2, spd: 1 } },
+  luv3: { name: 'Manoplas de Aço',    slot: 'luvas', rar: 'raro',     bonus: { atk: 4, def: 3 } },
+  luv4: { name: 'Luvas do Feiticeiro',slot: 'luvas', rar: 'raro',     bonus: { mag: 6, mp: 6 } },
+  luv5: { name: 'Garras Sombrias',    slot: 'luvas', rar: 'epico',    bonus: { atk: 7, crit: 0.07 } },
+  luv6: { name: 'Punho do Titã',      slot: 'luvas', rar: 'lendario', bonus: { atk: 13, def: 6 } },
   // amuletos
   amu1: { name: 'Anel de Cobre',      slot: 'amuleto', rar: 'comum',    bonus: { hp: 5 } },
   amu2: { name: 'Colar de Jade',      slot: 'amuleto', rar: 'incomum',  bonus: { mp: 8 } },
   amu3: { name: 'Anel de Rubi',       slot: 'amuleto', rar: 'raro',     bonus: { atk: 3, mag: 3 } },
   amu4: { name: 'Olho de Corvo',      slot: 'amuleto', rar: 'epico',    bonus: { crit: 0.08, spd: 2 } },
-  amu5: { name: 'Coração do Dragão',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } }
+  amu5: { name: 'Coração do Dragão',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } },
+  amu6: { name: 'Talismã de Prata',   slot: 'amuleto', rar: 'incomum',  bonus: { def: 2, mag: 2 } },
+  amu7: { name: 'Pingente da Sorte',  slot: 'amuleto', rar: 'raro',     bonus: { crit: 0.05, hp: 8 } },
+  amu8: { name: 'Selo Arcano',        slot: 'amuleto', rar: 'epico',    bonus: { mag: 9, mp: 16 } }
 };
 function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
 
@@ -812,11 +1007,19 @@ const PETS = {
   caveirinha:  { name: 'Caveirinha',    rar: 'incomum',  atk: 5,  passive: { atk: 1, mag: 1 },           desc: '+1 ATQ, +1 MAG' },
   golenzinho:  { name: 'Golenzinho',    rar: 'raro',     atk: 8,  passive: { def: 4, hp: 10 },           desc: '+4 DEF, +10 HP' },
   slimereal:   { name: 'Slime Real',    rar: 'raro',     atk: 8,  passive: { hp: 12, def: 2 },           desc: '+12 HP, +2 DEF' },
+  goblinzinho: { name: 'Goblinzinho',  rar: 'incomum',  atk: 6,  passive: { spd: 2, atk: 1 },           desc: '+2 VEL, +1 ATQ' },
+  aranhinha:   { name: 'Aranhinha',    rar: 'incomum',  atk: 7,  passive: { crit: 0.04 },               desc: '+4% crítico' },
+  fantasminha: { name: 'Fantasminha',  rar: 'raro',     atk: 9,  passive: { mag: 3, mp: 8 },            desc: '+3 MAG, +8 MP' },
+  chaminha:    { name: 'Chaminha',     rar: 'raro',     atk: 11, passive: { atk: 3 },                   desc: '+3 ATQ' },
   corvo:       { name: 'Corvo Sombrio', rar: 'epico',    atk: 10, passive: { mag: 4, crit: 0.05 },       desc: '+4 MAG, +5% crit' },
   dragaozinho: { name: 'Dragãozinho',   rar: 'lendario', atk: 14, passive: { atk: 3, mag: 3, hp: 15 },   desc: '+3 ATQ, +3 MAG, +15 HP' }
 };
 // chance de mob deixar um filhote; chefes sempre dão o seu
-const PET_DROPS = { slime: ['slimezinho', 0.05], morcego: ['morceguinho', 0.05], lobo: ['lobinho', 0.04], esqueleto: ['caveirinha', 0.04], golem: ['golenzinho', 0.03] };
+const PET_DROPS = {
+  slime: ['slimezinho', 0.05], morcego: ['morceguinho', 0.05], lobo: ['lobinho', 0.04],
+  esqueleto: ['caveirinha', 0.04], golem: ['golenzinho', 0.03], goblin: ['goblinzinho', 0.05],
+  aranha: ['aranhinha', 0.04], fantasma: ['fantasminha', 0.035], elemental: ['chaminha', 0.03]
+};
 const BOSS_PETS = { reislime: 'slimereal', necromante: 'corvo', dragao: 'dragaozinho' };
 function petDmg(petId) { return PETS[petId].atk + Math.floor(P.lvl / 2); }
 
@@ -836,18 +1039,28 @@ const ENEMIES = {
   morcego:    { name: 'Morcego',        hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1 },
   lobo:       { name: 'Lobo Cinzento',  hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2 },
   esqueleto:  { name: 'Esqueleto',      hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, skill: { name: 'Golpe de Osso', mult: 1.5, chance: 0.25 } },
+  goblin:     { name: 'Goblin Ladrão',  hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, skill: { name: 'Furto', mult: 1.2, chance: 0.25 } },
+  aranha:     { name: 'Aranha Gigante', hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
   zumbi:      { name: 'Zumbi',          hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, skill: { name: 'Mordida Podre', mult: 1.4, chance: 0.3 } },
+  fantasma:   { name: 'Espectro',       hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, skill: { name: 'Toque Gélido', mult: 1.6, chance: 0.35 } },
   orc:        { name: 'Orc Bruto',      hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, skill: { name: 'Esmagar', mult: 1.7, chance: 0.3 } },
+  harpia:     { name: 'Harpia',         hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, skill: { name: 'Rajada de Penas', mult: 1.5, chance: 0.35 } },
   golem:      { name: 'Golem de Pedra', hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, skill: { name: 'Terremoto', mult: 1.6, chance: 0.3 } },
+  elemental:  { name: 'Elemental de Fogo', hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, skill: { name: 'Explosão Ígnea', mult: 1.8, chance: 0.35 } },
   // chefes (stats fixos, drop assinatura garantido)
   reislime:   { name: 'Rei Slime',        hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, boss: true, sig: 'elm5', skill: { name: 'Salto Esmagador', mult: 1.6, chance: 0.3 } },
   necromante: { name: 'Malakar, o Necromante', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, boss: true, sig: 'amu4', skill: { name: 'Raio Sombrio', mult: 1.8, chance: 0.4 } },
   dragao:     { name: 'Vorax, o Dragão',  hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, boss: true, sig: 'weapon', skill: { name: 'Sopro de Fogo', mult: 1.8, chance: 0.4 } }
 };
 const ITEMS = {
-  pocao: { name: 'Poção', desc: 'Recupera 45% do HP', price: 25 },
-  eter:  { name: 'Éter', desc: 'Recupera 40% do MP', price: 40 },
-  elixir:{ name: 'Elixir', desc: 'Recupera HP e MP totais', price: 150 }
+  pocao:    { name: 'Poção',       desc: 'Recupera 45% do HP',        price: 25 },
+  pocaoG:   { name: 'Poção Grande',desc: 'Recupera 80% do HP',        price: 70 },
+  eter:     { name: 'Éter',        desc: 'Recupera 40% do MP',        price: 40 },
+  elixir:   { name: 'Elixir',      desc: 'Recupera HP e MP totais',   price: 150 },
+  antidoto: { name: 'Antídoto',    desc: 'Cura veneno e cega',        price: 20, battleOnly: true },
+  bomba:    { name: 'Bomba',       desc: 'Dano fixo de 35 no inimigo', price: 60, battleOnly: true },
+  pergaminho:{ name: 'Pergaminho', desc: 'Dobra o ATQ por 3 turnos',  price: 90, battleOnly: true },
+  pao:      { name: 'Pão',         desc: 'Recupera 20% de HP e MP',   price: 18 }
 };
 const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 
@@ -855,8 +1068,8 @@ const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 // tiles: 0 grama 1 árvore 2 água 3 caminho 4 flor 5 muro-pedra 6 piso-pedra
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
-// 20 lápide · 21 altar de encantamento
-const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21]);
+// 20 lápide · 21 altar · 22 arbusto · 23 pedra · 24 cogumelo (decorativos)
+const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23]);
 const MAPS = {};
 
 function genOverworld() {
@@ -930,9 +1143,14 @@ function genOverworld() {
   rect(76, 31, 1, 19, 3);              // ponte leste -> estrada sul
   // placas
   set(19, 46, 15); set(19, 32, 15); set(47, 12, 15); set(73, 50, 15); set(73, 19, 15);
-  // flores
+  // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
   for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
-    if (t[y][x] === 0 && hash2(x * 7, y * 7) < 0.05) set(x, y, 4);
+    if (t[y][x] !== 0) continue;
+    const d = hash2(x * 7, y * 7);
+    if (d < 0.05) set(x, y, 4);            // flor
+    else if (d < 0.075) set(x, y, 22);     // arbusto
+    else if (d < 0.088) set(x, y, 23);     // pedra
+    else if (d < 0.095 && y > 30 && x < 30) set(x, y, 24); // cogumelo (floresta)
   }
   // baús escondidos
   set(8, 33, 16); set(88, 36, 16); set(89, 59, 16);
@@ -961,6 +1179,11 @@ function genCave() {
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
   const rect = (x, y, w, h, v) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(i, j, v); };
   rect(0, 0, W, 2, 10); rect(0, H - 2, W, 2, 10); rect(0, 0, 2, H, 10); rect(W - 2, 0, 2, H, 10);
+  // cogumelos luminosos decorativos
+  for (let i = 0; i < 14; i++) {
+    const cx = irnd(3, W - 4), cy = irnd(3, H - 4);
+    if (t[cy][cx] === 9) set(cx, cy, 24);
+  }
   // formações rochosas
   for (let i = 0; i < 22; i++) {
     const cx = irnd(3, W - 4), cy = irnd(3, H - 4), r = irnd(1, 2);
@@ -1000,6 +1223,7 @@ const G = {
   chests: {},         // id -> true (abertos)
   region: null,
   shopId: 'aldeia',
+  parts: [], ambT: 0, dustT: 0, battleFlash: 0,
   victoryShown: false,
   stats: { kills: 0, battles: 0 }
 };
@@ -1014,8 +1238,8 @@ function newPlayer() {
     atk: 6, def: 5, mag: 6, spd: 6, crit: 0.05,
     gold: 30,
     frags: 0,
-    items: { pocao: 3, eter: 1, elixir: 0 },
-    equip: { arma: 'esp1', corpo: 'arm1', elmo: null, botas: null, amuleto: null },
+    items: { pocao: 3, pocaoG: 0, eter: 1, elixir: 0, antidoto: 1, bomba: 0, pergaminho: 0, pao: 2 },
+    equip: { arma: 'esp1', corpo: 'arm1', elmo: null, luvas: null, botas: null, amuleto: null },
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
     pets: [], activePet: null,
@@ -1160,9 +1384,10 @@ function rollLoot(type) {
   }
   if (Math.random() > d.drop) return null;
   // 55% consumível, 45% equipamento
-  if (Math.random() < 0.55) return Math.random() < 0.7 ? 'c:pocao' : 'c:eter';
+  if (Math.random() < 0.55) return 'c:' + pick(['pocao', 'pocao', 'pocao', 'pao', 'pao', 'eter', 'antidoto', 'bomba']);
   const rar = rollRarity(Math.min(d.tier, RAR_KEYS.length - 1));
-  const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'amu4', 'amu5', 'arm8'].includes(k));
+  const NO_DROP = ['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'elm8', 'amu4', 'amu5', 'arm8', 'bot5', 'luv6'];
+  const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !NO_DROP.includes(k));
   return pool.length ? pick(pool) : null;
 }
 // fragmentos arcanos: moeda de encantamento dropada por mobs
@@ -1192,6 +1417,8 @@ function loadGame() {
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
     if (P.equip.botas === undefined) P.equip.botas = null;
+    if (P.equip.luvas === undefined) P.equip.luvas = null;
+    for (const k of Object.keys(ITEMS)) if (P.items[k] === undefined) P.items[k] = 0;
     if (!P.equipInv.includes('arc1') && P.equip.arma !== 'arc1' && !Object.keys(P.ench).some(k => k.startsWith('arc'))) {
       // saves antigos não tinham arco inicial
       if (P.equipInv.length < 18) P.equipInv.push('arc1');
@@ -1236,16 +1463,16 @@ function enterMap(name, px, py) {
 
 const SPAWN_ZONES = {
   overworld: [
-    { x1: 6, y1: 32, x2: 70, y2: 61, types: ['slime', 'morcego'], lv: [1, 2], count: 8,
+    { x1: 6, y1: 32, x2: 70, y2: 61, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 8,
       exclude: [{ x1: 11, y1: 43, x2: 29, y2: 57 }, { x1: 5, y1: 31, x2: 27, y2: 43 }] },
-    { x1: 6, y1: 32, x2: 26, y2: 42, types: ['lobo', 'morcego'], lv: [3, 5], count: 5 },
-    { x1: 6, y1: 11, x2: 90, y2: 26, types: ['lobo', 'esqueleto'], lv: [4, 6], count: 8,
+    { x1: 6, y1: 32, x2: 26, y2: 42, types: ['lobo', 'aranha', 'goblin'], lv: [3, 5], count: 6 },
+    { x1: 6, y1: 11, x2: 90, y2: 26, types: ['lobo', 'esqueleto', 'harpia'], lv: [4, 6], count: 8,
       exclude: [{ x1: 65, y1: 12, x2: 85, y2: 25 }] },
-    { x1: 56, y1: 34, x2: 90, y2: 48, types: ['esqueleto', 'lobo'], lv: [5, 7], count: 6 },
-    { x1: 74, y1: 50, x2: 90, y2: 60, types: ['zumbi', 'esqueleto'], lv: [6, 8], count: 5 }
+    { x1: 56, y1: 34, x2: 90, y2: 48, types: ['esqueleto', 'aranha', 'harpia'], lv: [5, 7], count: 7 },
+    { x1: 74, y1: 50, x2: 90, y2: 60, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 6 }
   ],
   cave: [
-    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['esqueleto', 'orc', 'golem'], lv: [7, 9], count: 8 }
+    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 9 }
   ]
 };
 function makeEntity(type, x, y, lvl, isBoss) {
@@ -1315,23 +1542,46 @@ const SIGNS = {
 };
 
 function updateWorld(dt) {
-  // movimento do jogador
-  const spd = 78;
+  // movimento do jogador: aceleração suave + corrida (Shift)
   let dx = 0, dy = 0;
   if (keys.up) dy -= 1;
   if (keys.down) dy += 1;
   if (keys.left) dx -= 1;
   if (keys.right) dx += 1;
-  P.moving = !!(dx || dy);
-  if (P.moving) {
+  const wantMove = !!(dx || dy);
+  const running = keys.run && wantMove;
+  const spdMax = running ? 122 : 76;
+  // velocidade alvo, suavizada (dá peso ao personagem sem atrasar o controle)
+  let tvx = 0, tvy = 0;
+  if (wantMove) {
+    const n = Math.hypot(dx, dy);
+    tvx = dx / n * spdMax; tvy = dy / n * spdMax;
     if (dy < 0) P.dir = 'up';
     if (dy > 0) P.dir = 'down';
     if (dx < 0) P.dir = 'left';
     if (dx > 0) P.dir = 'right';
-    const n = Math.hypot(dx, dy);
-    tryMove(P, dx / n * spd * dt, dy / n * spd * dt);
-    P.animT += dt;
-    if (P.animT > 0.16) { P.animT = 0; P.frame = 1 - P.frame; }
+  }
+  const accel = wantMove ? 16 : 22;
+  P.vx = lerp(P.vx || 0, tvx, Math.min(1, dt * accel));
+  P.vy = lerp(P.vy || 0, tvy, Math.min(1, dt * accel));
+  const speed = Math.hypot(P.vx, P.vy);
+  P.moving = speed > 6;
+  if (P.moving) {
+    tryMove(P, P.vx * dt, P.vy * dt);
+    // ciclo de 4 frames: passo, neutro, passo oposto, neutro
+    P.animT += dt * (running ? 1.5 : 1);
+    if (P.animT > 0.14) { P.animT = 0; P.frame = (P.frame + 1) % 4; }
+    // poeira sob os pés (mais forte correndo)
+    G.dustT -= dt;
+    if (G.dustT <= 0) {
+      G.dustT = running ? 0.09 : 0.2;
+      const cave = G.map.name === 'cave';
+      spawnParticle({
+        x: P.x + 8 + rnd(-2, 2), y: P.y + 15, vx: -P.vx * 0.12, vy: rnd(-10, -3),
+        life: running ? 0.45 : 0.32, size: running ? 2 : 1, shrink: true,
+        color: cave ? '#4a4458' : '#b8a878'
+      });
+    }
   } else { P.frame = 0; P.animT = 0; }
 
   // portais / tiles especiais
@@ -1358,6 +1608,7 @@ function updateWorld(dt) {
         P.hp = E0.maxHp; P.mp = E0.maxMp;
         AU.sfx('heal');
         addFloater(P.x + 8, P.y - 4, '+HP/MP', '#6ee86e');
+        burst(P.x + 8, P.y + 8, 24, { color: ['#8ec6f0', '#c6e2f8', '#6ee86e'], spdMax: 50, lifeMax: 1.1, size: 1, lift: 30, g: 30 });
         showMsg('A fonte mágica restaurou\nsuas forças! (jogo salvo)');
         saveGame();
       } else showMsg('A água da fonte brilha\ncom energia mágica.');
@@ -1374,9 +1625,15 @@ function updateWorld(dt) {
         G.chests[cid] = true;
         G.map.tiles[f.ty][f.tx] = 17;
         AU.sfx('chest');
+        burst(f.tx * TILE + 8, f.ty * TILE + 6, 26, {
+          color: ['#ffd94e', '#f0d878', '#fff0a0'], spdMax: 70, lifeMax: 1, size: 2, lift: 40, g: 110
+        });
         const loot = G.map.name === 'cave'
-          ? pick([{ gold: 80 }, { item: 'elixir' }, { eq: pick(['arm5', 'esp4', 'caj4', 'ada4', 'arc4', 'bot4', 'arm11']) }, { eq: pick(['arm8', 'amu5', 'bot5']) }])
-          : pick([{ item: 'pocao', n: 2 }, { gold: 45 }, { eq: pick(['esp3', 'caj3', 'ada3', 'arc3', 'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'amu3', 'bot3']) }]);
+          ? pick([{ gold: 80 }, { item: 'elixir' }, { item: 'bomba', n: 2 },
+                  { eq: pick(['arm5', 'esp4', 'caj4', 'ada4', 'arc4', 'bot4', 'arm11', 'luv5', 'elm7', 'amu8']) },
+                  { eq: pick(['arm8', 'amu5', 'bot5', 'luv6', 'elm8']) }])
+          : pick([{ item: 'pocao', n: 2 }, { gold: 45 }, { item: 'pergaminho' },
+                  { eq: pick(['esp3', 'caj3', 'ada3', 'arc3', 'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'amu3', 'amu7', 'bot3', 'luv3', 'luv4']) }]);
         if (loot.gold) { P.gold += loot.gold; showMsg('Você encontrou ' + loot.gold + ' de ouro!'); }
         else if (loot.eq) {
           const r = addEquipToInv(loot.eq);
@@ -1461,13 +1718,25 @@ function startBattle(ent) {
     menuIdx: 0, sub: null, subIdx: 0,
     log: e.boss ? e.name + ' bloqueia seu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
     pAnim: 0, eAnim: 0, eFlash: 0, pFlash: 0,
-    atkBuff: 0, poison: 0, frozen: false,
+    atkBuff: 0, poison: 0, frozen: false, scrollBuff: false, pPoison: 0,
+    hpShown: e.hp, pHpShown: P.hp, slash: null,
     petStruck: true, petAnim: 0,
     dmgPops: [], rewards: null, swirl: 0
   };
   G.state = 'battle';
+  G.battleFlash = 1;
+  G.shake = e.boss ? 8 : 5;
   AU.sfx(e.boss ? 'boss' : 'battle');
   AU.setTrack(AU.BATTLE);
+  // entrada: faíscas convergindo para o centro
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * Math.PI * 2, r0 = 150;
+    spawnParticle({
+      screen: true, x: VW / 2 + Math.cos(a) * r0, y: VH / 2 + Math.sin(a) * r0,
+      vx: -Math.cos(a) * 240, vy: -Math.sin(a) * 240,
+      life: 0.55, size: 2, color: e.boss ? '#e05050' : '#ffd94e', shrink: true
+    });
+  }
 }
 function calcDamage(atk, def, mult, isMag) {
   const raw = atk * mult * rnd(0.9, 1.1) - def * (isMag ? 0.3 : 0.5);
@@ -1484,7 +1753,7 @@ function playerAttack(b, opts) {
   const E = eff();
   let dmg;
   let crit = o.forceCrit || Math.random() < E.crit + (o.critBonus || 0);
-  const atkNow = E.atk + (b.atkBuff > 0 ? Math.round(E.atk * 0.5) : 0);
+  const atkNow = E.atk + (b.atkBuff > 0 ? Math.round(E.atk * (b.scrollBuff ? 1.0 : 0.5)) : 0);
   const defNow = o.ignoreDef ? 0 : b.enemy.def;
   if (o.magic) {
     dmg = calcDamage(E.mag, defNow, mult, true);
@@ -1495,15 +1764,38 @@ function playerAttack(b, opts) {
   }
   b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
   b.eFlash = 0.25;
-  G.shake = crit ? 5 : 3;
+  G.shake = crit ? 6 : 3.5;
   addDmgPop(b, 'enemy', dmg, crit ? '#ffd94e' : '#fff');
   AU.sfx(o.magic ? 'magic' : (crit ? 'crit' : 'hit'));
+  // impacto visual: faíscas mágicas ou respingo de golpe
+  const ix = 76, iy = 74;
+  if (o.magic) {
+    burstScreen(ix, iy, crit ? 22 : 16, {
+      color: ['#8ac0ff', '#b06ae8', '#dce8ff'], spdMax: 95, lifeMax: 0.6, size: 2, drag: 3
+    });
+  } else {
+    burstScreen(ix, iy, crit ? 20 : 12, {
+      color: crit ? ['#ffd94e', '#fff0a0', '#ff8a4e'] : ['#e8e8f0', '#c8c8d8'],
+      spdMax: crit ? 120 : 80, lifeMax: 0.5, size: crit ? 2 : 1, g: 120
+    });
+    // rastro do corte
+    b.slash = { t: 0, crit };
+  }
   return { dmg, crit };
 }
 
 function enemyTurn(b) {
   b.phase = 'enemyAct'; b.t = 0;
-  // veneno
+  // veneno no jogador
+  if (b.pPoison > 0) {
+    const E = eff();
+    const pd = Math.max(1, Math.round(E.maxHp * 0.05));
+    P.hp = Math.max(0, P.hp - pd);
+    addDmgPop(b, 'player', pd, '#a0e84e');
+    b.pPoison--;
+    if (P.hp <= 0) { b.phase = 'lose'; b.t = 0; AU.sfx('die'); return; }
+  }
+  // veneno no inimigo
   if (b.poison > 0) {
     const pd = Math.max(1, Math.round(b.enemy.maxHp * 0.06));
     b.enemy.hp = Math.max(0, b.enemy.hp - pd);
@@ -1518,18 +1810,27 @@ function enemyTurn(b) {
   }
   b.enemySkipped = false;
   const e = b.enemy;
-  let mult = 1, skillName = null;
-  if (e.skill && Math.random() < e.skill.chance) { mult = e.skill.mult; skillName = e.skill.name; }
-  b.pendingEnemy = { mult, skillName };
+  let mult = 1, skillName = null, venom = false;
+  if (e.skill && Math.random() < e.skill.chance) {
+    mult = e.skill.mult; skillName = e.skill.name; venom = !!e.skill.poison;
+  }
+  b.pendingEnemy = { mult, skillName, venom };
 }
 function applyEnemyHit(b) {
   const pe = b.pendingEnemy || { mult: 1 };
   const dmg = calcDamage(b.enemy.atk, eff().def, pe.mult);
   P.hp = Math.max(0, P.hp - dmg);
   b.pFlash = 0.25;
-  G.shake = 4;
+  G.shake = pe.skillName ? 6 : 4;
   addDmgPop(b, 'player', dmg, pe.skillName ? '#ff8a4e' : '#ff5a5a');
+  burstScreen(268, 76, pe.skillName ? 16 : 10, {
+    color: ['#e05050', '#ff8a4e', '#c03030'], spdMax: 90, lifeMax: 0.5, size: 2, g: 110
+  });
   AU.sfx('hurt');
+  if (pe.venom && b.pPoison <= 0) {
+    b.pPoison = 3;
+    addDmgPop(b, 'player', 'VENENO', '#a0e84e');
+  }
   battleLog(b, pe.skillName ? b.enemy.name + ' usou ' + pe.skillName + '!' : b.enemy.name + ' atacou!');
   b.pendingEnemy = null;
 }
@@ -1571,7 +1872,15 @@ function endBattleWin(b) {
   }
   b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, petTxt, petColor, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
-  if (ups.length) AU.sfx('level'); else AU.sfx('victory');
+  if (ups.length) {
+    AU.sfx('level');
+    for (let i = 0; i < 26; i++) spawnParticle({
+      screen: true, x: 268 + rnd(-18, 18), y: 118, vx: rnd(-8, 8), vy: rnd(-70, -35),
+      life: rnd(0.7, 1.3), color: pick(['#ffd94e', '#fff0a0', '#6ee86e']), size: 2, shrink: true
+    });
+  } else AU.sfx('victory');
+  // inimigo se desfaz em partículas
+  burstScreen(76, 74, 24, { color: ['#e8e8f0', '#a89ac0', '#6a5a9a'], spdMax: 80, lifeMax: 0.8, size: 2, g: 60 });
   // remove do mapa
   const i = G.entities.indexOf(b.ent);
   if (i >= 0) G.entities.splice(i, 1);
@@ -1596,22 +1905,62 @@ function useItemBattle(b, id) {
   if (P.items[id] <= 0) return false;
   P.items[id]--;
   const E = eff();
-  if (id === 'pocao') {
-    const h = Math.round(E.maxHp * 0.45);
+  const heal = pct => {
+    const h = Math.round(E.maxHp * pct);
     P.hp = Math.min(E.maxHp, P.hp + h);
     addDmgPop(b, 'player', '+' + h, '#6ee86e');
-    battleLog(b, 'Poção! Recuperou ' + h + ' HP.');
-  } else if (id === 'eter') {
-    const m = Math.round(E.maxMp * 0.4);
-    P.mp = Math.min(E.maxMp, P.mp + m);
-    addDmgPop(b, 'player', '+' + m + 'MP', '#6ea8ff');
-    battleLog(b, 'Éter! Recuperou ' + m + ' MP.');
-  } else if (id === 'elixir') {
-    P.hp = E.maxHp; P.mp = E.maxMp;
-    addDmgPop(b, 'player', 'MAX', '#ffd94e');
-    battleLog(b, 'Elixir! HP e MP restaurados!');
+    return h;
+  };
+  switch (id) {
+    case 'pocao':  battleLog(b, 'Poção! Recuperou ' + heal(0.45) + ' HP.'); AU.sfx('heal'); break;
+    case 'pocaoG': battleLog(b, 'Poção Grande! Recuperou ' + heal(0.80) + ' HP.'); AU.sfx('heal'); break;
+    case 'pao': {
+      const h = heal(0.20);
+      const m = Math.round(E.maxMp * 0.2);
+      P.mp = Math.min(E.maxMp, P.mp + m);
+      battleLog(b, 'Pão! +' + h + ' HP e +' + m + ' MP.');
+      AU.sfx('heal');
+      break;
+    }
+    case 'eter': {
+      const m = Math.round(E.maxMp * 0.4);
+      P.mp = Math.min(E.maxMp, P.mp + m);
+      addDmgPop(b, 'player', '+' + m + 'MP', '#6ea8ff');
+      battleLog(b, 'Éter! Recuperou ' + m + ' MP.');
+      AU.sfx('heal');
+      break;
+    }
+    case 'elixir':
+      P.hp = E.maxHp; P.mp = E.maxMp;
+      addDmgPop(b, 'player', 'MAX', '#ffd94e');
+      battleLog(b, 'Elixir! HP e MP restaurados!');
+      AU.sfx('heal');
+      break;
+    case 'antidoto':
+      b.pPoison = 0;
+      addDmgPop(b, 'player', 'CURA', '#a0e84e');
+      battleLog(b, 'Antídoto! Status negativos curados.');
+      AU.sfx('heal');
+      break;
+    case 'bomba': {
+      const dmg = 35;
+      b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
+      b.eFlash = 0.3;
+      G.shake = 7;
+      addDmgPop(b, 'enemy', dmg, '#ff8a4e');
+      burstScreen(76, 70, 20, { color: ['#ffd94e', '#ff8a4e', '#e05050'], spdMax: 110, lifeMax: 0.6, g: 90, size: 2 });
+      battleLog(b, 'Bomba! ' + dmg + ' de dano direto!');
+      AU.sfx('crit');
+      break;
+    }
+    case 'pergaminho':
+      b.atkBuff = 3; b.scrollBuff = true;
+      addDmgPop(b, 'player', 'ATQ x2', '#ffd94e');
+      battleLog(b, 'Pergaminho! ATQ dobrado por 3 turnos!');
+      AU.sfx('magic');
+      break;
+    default: AU.sfx('heal');
   }
-  AU.sfx('heal');
   return true;
 }
 
@@ -1656,12 +2005,16 @@ function updateBattle(dt) {
   b.t += dt;
   if (b.eFlash > 0) b.eFlash -= dt;
   if (b.pFlash > 0) b.pFlash -= dt;
+  // barras drenam suavemente até o valor real (leitura mais clara do dano)
+  b.hpShown = Math.abs(b.hpShown - b.enemy.hp) < 0.6 ? b.enemy.hp : lerp(b.hpShown, b.enemy.hp, Math.min(1, dt * 7));
+  b.pHpShown = Math.abs(b.pHpShown - P.hp) < 0.6 ? P.hp : lerp(b.pHpShown, P.hp, Math.min(1, dt * 7));
+  if (b.slash) { b.slash.t += dt; if (b.slash.t > 0.28) b.slash = null; }
   for (const p of b.dmgPops) p.t += dt;
   b.dmgPops = b.dmgPops.filter(p => p.t < 1);
 
   switch (b.phase) {
     case 'intro':
-      if (b.t > 1 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; }
+      if (b.t > 0.7 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; }
       break;
     case 'menu': {
       if (b.sub === null) {
@@ -1702,7 +2055,7 @@ function updateBattle(dt) {
     }
     case 'playerActDone':
       // o pet ataca logo depois do herói
-      if (!b.petStruck && b.t > 0.35 && P.activePet && b.enemy.hp > 0) {
+      if (!b.petStruck && b.t > 0.3 && P.activePet && b.enemy.hp > 0) {
         b.petStruck = true;
         b.petAnim = 0.3;
         const pd = Math.max(1, Math.round(petDmg(P.activePet) - b.enemy.def * 0.3));
@@ -1712,7 +2065,7 @@ function updateBattle(dt) {
         AU.tone(520, 0.07, 'square', 0.05, -160);
       }
       if (b.petAnim > 0) b.petAnim -= dt;
-      if (b.t > 0.7) {
+      if (b.t > (P.activePet ? 0.62 : 0.5)) {
         if (b.enemy.hp <= 0) endBattleWin(b);
         else {
           if (b.atkBuff > 0) b.atkBuff--;
@@ -1726,8 +2079,8 @@ function updateBattle(dt) {
         if (b.t > 0.5) { battleLog(b, b.enemy.name + ' está congelado!'); b.phase = 'menu'; }
         break;
       }
-      if (b.pendingEnemy && b.t > 0.45) applyEnemyHit(b);
-      if (!b.pendingEnemy && b.t > 1.0) {
+      if (b.pendingEnemy && b.t > 0.38) applyEnemyHit(b);
+      if (!b.pendingEnemy && b.t > 0.82) {
         if (P.hp <= 0) { b.phase = 'lose'; b.t = 0; AU.sfx('die'); }
         else b.phase = 'menu';
       }
@@ -1763,6 +2116,92 @@ function updateBattle(dt) {
   }
 }
 
+// ---------- Partículas ----------
+// Sistema leve: partículas do mundo (em coordenadas do mapa) e de tela (batalha/UI)
+function spawnParticle(p) {
+  G.parts.push(Object.assign({
+    x: 0, y: 0, vx: 0, vy: 0, g: 0, life: 0.5, t: 0,
+    size: 1, color: '#fff', fade: true, screen: false, shrink: false
+  }, p));
+}
+function burst(x, y, n, opts) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, Math.PI * 2), s = rnd(opts.spdMin || 20, opts.spdMax || 60);
+    spawnParticle(Object.assign({}, opts, {
+      x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - (opts.lift || 0),
+      color: Array.isArray(opts.color) ? pick(opts.color) : opts.color,
+      life: rnd(opts.lifeMin || 0.3, opts.lifeMax || 0.7)
+    }));
+  }
+}
+// explosão em coordenadas de tela (usada na batalha e na UI)
+function burstScreen(x, y, n, opts) {
+  burst(x, y, n, Object.assign({ screen: true }, opts));
+}
+function updateParticles(dt) {
+  for (const p of G.parts) {
+    p.t += dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += p.g * dt;
+    if (p.drag) { p.vx *= 1 - p.drag * dt; p.vy *= 1 - p.drag * dt; }
+  }
+  G.parts = G.parts.filter(p => p.t < p.life);
+  if (G.parts.length > 260) G.parts.splice(0, G.parts.length - 260);
+}
+function drawParticles(screenLayer) {
+  for (const p of G.parts) {
+    if (!!p.screen !== !!screenLayer) continue;
+    const k = 1 - p.t / p.life;
+    ctx.globalAlpha = p.fade ? clamp(k * 1.4, 0, 1) : 1;
+    const s = p.shrink ? Math.max(1, Math.round(p.size * k)) : p.size;
+    ctx.fillStyle = p.color;
+    const px = p.screen ? p.x : p.x - G.camX;
+    const py = p.screen ? p.y : p.y - G.camY;
+    ctx.fillRect(Math.round(px), Math.round(py), s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+// ambiente: vagalumes, folhas, poeira — depende da região
+function updateAmbient(dt) {
+  G.ambT -= dt;
+  if (G.ambT > 0) return;
+  G.ambT = 0.16;
+  const cave = G.map.name === 'cave';
+  const forest = G.region === 'Floresta Umbria' || G.region === 'Bosque Sombrio';
+  const grave = G.region === 'Cemitério Antigo';
+  const x0 = G.camX, y0 = G.camY;
+  if (cave) {
+    // faíscas subindo dos cristais
+    if (Math.random() < 0.5) spawnParticle({
+      x: x0 + rnd(0, VW), y: y0 + rnd(0, VH), vx: rnd(-4, 4), vy: rnd(-14, -6),
+      life: rnd(1.2, 2.2), color: pick(['#8a7ac0', '#6a5a9a', '#b06ae8']), size: 1
+    });
+  } else if (forest) {
+    // vagalumes e folhas
+    if (Math.random() < 0.45) spawnParticle({
+      x: x0 + rnd(0, VW), y: y0 + rnd(0, VH), vx: rnd(-6, 6), vy: rnd(-8, -2),
+      life: rnd(1.4, 2.6), color: pick(['#c8e860', '#a0d848', '#e8f090']), size: 1
+    });
+    if (Math.random() < 0.25) spawnParticle({
+      x: x0 + rnd(0, VW), y: y0 - 4, vx: rnd(-12, -4), vy: rnd(10, 18), g: 4,
+      life: rnd(1.8, 3), color: pick(['#3a7a34', '#4c8a44', '#8a6a2a']), size: 2
+    });
+  } else if (grave) {
+    // névoa subindo
+    if (Math.random() < 0.4) spawnParticle({
+      x: x0 + rnd(0, VW), y: y0 + VH - rnd(0, 40), vx: rnd(-3, 3), vy: rnd(-10, -4),
+      life: rnd(1.6, 3), color: pick(['#6a7a8a', '#8a94a4', '#556070']), size: 2
+    });
+  } else if (Math.random() < 0.18) {
+    // pólen ao vento nos campos
+    spawnParticle({
+      x: x0 - 4, y: y0 + rnd(0, VH), vx: rnd(10, 22), vy: rnd(-4, 4),
+      life: rnd(2, 3.4), color: pick(['#e8e060', '#f0e8a0', '#d8f090']), size: 1
+    });
+  }
+}
+
 // ---------- Fade / efeitos ----------
 function fadeTo(cb) {
   if (G.fadeDir !== 0) return;
@@ -1784,178 +2223,389 @@ function toast(txt) { G.toasts.push({ txt, t: 0 }); }
 function showMsg(txt) { G.msgQueue.push(txt); G.msgChar = 0; }
 
 // ---------- Desenho: tiles ----------
-const tileCanvasCache = new Map();
-function drawTile(t, x, y, tx, ty) {
+// Tiles são pré-renderizados em canvas próprios (variantes por hash) e só
+// blitados no frame — muito mais barato que centenas de fillRect por quadro.
+const tileVarCache = new Map();
+function bakeTile(key, painter) {
+  let c = tileVarCache.get(key);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = TILE; c.height = TILE;
+  const g = c.getContext('2d');
+  painter(g);
+  tileVarCache.set(key, c);
+  return c;
+}
+const px = (g, color, x, y, w, h) => { g.fillStyle = color; g.fillRect(x, y, w || 1, h || 1); };
+// PRNG determinístico por variante: garante posições bem espalhadas dentro do tile
+function seeded(seed) {
+  let s = seed * 2654435761 >>> 0;
+  return () => {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >> 17;
+    s ^= s << 5; s >>>= 0;
+    return s / 4294967295;
+  };
+}
+
+// --- grama: 6 variantes com tufos e manchas de tom ---
+// tons muito próximos: variam a textura sem deixar a grade de 16px visível
+const GRASS_BASE = ['#3f7a3a', '#407b3b', '#3e793a', '#417c3c', '#3f7a39', '#407a3b'];
+function bakeGrass(v) {
+  return bakeTile('grass' + v, g => {
+    px(g, GRASS_BASE[v % GRASS_BASE.length], 0, 0, TILE, TILE);
+    const r = seeded(v * 97 + 13);
+    // manchas de tom
+    for (let i = 0; i < 8; i++) {
+      px(g, i % 3 === 0 ? '#356e30' : '#4a8945',
+        Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
+    }
+    // tufos de capim
+    for (let i = 0; i < 3; i++) {
+      const hx = 1 + Math.floor(r() * 13), hy = 2 + Math.floor(r() * 11);
+      px(g, '#4d8b4a', hx, hy, 1, 2);
+      px(g, '#569a56', hx + 1, hy + 1, 1, 1);
+    }
+  });
+}
+// --- caminho de terra ---
+function bakeDirt(v) {
+  return bakeTile('dirt' + v, g => {
+    px(g, '#b5a06e', 0, 0, TILE, TILE);
+    const r = seeded(v * 131 + 29);
+    for (let i = 0; i < 10; i++) {
+      px(g, i % 2 ? '#a89162' : '#c1ad7c', Math.floor(r() * 15), Math.floor(r() * 15), 2, 1);
+    }
+    for (let i = 0; i < 3; i++) {
+      px(g, '#8e7a52', 1 + Math.floor(r() * 12), 1 + Math.floor(r() * 12), 2, 2);
+    }
+  });
+}
+// --- árvores: 3 espécies ---
+function bakeTree(v, gv) {
+  return bakeTile('tree' + v + '_' + gv, g => {
+    g.drawImage(bakeGrass(gv), 0, 0);
+    if (v === 0) {         // copa redonda densa
+      px(g, '#4a3020', 6, 10, 4, 6);
+      px(g, '#3a2418', 6, 10, 1, 6);
+      px(g, '#1c4a20', 2, 2, 12, 10);
+      px(g, '#256030', 2, 1, 11, 9);
+      px(g, '#2f7038', 3, 2, 9, 6);
+      px(g, '#3d8544', 4, 2, 5, 3);
+      px(g, '#1c4a20', 3, 9, 10, 3);
+      px(g, '#154018', 5, 11, 6, 1);
+    } else if (v === 1) {  // pinheiro
+      px(g, '#4a3020', 7, 12, 3, 4);
+      px(g, '#1a4423', 4, 9, 8, 4);
+      px(g, '#235c2c', 5, 8, 6, 4);
+      px(g, '#1a4423', 5, 5, 6, 4);
+      px(g, '#235c2c', 6, 4, 4, 4);
+      px(g, '#2d6e36', 6, 2, 4, 3);
+      px(g, '#38803f', 7, 2, 2, 2);
+    } else {               // árvore alta com galhos
+      px(g, '#54381f', 7, 9, 3, 7);
+      px(g, '#3f2818', 7, 9, 1, 7);
+      px(g, '#1c4a20', 1, 3, 14, 8);
+      px(g, '#256030', 2, 2, 12, 7);
+      px(g, '#2f7038', 4, 3, 8, 4);
+      px(g, '#3d8544', 5, 3, 4, 2);
+      px(g, '#154018', 2, 9, 12, 2);
+    }
+  });
+}
+// --- pedra na grama ---
+function bakeRock(v) {
+  return bakeTile('rock' + v, g => {
+    g.drawImage(bakeGrass(v % 4), 0, 0);
+    px(g, '#1a1626', 3, 7, 10, 7);
+    px(g, '#77778a', 4, 6, 8, 7);
+    px(g, '#9393a6', 5, 6, 5, 3);
+    px(g, '#5c5c6e', 4, 11, 8, 2);
+  });
+}
+// --- arbusto ---
+function bakeBush(v) {
+  return bakeTile('bush' + v, g => {
+    g.drawImage(bakeGrass(v % 6), 0, 0);
+    // silhueta arredondada por camadas
+    px(g, '#16331a', 4, 5, 8, 2);
+    px(g, '#16331a', 2, 7, 12, 6);
+    px(g, '#16331a', 4, 13, 8, 1);
+    px(g, '#28602c', 5, 6, 6, 2);
+    px(g, '#28602c', 3, 8, 10, 4);
+    px(g, '#348038', 5, 7, 4, 3);
+    px(g, '#3f9042', 6, 7, 2, 1);
+    px(g, '#1e4a22', 4, 11, 8, 2);
+    if (v === 1) { px(g, '#d04848', 5, 9, 2, 2); px(g, '#e06060', 5, 9, 1, 1); px(g, '#d04848', 10, 8, 2, 2); }
+  });
+}
+// --- flores (3 cores) ---
+function bakeFlower(v) {
+  return bakeTile('flower' + v, g => {
+    g.drawImage(bakeGrass(v % 4), 0, 0);
+    const c = ['#e8e060', '#e07898', '#e8e8f0', '#8ab0f0'][v % 4];
+    px(g, '#4c8a44', 7, 8, 1, 4);
+    px(g, c, 6, 5, 4, 4);
+    px(g, '#f0d040', 7, 6, 2, 2);
+    px(g, '#4c8a44', 11, 11, 1, 2);
+    px(g, c, 10, 9, 3, 3);
+  });
+}
+// --- cogumelos: vermelhos na floresta, luminosos na caverna ---
+function bakeMushroom(v, cave) {
+  return bakeTile('shroom' + v + (cave ? 'c' : 'g'), g => {
+    g.drawImage(cave ? bakeCaveFloor(v % 4) : bakeGrass(v % 4), 0, 0);
+    px(g, cave ? '#c8c0e0' : '#e8e0d0', 7, 9, 3, 4);
+    px(g, cave ? '#6a4ac0' : '#c04040', 5, 6, 7, 4);
+    px(g, cave ? '#9a7ae8' : '#e06060', 6, 6, 4, 2);
+    px(g, cave ? '#d8c0ff' : '#f0f0e0', 7, 7, 1, 1);
+    px(g, cave ? '#d8c0ff' : '#f0f0e0', 9, 8, 1, 1);
+    px(g, '#4a4034', 5, 12, 7, 1);
+  });
+}
+// --- muro de pedra ---
+function bakeStoneWall(v) {
+  return bakeTile('wall' + v, g => {
+    px(g, '#7a7a8c', 0, 0, TILE, TILE);
+    px(g, '#8e8ea2', 1, 1, 6, 6);
+    px(g, '#8e8ea2', 9, 1, 6, 6);
+    px(g, '#84849a', 1, 9, 3, 6);
+    px(g, '#8e8ea2', 6, 9, 9, 6);
+    px(g, '#5c5c6e', 0, 7, TILE, 1);
+    px(g, '#5c5c6e', 8, 0, 1, 7);
+    px(g, '#5c5c6e', 5, 8, 1, 8);
+    px(g, '#9c9cb0', 1, 1, 5, 1);
+    px(g, '#9c9cb0', 9, 1, 5, 1);
+    px(g, '#9c9cb0', 6, 9, 8, 1);
+  });
+}
+// --- montanha ---
+function bakeMountain(v) {
+  return bakeTile('mtn' + v, g => {
+    px(g, '#6a6478', 0, 0, TILE, TILE);
+    px(g, '#7e788e', 2, 8, 5, 5);
+    px(g, '#7e788e', 8, 3, 6, 6);
+    px(g, '#565064', 1, 13, 6, 2);
+    px(g, '#565064', 9, 9, 6, 2);
+    px(g, '#9a94ac', 9, 2, 4, 2);
+    px(g, '#4a4458', 0, 0, TILE, 1);
+    if (v % 3 === 0) { px(g, '#b0aac0', 10, 3, 2, 1); }
+  });
+}
+// --- piso e parede de caverna ---
+function bakeCaveFloor(v) {
+  return bakeTile('cfloor' + v, g => {
+    px(g, '#3a3446', 0, 0, TILE, TILE);
+    const r = seeded(v * 211 + 41);
+    for (let i = 0; i < 6; i++) {
+      px(g, i % 2 ? '#443e52' : '#332e3e', Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
+    }
+    if (v === 2) { px(g, '#524a66', 6, 6, 2, 2); }
+    if (v === 3) { px(g, '#2c2838', 3, 10, 4, 2); }
+  });
+}
+function bakeCaveWall(v) {
+  return bakeTile('cwall' + v, g => {
+    px(g, '#221e2e', 0, 0, TILE, TILE);
+    const r = seeded(v * 419 + 61);
+    // blocos rochosos irregulares
+    for (let i = 0; i < 6; i++) {
+      const bx = Math.floor(r() * 11), by = Math.floor(r() * 11);
+      const bw = 3 + Math.floor(r() * 4), bh = 3 + Math.floor(r() * 4);
+      px(g, '#2e2a3c', bx, by, bw, bh);
+      px(g, '#3a3450', bx, by, bw, 1);
+      px(g, '#191524', bx, by + bh - 1, bw, 1);
+    }
+    // veios de cristal ocasionais
+    if (v % 4 === 0) { px(g, '#6a5a9a', 11, 10, 2, 4); px(g, '#8a7ac0', 11, 11, 1, 2); }
+    if (v % 5 === 2) { px(g, '#5a4a86', 3, 3, 1, 3); }
+  });
+}
+// --- lápide ---
+function bakeGrave(v) {
+  return bakeTile('grave' + v, g => {
+    px(g, '#38583a', 0, 0, TILE, TILE);
+    const r = seeded(v * 307 + 17);
+    for (let i = 0; i < 6; i++) px(g, '#31502f', Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
+    px(g, '#1a1626', 4, 4, 8, 11);
+    px(g, '#8a8a9a', 5, 5, 6, 9);
+    px(g, '#9e9eae', 6, 4, 4, 2);
+    px(g, '#6a6a7a', 6, 8, 4, 1);
+    px(g, '#6a6a7a', 7, 6, 2, 5);
+  });
+}
+// --- telhado e porta ---
+function bakeRoof() {
+  return bakeTile('roof', g => {
+    px(g, '#a04838', 0, 0, TILE, TILE);
+    px(g, '#b85a48', 0, 2, TILE, 2);
+    px(g, '#b85a48', 0, 8, TILE, 2);
+    px(g, '#8a3a2c', 0, 5, TILE, 1);
+    px(g, '#8a3a2c', 0, 11, TILE, 1);
+    px(g, '#c76a56', 0, 0, TILE, 1);
+    px(g, '#7a3226', 0, 14, TILE, 2);
+  });
+}
+function bakeDoor() {
+  return bakeTile('door', g => {
+    px(g, '#7a7a8c', 0, 0, TILE, TILE);
+    px(g, '#3a2418', 3, 2, 10, 14);
+    px(g, '#5c3e28', 4, 3, 8, 12);
+    px(g, '#6e4c32', 5, 4, 3, 10);
+    px(g, '#e8c050', 10, 9, 2, 2);
+    px(g, '#a08840', 10, 11, 2, 1);
+  });
+}
+// --- ponte ---
+function bakeBridge() {
+  return bakeTile('bridge', g => {
+    px(g, '#8a6a42', 0, 0, TILE, TILE);
+    px(g, '#755835', 0, 3, TILE, 1);
+    px(g, '#755835', 0, 8, TILE, 1);
+    px(g, '#755835', 0, 13, TILE, 1);
+    px(g, '#9a7a50', 0, 0, 2, TILE);
+    px(g, '#9a7a50', 14, 0, 2, TILE);
+    px(g, '#6a4e30', 2, 0, 1, TILE);
+    px(g, '#6a4e30', 13, 0, 1, TILE);
+  });
+}
+// --- baús ---
+function bakeChest(open, cave) {
+  return bakeTile('chest' + (open ? 'O' : 'C') + (cave ? 'v' : 'g'), g => {
+    if (cave) g.drawImage(bakeCaveFloor(0), 0, 0); else g.drawImage(bakeGrass(0), 0, 0);
+    if (open) {
+      px(g, '#1a1626', 2, 6, 12, 8);
+      px(g, '#5a3a1c', 3, 7, 10, 6);
+      px(g, '#2a1c10', 4, 8, 8, 4);
+      px(g, '#8a5a2a', 2, 4, 12, 2);
+    } else {
+      px(g, '#1a1626', 2, 4, 12, 10);
+      px(g, '#8a5a2a', 3, 5, 10, 8);
+      px(g, '#a8763c', 3, 5, 10, 3);
+      px(g, '#c08a4a', 4, 5, 8, 1);
+      px(g, '#6a4420', 3, 9, 10, 1);
+      px(g, '#e8c050', 7, 8, 2, 3);
+      px(g, '#f0d878', 7, 8, 2, 1);
+    }
+  });
+}
+// --- placa ---
+function bakeSign() {
+  return bakeTile('sign', g => {
+    g.drawImage(bakeGrass(1), 0, 0);
+    px(g, '#4a3020', 7, 8, 2, 7);
+    px(g, '#8a6a42', 2, 2, 12, 7);
+    px(g, '#a07f52', 2, 2, 12, 1);
+    px(g, '#755835', 3, 4, 10, 1);
+    px(g, '#755835', 3, 6, 8, 1);
+    px(g, '#5c4426', 2, 8, 12, 1);
+  });
+}
+// --- balcão da loja ---
+function bakeShop() {
+  return bakeTile('shop', g => {
+    px(g, '#8a6a42', 0, 0, TILE, TILE);
+    px(g, '#755835', 0, 6, TILE, 10);
+    px(g, '#96754a', 0, 6, TILE, 1);
+    px(g, '#e8c050', 4, 1, 8, 5);
+    px(g, '#f0d878', 4, 1, 8, 1);
+    px(g, '#4a3020', 5, 2, 6, 3);
+    px(g, '#e8c050', 7, 3, 2, 1);
+  });
+}
+// --- entrada/saída de caverna ---
+function bakeCaveMouth() {
+  return bakeTile('cmouth', g => {
+    px(g, '#6a6478', 0, 0, TILE, TILE);
+    px(g, '#565064', 0, 0, TILE, 3);
+    px(g, '#0c0a12', 2, 4, 12, 12);
+    px(g, '#1c1826', 3, 3, 10, 3);
+    px(g, '#2a2438', 4, 4, 8, 1);
+  });
+}
+
+// tiles animados/dinâmicos ficam em funções de desenho direto
+function drawWaterTile(g0, x, y, tx, ty, map) {
+  const v = hash2(tx, ty);
+  const ph = (G.time * 1.6 + v * 3) % 2;
+  ctx.fillStyle = ph < 1 ? '#2a5a9a' : '#2e62a6';
+  ctx.fillRect(x, y, TILE, TILE);
+  // ondas
+  ctx.fillStyle = '#3d72b6';
+  const w1 = Math.floor((G.time * 8 + tx * 5 + ty * 3) % 16);
+  ctx.fillRect(x + w1 % 12 + 1, y + 4, 4, 1);
+  ctx.fillRect(x + (w1 + 7) % 12 + 2, y + 10, 3, 1);
+  if (v < 0.35) { ctx.fillStyle = '#5a92d6'; ctx.fillRect(x + (w1 + 3) % 11 + 2, y + 7, 3, 1); }
+  // espuma nas margens (autotile simples contra tiles não-água)
+  const isW = (ax, ay) => tileAt(map, ax, ay) === 2;
+  ctx.fillStyle = '#8ec2ea';
+  if (!isW(tx, ty - 1)) ctx.fillRect(x, y, TILE, 1);
+  if (!isW(tx, ty + 1)) ctx.fillRect(x, y + TILE - 1, TILE, 1);
+  if (!isW(tx - 1, ty)) ctx.fillRect(x, y, 1, TILE);
+  if (!isW(tx + 1, ty)) ctx.fillRect(x + TILE - 1, y, 1, TILE);
+}
+function drawFountainTile(x, y) {
+  ctx.fillStyle = '#b09a6a'; ctx.fillRect(x, y, TILE, TILE);
+  ctx.fillStyle = '#8e8ea2'; ctx.fillRect(x + 1, y + 1, 14, 14);
+  ctx.fillStyle = '#6e6e82'; ctx.fillRect(x + 1, y + 1, 14, 1);
+  const ph = Math.floor(G.time * 3) % 2;
+  ctx.fillStyle = ph ? '#4a82c6' : '#5a92d6'; ctx.fillRect(x + 3, y + 3, 10, 10);
+  ctx.fillStyle = '#8ec6f0'; ctx.fillRect(x + 6 + (ph ? 1 : 0), y + 5, 3, 3);
+  ctx.fillStyle = '#c6e2f8'; ctx.fillRect(x + 7, y + 7, 2, 2);
+  // jato central
+  const jy = Math.floor(Math.sin(G.time * 4) * 1.5);
+  ctx.fillStyle = '#d8eeff'; ctx.fillRect(x + 7, y + 2 + jy, 2, 3);
+}
+function drawAltarTile(x, y) {
+  ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
+  ctx.fillStyle = '#4a4458'; ctx.fillRect(x + 2, y + 10, 12, 5);
+  ctx.fillStyle = '#5c5c6e'; ctx.fillRect(x + 3, y + 9, 10, 5);
+  ctx.fillStyle = '#8e8ea2'; ctx.fillRect(x + 4, y + 8, 8, 2);
+  const fl = Math.sin(G.time * 3) * 1.5;
+  const cy = y + 2 + Math.round(fl);
+  ctx.fillStyle = 'rgba(176,106,232,0.25)'; ctx.fillRect(x + 4, cy + 1, 8, 8);
+  ctx.fillStyle = '#8a3ac8'; ctx.fillRect(x + 6, cy, 4, 6);
+  ctx.fillStyle = '#b06ae8'; ctx.fillRect(x + 6, cy + 1, 3, 4);
+  ctx.fillStyle = '#e0b8ff'; ctx.fillRect(x + 7, cy + 2, 1, 2);
+}
+function drawCaveExitTile(x, y) {
+  ctx.drawImage(bakeCaveFloor(0), x, y);
+  const gl = 0.6 + Math.sin(G.time * 2) * 0.2;
+  ctx.fillStyle = '#7a8ac0'; ctx.fillRect(x + 3, y + 3, 10, 10);
+  ctx.globalAlpha = gl;
+  ctx.fillStyle = '#aabce0'; ctx.fillRect(x + 4, y + 4, 8, 8);
+  ctx.fillStyle = '#dce6ff'; ctx.fillRect(x + 6, y + 6, 4, 4);
+  ctx.globalAlpha = 1;
+}
+
+function drawTile(t, x, y, tx, ty, map) {
   const v = hash2(tx, ty);
   switch (t) {
-    case 0: { // grama
-      ctx.fillStyle = v < 0.5 ? '#3f7a3a' : '#437f3d';
-      ctx.fillRect(x, y, TILE, TILE);
-      if (v < 0.3) {
-        ctx.fillStyle = '#4c8a44';
-        ctx.fillRect(x + Math.floor(v * 40) % 12 + 2, y + Math.floor(v * 90) % 12 + 2, 2, 1);
-        ctx.fillRect(x + Math.floor(v * 70) % 12 + 1, y + Math.floor(v * 130) % 12 + 2, 1, 2);
-      }
-      break;
-    }
-    case 4: { // flor
-      ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
-      const fc = v < 0.33 ? '#e8e060' : v < 0.66 ? '#e07898' : '#e8e8f0';
-      ctx.fillStyle = '#4c8a44'; ctx.fillRect(x + 7, y + 8, 2, 4);
-      ctx.fillStyle = fc; ctx.fillRect(x + 6, y + 5, 4, 4);
-      ctx.fillStyle = '#f0d040'; ctx.fillRect(x + 7, y + 6, 2, 2);
-      break;
-    }
-    case 1: { // árvore
-      ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#4a3020'; ctx.fillRect(x + 6, y + 10, 4, 6);
-      ctx.fillStyle = '#1e4a22'; ctx.fillRect(x + 1, y + 2, 14, 10);
-      ctx.fillStyle = '#2a6030'; ctx.fillRect(x + 2, y + 1, 12, 9);
-      ctx.fillStyle = '#357a3c'; ctx.fillRect(x + 4, y + 2, 7, 5);
-      ctx.fillStyle = '#2a6030'; ctx.fillRect(x + 3, y + 8, 10, 2);
-      break;
-    }
-    case 2: { // água animada
-      const ph = Math.floor(G.time * 2 + v * 4) % 2;
-      ctx.fillStyle = ph ? '#2a5a9a' : '#2e62a6';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#4a82c6';
-      if (v < 0.4) ctx.fillRect(x + (ph ? 3 : 8), y + Math.floor(v * 100) % 10 + 3, 5, 1);
-      break;
-    }
-    case 3: { // caminho
-      ctx.fillStyle = '#b09a6a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#a08a5c';
-      if (v < 0.5) ctx.fillRect(x + Math.floor(v * 60) % 10 + 2, y + Math.floor(v * 110) % 10 + 2, 3, 2);
-      break;
-    }
-    case 5: { // muro pedra
-      ctx.fillStyle = '#7a7a8c'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#8e8ea2';
-      ctx.fillRect(x + 1, y + 1, 6, 6); ctx.fillRect(x + 9, y + 1, 6, 6);
-      ctx.fillRect(x + 1, y + 9, 3, 6); ctx.fillRect(x + 6, y + 9, 9, 6);
-      ctx.fillStyle = '#5c5c6e';
-      ctx.fillRect(x, y + 7, TILE, 1); ctx.fillRect(x + 8, y, 1, 7); ctx.fillRect(x + 5, y + 8, 1, 8);
-      break;
-    }
-    case 6: { // piso pedra
-      ctx.fillStyle = '#9a94a8'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#8a8498'; ctx.fillRect(x, y, TILE, 1); ctx.fillRect(x, y, 1, TILE);
-      break;
-    }
-    case 7: { // ponte
-      ctx.fillStyle = '#8a6a42'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#755835';
-      ctx.fillRect(x, y + 3, TILE, 1); ctx.fillRect(x, y + 8, TILE, 1); ctx.fillRect(x, y + 13, TILE, 1);
-      ctx.fillStyle = '#9a7a50'; ctx.fillRect(x, y, 2, TILE); ctx.fillRect(x + 14, y, 2, TILE);
-      break;
-    }
-    case 8: { // montanha
-      ctx.fillStyle = '#6a6478'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#7e788e';
-      ctx.fillRect(x + 2, y + 8, 5, 5); ctx.fillRect(x + 8, y + 3, 6, 6);
-      ctx.fillStyle = '#565064';
-      ctx.fillRect(x + 1, y + 13, 6, 2); ctx.fillRect(x + 9, y + 9, 6, 2);
-      ctx.fillStyle = '#8e88a0'; ctx.fillRect(x + 9, y + 2, 3, 2);
-      break;
-    }
-    case 9: { // piso caverna
-      ctx.fillStyle = '#3a3446'; ctx.fillRect(x, y, TILE, TILE);
-      if (v < 0.3) { ctx.fillStyle = '#443e52'; ctx.fillRect(x + Math.floor(v * 50) % 10 + 2, y + Math.floor(v * 80) % 10 + 2, 3, 2); }
-      if (v > 0.92) { ctx.fillStyle = '#524a66'; ctx.fillRect(x + 6, y + 6, 2, 2); }
-      break;
-    }
-    case 10: { // parede caverna
-      ctx.fillStyle = '#221e2e'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#2e2a3c';
-      ctx.fillRect(x + 1, y + 1, 6, 6); ctx.fillRect(x + 9, y + 2, 5, 5);
-      ctx.fillRect(x + 2, y + 9, 5, 5); ctx.fillRect(x + 9, y + 9, 5, 4);
-      break;
-    }
-    case 11: { // entrada caverna
-      ctx.fillStyle = '#6a6478'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#0c0a12'; ctx.fillRect(x + 2, y + 4, 12, 12);
-      ctx.fillStyle = '#1c1826'; ctx.fillRect(x + 4, y + 2, 8, 4);
-      break;
-    }
-    case 12: { // saída caverna (luz)
-      ctx.fillStyle = '#3a3446'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#7a8ac0'; ctx.fillRect(x + 3, y + 3, 10, 10);
-      ctx.fillStyle = '#aabce0'; ctx.fillRect(x + 5, y + 5, 6, 6);
-      break;
-    }
-    case 13: { // fonte
-      ctx.fillStyle = '#b09a6a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#8e8ea2'; ctx.fillRect(x + 1, y + 1, 14, 14);
-      const ph = Math.floor(G.time * 3) % 2;
-      ctx.fillStyle = ph ? '#4a82c6' : '#5a92d6'; ctx.fillRect(x + 3, y + 3, 10, 10);
-      ctx.fillStyle = '#8ec6f0'; ctx.fillRect(x + 6 + (ph ? 1 : 0), y + 5, 3, 3);
-      ctx.fillStyle = '#c6e2f8'; ctx.fillRect(x + 7, y + 7, 2, 2);
-      break;
-    }
-    case 14: { // balcão da loja
-      ctx.fillStyle = '#8a6a42'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#755835'; ctx.fillRect(x, y + 6, TILE, 10);
-      ctx.fillStyle = '#e8c050'; ctx.fillRect(x + 4, y + 1, 8, 5);
-      ctx.fillStyle = '#4a3020'; ctx.fillRect(x + 5, y + 2, 6, 3);
-      ctx.fillStyle = '#e8c050'; ctx.fillRect(x + 7, y + 3, 2, 1);
-      break;
-    }
-    case 15: { // placa
-      ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#4a3020'; ctx.fillRect(x + 7, y + 8, 2, 7);
-      ctx.fillStyle = '#8a6a42'; ctx.fillRect(x + 2, y + 2, 12, 7);
-      ctx.fillStyle = '#755835'; ctx.fillRect(x + 3, y + 4, 10, 1); ctx.fillRect(x + 3, y + 6, 8, 1);
-      break;
-    }
-    case 16: { // baú fechado
-      const base = G.map.name === 'cave' ? '#3a3446' : '#3f7a3a';
-      ctx.fillStyle = base; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#1a1626'; ctx.fillRect(x + 2, y + 4, 12, 10);
-      ctx.fillStyle = '#8a5a2a'; ctx.fillRect(x + 3, y + 5, 10, 8);
-      ctx.fillStyle = '#a8763c'; ctx.fillRect(x + 3, y + 5, 10, 3);
-      ctx.fillStyle = '#e8c050'; ctx.fillRect(x + 7, y + 8, 2, 3);
-      break;
-    }
-    case 17: { // baú aberto
-      const base2 = G.map.name === 'cave' ? '#3a3446' : '#3f7a3a';
-      ctx.fillStyle = base2; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#1a1626'; ctx.fillRect(x + 2, y + 6, 12, 8);
-      ctx.fillStyle = '#5a3a1c'; ctx.fillRect(x + 3, y + 7, 10, 6);
-      ctx.fillStyle = '#2a1c10'; ctx.fillRect(x + 4, y + 8, 8, 4);
-      break;
-    }
-    case 18: { // telhado
-      ctx.fillStyle = '#a04838'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#b85a48'; ctx.fillRect(x, y + 2, TILE, 2); ctx.fillRect(x, y + 8, TILE, 2);
-      ctx.fillStyle = '#8a3a2c'; ctx.fillRect(x, y + 5, TILE, 1); ctx.fillRect(x, y + 11, TILE, 1);
-      break;
-    }
-    case 19: { // porta
-      ctx.fillStyle = '#7a7a8c'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#4a3020'; ctx.fillRect(x + 3, y + 2, 10, 14);
-      ctx.fillStyle = '#5c3e28'; ctx.fillRect(x + 4, y + 3, 8, 12);
-      ctx.fillStyle = '#e8c050'; ctx.fillRect(x + 10, y + 9, 2, 2);
-      break;
-    }
-    case 20: { // lápide
-      ctx.fillStyle = '#38583a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#1a1626'; ctx.fillRect(x + 4, y + 4, 8, 11);
-      ctx.fillStyle = '#8a8a9a'; ctx.fillRect(x + 5, y + 5, 6, 9);
-      ctx.fillStyle = '#9e9eae'; ctx.fillRect(x + 6, y + 4, 4, 2);
-      ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x + 6, y + 8, 4, 1); ctx.fillRect(x + 7, y + 6, 2, 5);
-      break;
-    }
-    case 21: { // altar de encantamento
-      ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#5c5c6e'; ctx.fillRect(x + 3, y + 9, 10, 6);
-      ctx.fillStyle = '#8e8ea2'; ctx.fillRect(x + 4, y + 8, 8, 2);
-      const fl = Math.floor(G.time * 4) % 2;
-      ctx.fillStyle = '#b06ae8'; ctx.fillRect(x + 6, y + 2 + fl, 4, 5);
-      ctx.fillStyle = '#d8a0ff'; ctx.fillRect(x + 7, y + 3 + fl, 2, 3);
-      ctx.fillStyle = 'rgba(176,106,232,0.35)'; ctx.fillRect(x + 5, y + 7 + fl, 6, 1);
-      break;
-    }
+    case 0:  ctx.drawImage(bakeGrass(Math.floor(v * 6) % 6), x, y); break;
+    case 1:  ctx.drawImage(bakeTree(Math.floor(hash2(tx * 31 + 7, ty * 17 + 3) * 3) % 3, Math.floor(v * 6) % 6), x, y); break;
+    case 2:  drawWaterTile(null, x, y, tx, ty, map); break;
+    case 3:  ctx.drawImage(bakeDirt(Math.floor(v * 4) % 4), x, y); break;
+    case 4:  ctx.drawImage(bakeFlower(Math.floor(v * 4) % 4), x, y); break;
+    case 5:  ctx.drawImage(bakeStoneWall(0), x, y); break;
+    case 6:  ctx.drawImage(bakeDirt(2), x, y); break;
+    case 7:  ctx.drawImage(bakeBridge(), x, y); break;
+    case 8:  ctx.drawImage(bakeMountain(Math.floor(hash2(tx * 13 + 2, ty * 29 + 7) * 3) % 3), x, y); break;
+    case 9:  ctx.drawImage(bakeCaveFloor(Math.floor(hash2(tx * 37 + 1, ty * 19 + 9) * 4) % 4), x, y); break;
+    case 10: ctx.drawImage(bakeCaveWall(Math.floor(hash2(tx * 23 + 5, ty * 41 + 11) * 8) % 8), x, y); break;
+    case 11: ctx.drawImage(bakeCaveMouth(), x, y); break;
+    case 12: drawCaveExitTile(x, y); break;
+    case 13: drawFountainTile(x, y); break;
+    case 14: ctx.drawImage(bakeShop(), x, y); break;
+    case 15: ctx.drawImage(bakeSign(), x, y); break;
+    case 16: ctx.drawImage(bakeChest(false, map.name === 'cave'), x, y); break;
+    case 17: ctx.drawImage(bakeChest(true, map.name === 'cave'), x, y); break;
+    case 18: ctx.drawImage(bakeRoof(), x, y); break;
+    case 19: ctx.drawImage(bakeDoor(), x, y); break;
+    case 20: ctx.drawImage(bakeGrave(Math.floor(v * 3) + 1), x, y); break;
+    case 21: drawAltarTile(x, y); break;
+    case 22: ctx.drawImage(bakeBush(Math.floor(v * 2)), x, y); break;
+    case 23: ctx.drawImage(bakeRock(Math.floor(v * 4) % 4), x, y); break;
+    case 24: ctx.drawImage(bakeMushroom(Math.floor(v * 2), map.name === 'cave'), x, y); break;
   }
 }
 
@@ -1964,52 +2614,104 @@ function drawWorld(noHud) {
   const m = G.map;
   const sx = G.camX, sy = G.camY;
   const tx0 = Math.floor(sx / TILE), ty0 = Math.floor(sy / TILE);
-  ctx.fillStyle = m.name === 'cave' ? '#16121e' : '#2a5a2a';
+  ctx.fillStyle = m.name === 'cave' ? '#221e2e' : '#3f7a3a';
   ctx.fillRect(0, 0, VW, VH);
   for (let ty = ty0; ty <= ty0 + Math.ceil(VH / TILE); ty++) {
     for (let tx = tx0; tx <= tx0 + Math.ceil(VW / TILE); tx++) {
       const t = tileAt(m, tx, ty);
-      drawTile(t, tx * TILE - sx, ty * TILE - sy, tx, ty);
+      drawTile(t, tx * TILE - sx, ty * TILE - sy, tx, ty, m);
     }
   }
-  // pet seguidor (desenhado antes das entidades para ficar "atrás")
+  // partículas do mundo que ficam atrás dos personagens (poeira, névoa)
+  drawParticles(false);
+
+  // sombra elíptica reutilizável
+  const shadow = (cx, cy, rx, alpha) => {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, Math.max(1.5, rx * 0.38), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  };
+
+  // pet seguidor (atrás das entidades)
   if (P.activePet && G.petX !== undefined) {
     const spr = petSprite(P.activePet);
     const pex = Math.round(G.petX - sx) + 2, pey = Math.round(G.petY - sy) + 2;
     const pbob = Math.round(Math.sin(G.time * 4) * 1.5);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(pex + 2, pey + 10, 8, 2);
+    shadow(pex + 6, pey + 12, 5, 0.22);
     ctx.drawImage(spr, pex, pey - pbob);
   }
-  // sombras + entidades (ordenar por y)
+
+  // entidades ordenadas por y (profundidade)
   const ents = [...G.entities, P].sort((a, b) => a.y - b.y);
   for (const e of ents) {
     const ex = Math.round(e.x) - sx, ey = Math.round(e.y) - sy;
-    if (ex < -20 || ey < -20 || ex > VW + 20 || ey > VH + 20) continue;
-    // sombra
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(ex + 3, ey + 14, 10, 2);
+    if (ex < -24 || ey < -24 || ex > VW + 24 || ey > VH + 24) continue;
     if (e === P) {
-      ctx.drawImage(heroSprite(curClass(), P.dir, P.frame), ex, ey);
+      // respiração quando parado; leve inclinação ao correr
+      const idleBob = P.moving ? 0 : Math.round(Math.sin(G.time * 2.2) * 0.5);
+      shadow(ex + 8, ey + 15, P.moving ? 6 : 5.5, 0.28);
+      ctx.drawImage(heroSprite(curClass(), P.dir, P.frame), ex, ey + idleBob);
     } else {
-      const bob = e.type === 'morcego' ? Math.round(Math.sin(e.animT * 6) * 2) : (Math.floor(e.animT * 4) % 2);
+      const bob = e.type === 'morcego' ? Math.round(Math.sin(e.animT * 6) * 2)
+        : e.isBoss ? Math.round(Math.sin(e.animT * 2) * 1.5)
+        : (Math.floor(e.animT * 4) % 2);
+      shadow(ex + 8, ey + 15, e.isBoss ? 9 : 6, 0.28);
+      // chefes pulsam com uma aura
+      if (e.isBoss) {
+        const aura = 0.12 + Math.sin(G.time * 3) * 0.06;
+        ctx.globalAlpha = aura;
+        ctx.fillStyle = e.type === 'dragao' ? '#e05050' : e.type === 'necromante' ? '#b06ae8' : '#4ec065';
+        ctx.beginPath();
+        ctx.ellipse(ex + 8, ey + 8, 16, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
       ctx.drawImage(enemySprite(e.type), ex, ey - (e.isBoss ? 6 : 0) - bob);
       // indicador de nível para inimigos próximos
       const dist = Math.hypot(e.x - P.x, e.y - P.y);
-      if (dist < TILE * 5) {
+      if (dist < TILE * 5.5) {
+        const alerta = dist < TILE * 4.5;
+        ctx.globalAlpha = alerta ? 1 : 0.65;
         ctx.fillStyle = e.lvl > P.lvl + 1 ? '#ff6a5a' : (e.lvl < P.lvl ? '#8a8a9a' : '#e8e060');
         ctx.font = '7px monospace';
         ctx.fillText('Nv' + e.lvl, ex + 1, ey - 2);
+        ctx.globalAlpha = 1;
+        // "!" quando o inimigo está perseguindo
+        if (alerta) {
+          ctx.fillStyle = '#ff5a5a';
+          ctx.font = 'bold 8px monospace';
+          ctx.fillText('!', ex + 18, ey - 2 + Math.round(Math.sin(G.time * 8) * 1));
+        }
       }
     }
   }
-  // vinheta na caverna
+  // partículas na frente dos personagens
+  drawParticles(false);
+
+  // atmosfera por região: escurecimento e tinta de cor
   if (m.name === 'cave') {
-    const grd = ctx.createRadialGradient(VW / 2, VH / 2, 50, VW / 2, VH / 2, 190);
+    const grd = ctx.createRadialGradient(VW / 2, VH / 2, 46, VW / 2, VH / 2, 190);
     grd.addColorStop(0, 'rgba(0,0,0,0)');
-    grd.addColorStop(1, 'rgba(0,0,10,0.55)');
+    grd.addColorStop(1, 'rgba(4,2,16,0.62)');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, VW, VH);
+  } else if (G.region === 'Cemitério Antigo') {
+    ctx.fillStyle = 'rgba(60,40,90,0.22)';
+    ctx.fillRect(0, 0, VW, VH);
+    const grd = ctx.createRadialGradient(VW / 2, VH / 2, 60, VW / 2, VH / 2, 200);
+    grd.addColorStop(0, 'rgba(0,0,0,0)');
+    grd.addColorStop(1, 'rgba(20,10,40,0.4)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, VW, VH);
+  } else if (G.region === 'Floresta Umbria' || G.region === 'Bosque Sombrio') {
+    ctx.fillStyle = 'rgba(20,60,30,0.16)';
+    ctx.fillRect(0, 0, VW, VH);
+    const grd = ctx.createRadialGradient(VW / 2, VH / 2, 70, VW / 2, VH / 2, 200);
+    grd.addColorStop(0, 'rgba(0,0,0,0)');
+    grd.addColorStop(1, 'rgba(6,24,10,0.35)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, VW, VH);
   }
   if (!noHud) drawWorldHUD();
 }
@@ -2148,8 +2850,30 @@ function drawBattle() {
   ctx.font = '7px monospace';
   ctx.fillStyle = '#f0e8f8';
   ctx.fillText(e.name + '  Nv.' + e.lvl, 13, 15);
-  barRect(13, 19, 110, 5, e.hp / e.maxHp, e.boss ? '#e05050' : '#e08040');
+  // fantasma (dano recente) atrás da barra real
+  barRect(13, 19, 110, 5, b.hpShown / e.maxHp, '#8a2a2a');
+  ctx.fillStyle = e.boss ? '#e05050' : '#e08040';
+  ctx.fillRect(13, 19, Math.round(110 * clamp(e.hp / e.maxHp, 0, 1)), 5);
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillRect(13, 19, Math.round(110 * clamp(e.hp / e.maxHp, 0, 1)), 1);
   ctx.fillStyle = '#cfc8e0'; ctx.fillText(e.hp + '/' + e.maxHp, 13, 31);
+
+  // rastro do golpe sobre o inimigo
+  if (b.slash) {
+    const k = 1 - b.slash.t / 0.28;
+    ctx.globalAlpha = k;
+    ctx.strokeStyle = b.slash.crit ? '#ffd94e' : '#ffffff';
+    ctx.lineWidth = b.slash.crit ? 3 : 2;
+    ctx.beginPath();
+    const sw = 46 * (1.15 - k * 0.35);
+    ctx.moveTo(76 - sw / 2, 74 - sw / 2 + (1 - k) * 12);
+    ctx.lineTo(76 + sw / 2, 74 + sw / 2 - (1 - k) * 12);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+  }
+  // partículas da batalha (camada de tela)
+  drawParticles(true);
 
   // popups de dano
   for (const p of b.dmgPops) {
@@ -2165,6 +2889,11 @@ function drawBattle() {
     ctx.globalAlpha = 1;
   }
 
+  // clarão de entrada
+  if (G.battleFlash > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,' + (G.battleFlash * 0.55) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
   // painel inferior
   ctx.fillStyle = 'rgba(10,8,18,0.92)';
   ctx.fillRect(0, 132, VW, 48);
@@ -2176,7 +2905,11 @@ function drawBattle() {
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText(className() + ' Nv.' + P.lvl, 216, 143);
-  barRect(216, 147, 72, 5, P.hp / PE.maxHp, P.hp / PE.maxHp < 0.3 ? '#e05050' : '#50c060');
+  barRect(216, 147, 72, 5, b.pHpShown / PE.maxHp, '#8a2a2a');
+  ctx.fillStyle = P.hp / PE.maxHp < 0.3 ? '#e05050' : '#50c060';
+  ctx.fillRect(216, 147, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 5);
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillRect(216, 147, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 1);
   ctx.fillStyle = '#cfc8e0'; ctx.fillText('HP ' + P.hp + '/' + PE.maxHp, 216, 160);
   barRect(216, 163, 72, 4, P.mp / PE.maxMp, '#5080e0');
   ctx.fillStyle = '#cfc8e0'; ctx.fillText('MP ' + P.mp + '/' + PE.maxMp, 216, 175);
@@ -2215,13 +2948,18 @@ function drawBattle() {
       }
     } else if (b.sub === 'item') {
       const its = Object.keys(ITEMS).filter(k => P.items[k] > 0);
-      for (let i = 0; i < its.length; i++) {
-        const oy = 144 + i * 9;
+      const show = 4;
+      const first = clamp(b.subIdx - 2, 0, Math.max(0, its.length - show));
+      its.slice(first, first + show).forEach((id, j) => {
+        const i = first + j;
+        const oy = 144 + j * 9;
         if (i === b.subIdx) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', 10, oy); }
         ctx.fillStyle = i === b.subIdx ? '#fff' : '#a89ac0';
-        ctx.fillText(ITEMS[its[i]].name + ' x' + P.items[its[i]], 20, oy);
-      }
-      if (its[b.subIdx]) { ctx.fillStyle = '#8a7ab0'; ctx.fillText(ITEMS[its[b.subIdx]].desc, 108, 144); }
+        ctx.fillText(ITEMS[id].name + ' x' + P.items[id], 20, oy);
+      });
+      if (first > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', 98, 144); }
+      if (first + show < its.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', 98, 171); }
+      if (its[b.subIdx]) { ctx.fillStyle = '#8a7ab0'; ctx.fillText(ITEMS[its[b.subIdx]].desc, 112, 144); }
     }
   } else if (b.phase === 'result' && b.rewards) {
     const r = b.rewards;
@@ -2312,7 +3050,7 @@ function drawTitle() {
   }
   ctx.font = '7px monospace';
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z/Enter para começar', VW / 2, 172);
+  ctx.fillText('Z/Enter para começar  ·  Shift para correr', VW / 2, 172);
   ctx.textAlign = 'left';
 }
 function updateTitle() {
@@ -2354,14 +3092,14 @@ function drawPauseMenu() {
   ctx.strokeStyle = '#5a4a8a';
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   const E = eff();
-  ctx.font = 'bold 9px monospace';
+  ctx.font = 'bold 8px monospace';
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText(className() + '  ·  Nível ' + P.lvl, x + 8, y + 12);
+  ctx.fillText(className() + ' Nv.' + P.lvl, x + 8, y + 12);
   // abas
   const tabs = ['Status', 'Equipar', 'Itens', 'Pets'];
   ctx.font = '7px monospace';
   tabs.forEach((t, i) => {
-    const tx = x + w - 172 + i * 44;
+    const tx = x + w - 148 + i * 38;
     ctx.fillStyle = i === G.menuTab ? '#ffd94e' : '#705a80';
     ctx.fillText((i === G.menuTab ? '[' + t + ']' : ' ' + t), tx, y + 12);
   });
@@ -2409,42 +3147,49 @@ function drawPauseMenu() {
     }
   } else if (G.menuTab === 1) {
     // ---- EQUIPAR ----
-    ctx.fillStyle = '#8a7ab0';
+    // equipados (6 slots, coluna esquerda)
     SLOTS.forEach((s, i) => {
-      const oy = y + 26 + i * 9;
+      const oy = y + 24 + i * 9;
       ctx.fillStyle = '#8a7ab0'; ctx.fillText(SLOT_NAMES[s] + ':', x + 8, oy);
       const id = P.equip[s];
-      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(eqName(id), x + 48, oy); }
-      else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 48, oy); }
+      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(eqName(id), x + 52, oy); }
+      else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 52, oy); }
     });
     // bônus de conjunto + fragmentos
-    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo! (+bônus)', x + 8, y + 74); }
-    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 74); }
-    ctx.fillStyle = '#b06ae8'; ctx.fillText('◆ ' + P.frags + ' fragmentos', x + 178, y + 74);
+    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo!', x + 8, y + 82); }
+    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 82); }
+    ctx.fillStyle = '#b06ae8'; ctx.fillText('◆ ' + P.frags, x + 178, y + 82);
     // inventário de equipamentos
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 86);
-    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 96); }
-    const maxShow = 6;
-    const start = clamp(G.menuIdx - 3, 0, Math.max(0, P.equipInv.length - maxShow));
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 94);
+    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 105); }
+    const maxShow = 5;
+    const start = clamp(G.menuIdx - 2, 0, Math.max(0, P.equipInv.length - maxShow));
     P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
       const i = start + j;
-      const oy = y + 96 + j * 9;
+      const oy = y + 105 + j * 9;
       const sel = G.menuIdx === i;
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
       ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
       ctx.fillText(eqName(id) + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
     });
-    // detalhes do item selecionado
+    if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 166, y + 105); }
+    if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 166, y + 141); }
+    // detalhes do item selecionado (coluna direita)
     const selId = P.equipInv[G.menuIdx];
     if (selId) {
       const eq = EQUIP[selId];
       ctx.fillStyle = RARITY[eq.rar].color;
-      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 86);
-      const bl = Object.entries(enchBonus(selId)).map(([k, v]) =>
-        (k === 'crit' ? '+' + Math.round(v * 100) + '% crit' : '+' + v + ' ' + k.toUpperCase().replace('MAXHP', 'HP')));
-      bl.forEach((s, i) => { ctx.fillStyle = '#a89ac0'; ctx.fillText(s, x + 178, y + 96 + i * 9); });
-      if (eq.wtype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, y + 96 + bl.length * 9); }
-      if (eq.atype) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('Tipo: ' + eq.atype, x + 178, y + 96 + bl.length * 9); }
+      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 94);
+      let dy = y + 105;
+      for (const [k, v] of Object.entries(enchBonus(selId))) {
+        ctx.fillStyle = '#a89ac0';
+        ctx.fillText(k === 'crit' ? '+' + Math.round(v * 100) + '% crit'
+          : '+' + v + ' ' + k.toUpperCase().replace('MAXHP', 'HP'), x + 178, dy);
+        dy += 9;
+      }
+      ctx.fillStyle = '#8a7ab0';
+      if (eq.wtype) ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, dy);
+      else if (eq.atype) ctx.fillText('Conjunto: ' + eq.atype, x + 178, dy);
     }
   } else if (G.menuTab === 3) {
     // ---- PETS ----
@@ -2484,13 +3229,19 @@ function drawPauseMenu() {
   } else {
     // ---- ITENS ----
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Consumíveis (Z usa)', x + 8, y + 26);
-    Object.keys(ITEMS).forEach((k, i) => {
-      const oy = y + 38 + i * 11;
+    const keys = Object.keys(ITEMS);
+    const showI = 8;
+    const firstI = clamp(G.menuIdx - 4, 0, Math.max(0, keys.length - showI));
+    keys.slice(firstI, firstI + showI).forEach((k, j) => {
+      const i = firstI + j;
+      const oy = y + 38 + j * 11;
       const sel = G.menuIdx === i;
+      const it = ITEMS[k];
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
-      ctx.fillStyle = sel ? '#fff' : '#a89ac0';
-      ctx.fillText(ITEMS[k].name + ' x' + P.items[k], x + 16, oy);
-      ctx.fillStyle = '#705a80'; ctx.fillText(ITEMS[k].desc, x + 96, oy);
+      ctx.fillStyle = sel ? '#fff' : (P.items[k] > 0 ? '#a89ac0' : '#5a4a70');
+      ctx.fillText(it.name + ' x' + P.items[k], x + 16, oy);
+      ctx.fillStyle = it.battleOnly ? '#6a5a80' : '#705a80';
+      ctx.fillText(it.battleOnly ? '(só em batalha)' : it.desc, x + 110, oy);
     });
   }
   ctx.fillStyle = '#6a5a8a';
@@ -2532,17 +3283,25 @@ function updatePauseMenu() {
     } else {
       const its = Object.keys(ITEMS);
       const id = its[G.menuIdx];
+      const it = ITEMS[id];
       const E = eff();
-      if (P.items[id] > 0) {
-        if (id === 'pocao' && P.hp < E.maxHp) {
-          P.items[id]--; P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.45));
-          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e');
-        } else if (id === 'eter' && P.mp < E.maxMp) {
-          P.items[id]--; P.mp = Math.min(E.maxMp, P.mp + Math.round(E.maxMp * 0.4));
-          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, '+MP', '#6ea8ff');
-        } else if (id === 'elixir' && (P.hp < E.maxHp || P.mp < E.maxMp)) {
-          P.items[id]--; P.hp = E.maxHp; P.mp = E.maxMp;
-          AU.sfx('heal'); addFloater(P.x + 8, P.y - 4, 'MAX!', '#ffd94e');
+      const hurt = P.hp < E.maxHp, drained = P.mp < E.maxMp;
+      if (P.items[id] > 0 && !it.battleOnly) {
+        let used = true;
+        if (id === 'pocao' && hurt) { P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.45)); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e'); }
+        else if (id === 'pocaoG' && hurt) { P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.8)); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e'); }
+        else if (id === 'pao' && (hurt || drained)) {
+          P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.2));
+          P.mp = Math.min(E.maxMp, P.mp + Math.round(E.maxMp * 0.2));
+          addFloater(P.x + 8, P.y - 4, '+HP/MP', '#6ee86e');
+        }
+        else if (id === 'eter' && drained) { P.mp = Math.min(E.maxMp, P.mp + Math.round(E.maxMp * 0.4)); addFloater(P.x + 8, P.y - 4, '+MP', '#6ea8ff'); }
+        else if (id === 'elixir' && (hurt || drained)) { P.hp = E.maxHp; P.mp = E.maxMp; addFloater(P.x + 8, P.y - 4, 'MAX!', '#ffd94e'); }
+        else used = false;
+        if (used) {
+          P.items[id]--;
+          AU.sfx('heal');
+          burst(P.x + 8, P.y + 8, 10, { color: ['#6ee86e', '#a0f0a0', '#dcffdc'], spdMax: 40, lifeMax: 0.6, size: 1, lift: 20 });
         } else AU.sfx('back');
       } else AU.sfx('back');
     }
@@ -2552,8 +3311,10 @@ function updatePauseMenu() {
 // ---------- Loja ----------
 // estoque por cidade: 'i:' consumível, senão id de equipamento
 const SHOP_STOCK = {
-  aldeia: ['i:pocao', 'i:eter', 'esp2', 'caj2', 'ada2', 'arc2', 'arm2', 'arm9', 'bot2', 'elm2'],
-  rocha:  ['i:pocao', 'i:eter', 'i:elixir', 'esp3', 'caj3', 'ada3', 'arc3', 'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3']
+  aldeia: ['i:pocao', 'i:pao', 'i:eter', 'i:antidoto', 'esp2', 'caj2', 'ada2', 'arc2',
+           'arm2', 'arm9', 'bot2', 'elm2', 'elm6', 'luv2', 'amu2'],
+  rocha:  ['i:pocaoG', 'i:eter', 'i:elixir', 'i:bomba', 'i:pergaminho', 'esp3', 'caj3', 'ada3', 'arc3',
+           'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3', 'luv3', 'luv4', 'amu3', 'amu6', 'amu7']
 };
 function shopEntry(s) {
   if (s.startsWith('i:')) {
@@ -2641,7 +3402,7 @@ function drawEnchant() {
   ctx.fillStyle = '#8a7ab0';
   ctx.fillText('Cada nível: +15% nos bônus do item (máx +' + ENCH_MAX + ')', x + 10, y + 35);
   SLOTS.forEach((s, i) => {
-    const oy = y + 50 + i * 12;
+    const oy = y + 48 + i * 11;
     const sel = G.menuIdx === i;
     const id = P.equip[s];
     if (sel) { ctx.fillStyle = '#d8a0ff'; ctx.fillText('▶', x + 6, oy); }
@@ -2674,6 +3435,7 @@ function updateEnchant() {
       P.ench[id] = enchLvl(id) + 1;
       AU.sfx('level');
       addFloater(P.x + 8, P.y - 4, '+' + P.ench[id], '#d8a0ff');
+      burstScreen(VW / 2, VH / 2, 30, { color: ['#b06ae8', '#d8a0ff', '#e0b8ff'], spdMax: 100, lifeMax: 0.9, size: 2, drag: 2.5 });
       saveGame();
     } else AU.sfx('back');
   }
@@ -2818,6 +3580,11 @@ function frame(now) {
       }
     }
   }
+  if (G.battleFlash > 0) G.battleFlash = Math.max(0, G.battleFlash - dt * 3.2);
+  // partículas e ambiente
+  updateParticles(dt);
+  if (G.state === 'world' && G.map) updateAmbient(dt);
+
   // floaters
   for (const f of G.floaters) f.t += dt;
   G.floaters = G.floaters.filter(f => f.t < 1.2);
@@ -2909,6 +3676,12 @@ window.DBG = {
   equip(idx) { equipFromInv(idx); },
   giveEquip(id) { return addEquipToInv(id); },
   loot(type) { return rollLoot(type); },
+  shopStock(id) { return SHOP_STOCK[id]; },
+  items() { return ITEMS; },
+  tileCache() { return tileVarCache.size; },
+  pets() { return PETS; },
+  equipCatalog() { return EQUIP; },
+  applyEnemyHit(b) { return applyEnemyHit(b); },
   clearEnemies() { G.entities = G.entities.filter(e => e.isBoss); G.spawnTimer = 60; },
   clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 };
