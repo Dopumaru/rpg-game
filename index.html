@@ -161,9 +161,12 @@ const AU = {
     }
   },
   // trilhas: [semitom midi ou 0=pausa]
-  WORLD: { notes: [60, 64, 67, 64, 69, 67, 64, 60, 57, 60, 64, 60, 62, 59, 55, 59], step: 0.30, type: 'triangle', vol: 0.030, bass: [48, 0, 45, 0] },
-  BATTLE: { notes: [57, 57, 60, 57, 64, 62, 60, 59, 57, 57, 60, 64, 65, 64, 62, 59], step: 0.15, type: 'square', vol: 0.028, bass: [45, 45, 41, 43] },
-  CAVE: { notes: [57, 0, 60, 0, 56, 0, 59, 0, 55, 0, 58, 0, 57, 0, 52, 0], step: 0.34, type: 'triangle', vol: 0.028, bass: [45, 0, 44, 0] },
+  // Escala hirajoshi (D F G A C) — sonoridade tradicional japonesa
+  WORLD: { notes: [62, 65, 67, 69, 72, 69, 67, 65, 62, 65, 69, 67, 65, 62, 60, 62], step: 0.32, type: 'triangle', vol: 0.030, bass: [50, 0, 45, 0] },
+  // Escala in-sen, tensa e rápida para o combate
+  BATTLE: { notes: [62, 63, 67, 62, 69, 67, 63, 62, 67, 69, 70, 69, 67, 63, 62, 60], step: 0.15, type: 'square', vol: 0.028, bass: [50, 50, 46, 48] },
+  // Kumoi esparsa e sombria para a caverna
+  CAVE: { notes: [62, 0, 63, 0, 67, 0, 69, 0, 67, 0, 63, 0, 62, 0, 58, 0], step: 0.36, type: 'triangle', vol: 0.028, bass: [50, 0, 46, 0] },
   setTrack(t) { if (this.track !== t) { this.track = t; this.musicStep = 0; this.musicTimer = 0; } },
   update(dt) {
     if (!this.ctx || this.muted || !this.track) return;
@@ -205,177 +208,260 @@ function flipSprite(spr, id) {
 }
 
 // --- Herói: cabeças por classe + corpos compartilhados ---
+// --- Herói em estilo anime chibi (16x20: cabeça 12 + corpo 8) ---
+// Olhos grandes com brilho, cabelo em mechas, sombreamento em 2 tons.
+// Paleta: O contorno · S pele · s sombra da pele · H cabelo · h brilho do cabelo
+//         E olho · W brilho do olho · A traje · a traje claro · B detalhe · L calça/hakama
 const HEADS = {
-  guerreiro: {
+  samurai: {
     down: [
-      '................',
-      '.....OOOOOO.....',
-      '....OBBBBBBO....',
-      '...OBHHHHHHBO...',
-      '...OHSSSSSSHO...',
-      '...OSSOSSOSSO...',
-      '...OSSSSSSSSO...',
-      '....OSSOOSSO....'],
-    up: [
-      '................',
-      '.....OOOOOO.....',
-      '....OBBBBBBO....',
-      '...OBBBBBBBBO...',
+      '.....HHHHHH.....',
+      '....HhhHHHHH....',
       '...OHHHHHHHHO...',
-      '...OHHHHHHHHO...',
-      '...OSHHHHHHSO...',
-      '....OSHHHHSO....'],
-    side: [
-      '................',
-      '.....OOOOOO.....',
-      '....OBBBBBBO....',
-      '...OBBHHHHBBO...',
-      '...OHHSSSSSO....',
-      '...OHHSOSSSO....',
-      '...OHSSSSSSO....',
-      '....OSSSSSO.....']
-  },
-  mago: {
-    down: [
-      '.......OO.......',
-      '......OAAO......',
-      '.....OAAAAO.....',
-      '..OOOAAAAAAOOO..',
-      '.OAAAAAAAAAAAAO.',
-      '..OOSSOSSOSSOO..',
+      '..OHHHHHHHHHHO..',
+      '..OHhHHHHHHhHO..',
+      '..OHSSSSSSSSHO..',
+      '..OSSSSSSSSSSO..',
+      '..OSEWSSSSEWSO..',
+      '..OSEESSSSEESO..',
+      '..OSsSSmmSSsSO..',
       '...OSSSSSSSSO...',
-      '....OSSOOSSO....'],
+      '....OSSSSSSO....'],
     up: [
-      '.......OO.......',
-      '......OAAO......',
-      '.....OAAAAO.....',
-      '..OOOAAAAAAOOO..',
-      '.OAAAAAAAAAAAAO.',
-      '..OOHHHHHHHHOO..',
+      '.....HHHHHH.....',
+      '....HhhHHHHH....',
+      '...OHHHHHHHHO...',
+      '..OHHHHHHHHHHO..',
+      '..OHhHHHHHHhHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OSHHHHHHHHSO..',
       '...OSHHHHHHSO...',
-      '....OSHHHHSO....'],
+      '....OSSSSSSO....'],
     side: [
-      '.......OO.......',
-      '......OAAO......',
-      '.....OAAAAO.....',
-      '..OOOAAAAAAOOO..',
-      '.OAAAAAAAAAAAAO.',
-      '..OOHSSSSSSOO...',
-      '...OHHSOSSSO....',
-      '....OSSSSSO.....']
+      '....HHHHHHH.....',
+      '...HhhHHHHHH....',
+      '..OHHHHHHHHHO...',
+      '.OHHHHHHHHHHHO..',
+      '.OHhHHHHHHHHSO..',
+      '.OHHHHSSSSSSSO..',
+      '.OHHHSSSSSSSSO..',
+      '.OHHHSWESSSSSO..',
+      '.OHHHSEESSSSO...',
+      '.OHHHSSSSmSO....',
+      '..OHHSSsSSO.....',
+      '...OHSSSSO......']
   },
-  ladino: {
+  onmyoji: {
+    down: [
+      '.....OOOOOO.....',
+      '.....OBBBBO.....',
+      '....OOBBBBOO....',
+      '...OHHBBBBHHO...',
+      '..OHhHHHHHHhHO..',
+      '..OHSSSSSSSSHO..',
+      '..OSSSSSSSSSSO..',
+      '..OSEWSSSSEWSO..',
+      '..OSEESSSSEESO..',
+      '..OSsSSmmSSsSO..',
+      '..HOSSSSSSSSOH..',
+      '..H.OSSSSSSO.H..'],
+    up: [
+      '.....OOOOOO.....',
+      '.....OBBBBO.....',
+      '....OOBBBBOO....',
+      '...OHHBBBBHHO...',
+      '..OHhHHHHHHhHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..HOHHHHHHHHOH..',
+      '..H.OSSSSSSO.H..'],
+    side: [
+      '....OOOOOO......',
+      '....OBBBBO......',
+      '...OOBBBBOO.....',
+      '..OHHBBBBHHO....',
+      '.OHhHHHHHHHHSO..',
+      '.OHHHHSSSSSSSO..',
+      '.OHHHSSSSSSSSO..',
+      '.OHHHSWESSSSSO..',
+      '.OHHHSEESSSSO...',
+      '.OHHHSSSSmSO....',
+      '.HOHHSSsSSO.....',
+      '.H.OHSSSSO......']
+  },
+  shinobi: {
     down: [
       '................',
       '.....OOOOOO.....',
-      '....OAAAAAAO....',
+      '....OHHHHHHO....',
+      '...OHHHHHHHHO...',
+      '..OHhHHHHHHhHO..',
+      '..OAAAAAAAAAAO..',
+      '..OASSSSSSSSAO..',
+      '..OASEWSSEWSAO..',
+      '..OASEESSEESAO..',
+      '..OASSSSSSSSAO..',
       '...OAAAAAAAAO...',
-      '...OAOSSSSOAO...',
-      '...OASOSSOSAO...',
-      '...OASSSSSSAO...',
-      '....OASSSSAO....'],
+      '....OAAAAAAO....'],
     up: [
       '................',
       '.....OOOOOO.....',
-      '....OAAAAAAO....',
+      '....OHHHHHHO....',
+      '...OHHHHHHHHO...',
+      '..OHhHHHHHHhHO..',
+      '..OHHHHHHHHHHO..',
+      '..OAHHHHHHHHAO..',
+      '..OAAHHHHHHAAO..',
+      '..OAAAAAAAAAAO..',
+      '..OAAAAAAAAAAO..',
       '...OAAAAAAAAO...',
-      '...OAAAAAAAAO...',
-      '...OAAAAAAAAO...',
-      '...OSAAAAAASO...',
-      '....OSAAAASO....'],
+      '....OAAAAAAO....'],
     side: [
       '................',
       '.....OOOOOO.....',
-      '....OAAAAAAO....',
-      '...OAAAAAAAAO...',
-      '...OAAASSSSO....',
-      '...OAASOSSSO....',
-      '...OAASSSSSO....',
-      '....OASSSSO.....']
+      '....OHHHHHHO....',
+      '...OHHHHHHHHO...',
+      '..OHhHHHHHHHhO..',
+      '..OAAAAAAAAO....',
+      '..OASSSSSSAO....',
+      '..OASSSWEAO.....',
+      '..OASSSEEAO.....',
+      '..OAAAAAAAO.....',
+      '...OAAAAAO......',
+      '....OAAAAO......']
+  },
+  kyudoka: {
+    down: [
+      '.....HHHHHH.....',
+      '....HHhhHHHH....',
+      '...OHHHHHHHHO...',
+      '..OHHHHHHHHHHO..',
+      '..OHhHHHHHHhHO..',
+      '..OHSSSSSSSSHO..',
+      '..OSSSSSSSSSSO..',
+      '..OSEWSSSSEWSO..',
+      '..OSEESSSSEESO..',
+      '..OSsSSmmSSsSO..',
+      '..HOSSSSSSSSOH..',
+      '..H.OSSSSSSO....'],
+    up: [
+      '.....HHHHHH.....',
+      '....HHhhHHHH....',
+      '...OHHHHHHHHO...',
+      '..OHHHHHHHHHHO..',
+      '..OHhHHHHHHhHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OHHHHHHHHHHO..',
+      '..OSHHHHHHHHSO..',
+      '..HOSHHHHHHSOH..',
+      '..H.OSSSSSSO....'],
+    side: [
+      '....HHHHHHH.....',
+      '...HHhhHHHHH....',
+      '..OHHHHHHHHHO...',
+      '.OHHHHHHHHHHHO..',
+      '.OHhHHHHHHHHSO..',
+      '.OHHHHSSSSSSSO..',
+      '.OHHHSSSSSSSSO..',
+      '.OHHHSWESSSSSO..',
+      '.OHHHSEESSSSO...',
+      '.OHHHSSSSmSO....',
+      '.HOHHSSsSSO.....',
+      '.H.OHSSSSO......']
   }
 };
+// Corpos: quimono/hakama com mangas largas (8 linhas)
 const BODIES = {
+  downN: [
+    '...OAAAAAAAAO...',
+    '..OaAABBBBAAaO..',
+    '..OaABBBBBBAaO..',
+    '..OaABBBBBBAaO..',
+    '...OLLLLLLLLO...',
+    '...OLLLLLLLLO...',
+    '...OLO....OLO...',
+    '...OOO....OOO...'],
   downA: [
     '...OAAAAAAAAO...',
-    '..OSAABBBBAASO..',
-    '..OSABBBBBBASO..',
+    '..OaAABBBBAAaO..',
+    '..OaABBBBBBAaO..',
     '...OABBBBBBAO...',
     '...OLLLLLLLLO...',
-    '....OLL..LLO....',
+    '....OLLLLLLO....',
     '....OLO..OLO....',
     '.....O....O.....'],
   downB: [
     '...OAAAAAAAAO...',
-    '..OSAABBBBAASO..',
-    '..OSABBBBBBASO..',
+    '..OaAABBBBAAaO..',
+    '..OaABBBBBBAaO..',
     '...OABBBBBBAO...',
     '...OLLLLLLLLO...',
     '...OLLO..OLLO...',
     '...OLO....OLO...',
-    '....O......O....'],
+    '...OO......OO...'],
+  sideN: [
+    '...OAAAAAAAO....',
+    '..OaAABBBBAO....',
+    '..OaABBBBBaO....',
+    '..OaABBBBBAO....',
+    '...OLLLLLLO.....',
+    '...OLLLLLO......',
+    '...OLLLLO.......',
+    '...OOOOO........'],
   sideA: [
     '...OAAAAAAAO....',
-    '...OAABBBBAO....',
-    '...OAABBBBSO....',
-    '...OAABBBBAO....',
+    '..OaAABBBBAO....',
+    '..OaABBBBBaO....',
+    '...OABBBBBAO....',
     '...OLLLLLLO.....',
     '....OLLLLO......',
     '....OLO.OLO.....',
     '.....O...O......'],
   sideB: [
     '...OAAAAAAAO....',
-    '...OAABBBBAO....',
-    '...OAABBBBSO....',
-    '...OAABBBBAO....',
+    '..OaAABBBBAO....',
+    '..OaABBBBBaO....',
+    '...OABBBBBAO....',
     '....OLLLLLO.....',
     '...OLL.OLLO.....',
     '...OLO...OO.....',
-    '....O...........'],
-  // poses neutras (parado / passagem entre passos)
-  downN: [
-    '...OAAAAAAAAO...',
-    '..OSAABBBBAASO..',
-    '..OSABBBBBBASO..',
-    '...OABBBBBBAO...',
-    '...OLLLLLLLLO...',
-    '....OLLLLLLO....',
-    '....OLO..OLO....',
-    '....OO....OO....'],
-  sideN: [
-    '...OAAAAAAAO....',
-    '...OAABBBBAO....',
-    '...OAABBBBSO....',
-    '...OAABBBBAO....',
-    '...OLLLLLLO.....',
-    '....OLLLLO......',
-    '....OLLLO.......',
-    '....OOOO........']
+    '...OO...........']
 };
 // ciclo de caminhada: neutro → passo A → neutro → passo B
 const WALK_CYCLE = ['N', 'A', 'N', 'B'];
+// Paletas com tons de anime: cores saturadas + sombra
 const CLASS_PAL = {
-  guerreiro:   { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#c03a3a', B: '#9aa0b8', L: '#5a3a28' },
-  mago:        { O: '#1a1626', S: '#f0c8a0', H: '#d8d8e8', A: '#4a6ae0', B: '#2c3f8a', L: '#2c3f8a' },
-  ladino:      { O: '#1a1626', S: '#e8bc94', H: '#245c30', A: '#3a9a4a', B: '#245c30', L: '#3a3a2a' },
-  arqueiro:    { O: '#1a1626', S: '#f0c8a0', H: '#7a5220', A: '#b8863a', B: '#7a5220', L: '#4a3222' },
-  aventureiro: { O: '#1a1626', S: '#f0c8a0', H: '#7a4326', A: '#8a7a5a', B: '#6a5a42', L: '#4a3a2a' }
+  samurai:  { O: '#2a1620', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#241c2e', h: '#4a3f5c',
+              E: '#2a1620', W: '#ffffff', A: '#c8352f', a: '#e05a4e', B: '#3b4a6b', L: '#2f3a52' },
+  onmyoji:  { O: '#12101c', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#2e2842', h: '#4d4570',
+              E: '#12101c', W: '#ffffff', A: '#e8e4ee', a: '#ffffff', B: '#4a4468', L: '#3a4a8a' },
+  shinobi:  { O: '#0e1220', S: '#f0c8a0', s: '#e0a090', m: '#c4756a', H: '#181e30', h: '#2e3a58',
+              E: '#0e1220', W: '#ffffff', A: '#1f2740', a: '#31405f', B: '#4a5a80', L: '#171d30' },
+  kyudoka:  { O: '#241a14', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#5a3418', h: '#8a5528',
+              E: '#241a14', W: '#ffffff', A: '#2f6b4a', a: '#3f8a60', B: '#e8dcc0', L: '#4a4030' },
+  ronin:    { O: '#241c1c', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#2e2620', h: '#54463a',
+              E: '#241c1c', W: '#ffffff', A: '#8a7a5a', a: '#a89578', B: '#6a5a42', L: '#4a3f30' }
 };
-// aventureiro: cabeça do guerreiro sem o elmo de aço
-HEADS.aventureiro = {
-  down: HEADS.guerreiro.down.map(r => r.replace(/B/g, 'H')),
-  up: HEADS.guerreiro.up.map(r => r.replace(/B/g, 'H')),
-  side: HEADS.guerreiro.side.map(r => r.replace(/B/g, 'H'))
-};
-// arqueiro: capuz como o ladino, em tons de couro
-HEADS.arqueiro = HEADS.ladino;
+// rônin (sem arma): mesmo desenho do samurai, paleta desbotada
+HEADS.ronin = HEADS.samurai;
+
 function heroSprite(cls, dir, frame) {
   const step = WALK_CYCLE[(frame | 0) % WALK_CYCLE.length];
   const id = `hero_${cls}_${dir}_${step}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
-  const pal = CLASS_PAL[cls];
-  const headDir = dir === 'left' ? 'side' : (dir === 'right' ? 'side' : dir);
+  const pal = CLASS_PAL[cls] || CLASS_PAL.ronin;
+  const heads = HEADS[cls] || HEADS.ronin;
+  const headDir = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
-  const rows = HEADS[cls][headDir].concat(BODIES[bodyDir + step]);
+  const rows = heads[headDir].concat(BODIES[bodyDir + step]);
   let spr = makeSprite(rows, pal);
   if (dir === 'left') spr = flipSprite(spr);
   spriteCache.set(id, spr);
@@ -384,114 +470,226 @@ function heroSprite(cls, dir, frame) {
 
 // --- Inimigos ---
 const ENEMY_ART = {
+  // Slime → Konpaku (alma errante)
   slime: {
-    pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c' },
+    pal: { O: '#0e2a18', G: '#3fb05a', g: '#7ce88f', W: '#ffffff', E: '#0e2a18' },
     rows: [
       '................',
       '................',
       '................',
-      '................',
-      '......OOOO......',
-      '....OOggggOO....',
-      '...OggggggggO...',
+      '.......gg.......',
+      '......gGGg......',
+      '....OOgGGgOO....',
+      '...OggGGGGggO...',
       '..OgGGGGGGGGgO..',
-      '..OGWPGGGGWPGO..',
-      '.OGGWPGGGGWPGGO.',
-      '.OGGGGGOOGGGGGO.',
+      '..OGWEGGGGWEGO..',
+      '.OGGWEGGGGWEGGO.',
       '.OGGGGGGGGGGGGO.',
+      '.OGGGGGWWGGGGGO.',
       '..OGGGGGGGGGGO..',
       '...OOGGGGGGOO...',
       '.....OOOOOO.....',
       '................']
   },
+  // Morcego → Kawahori youkai
   morcego: {
-    pal: { O: '#171226', P: '#6b4a9e', p: '#8f6cc4', W: '#e8e0f8', R: '#e05050' },
+    pal: { O: '#140f22', P: '#5e3f92', p: '#9070d0', W: '#ffffff', R: '#ff5252' },
     rows: [
       '................',
       '................',
-      '................',
-      '.O..........O...',
-      '.OO..OOOO..OO...',
-      '.OPO.OppO.OPO...',
-      '.OPPOOppOOPPO...',
-      '.OPPPppppPPPO...',
-      '..OPPpRppRPPO...',
-      '..OOPppppppOO...',
-      '....OppOOpO.....',
-      '....OOO..OO.....',
-      '................',
+      '.OO.........OO..',
+      'OppO.OOOO..OppO.',
+      'OpPpOOppOOOpPpO.',
+      'OpPPpOppOpPPpO..',
+      '.OPPpppppppPPO..',
+      '..OPpRWppRWpPO..',
+      '..OPppppppppPO..',
+      '...OPppWWppPO...',
+      '....OOpppPOO....',
+      '......OppO......',
+      '.......OO.......',
       '................',
       '................',
       '................']
   },
+  // Lobo → Okuri-inu
   lobo: {
-    pal: { O: '#1a1a22', C: '#8a8a9a', c: '#b8b8c8', W: '#e8e8f0', R: '#d04040' },
+    pal: { O: '#14141c', C: '#7a7a92', c: '#b4b4cc', W: '#ffffff', R: '#ff4444' },
     rows: [
       '................',
-      '................',
-      '................',
-      '..O.........O...',
       '..OO.......OO...',
       '..OcO.....OcO...',
-      '..OccOOOOOccO...',
+      '..OccO...OccO...',
+      '..OcccOOOccccO..',
       '..OccccccccccO..',
-      '..OcRccccccRcOO.',
-      '..OccccccccccccO',
-      '...OCCCCCCCCOOO.',
-      '...OCCOCCOCCO...',
-      '...OCO.OCO.OO...',
-      '...OO..OO.......',
+      '.OcRWccccccRWcO.',
+      '.OccccccccccccO.',
+      '.OcccWWWWcccccO.',
+      '..OCCCCCCCCCCCO.',
+      '..OCCCCCCCCCCO..',
+      '..OCCOCCOCCCO...',
+      '..OCO.OCO.OCO...',
+      '..OO..OO..OO....',
       '................',
       '................']
   },
+  // Esqueleto → Gashadokuro
   esqueleto: {
-    pal: { O: '#1a1626', W: '#e8e4d8', w: '#b8b4a0', R: '#c03030' },
+    pal: { O: '#1a1626', W: '#f0ece0', w: '#b8b0a0', R: '#ff3a3a', E: '#1a1626' },
     rows: [
       '................',
-      '.....OOOOOO.....',
+      '....OOOOOOOO....',
+      '...OWWWWWWWWO...',
+      '..OWWWWWWWWWWO..',
+      '..OWEEWWWWEEWO..',
+      '..OWERWWWWERWO..',
+      '..OWEEWWWWEEWO..',
+      '..OWWWWWWWWWWO..',
+      '...OWWEWWEWWO...',
       '....OWWWWWWO....',
-      '...OWWWWWWWWO...',
-      '...OWOWWWWOWO...',
-      '...OWRWWWWRWO...',
-      '...OWWWWWWWWO...',
-      '....OWOOOOWO....',
       '.....OwwwwO.....',
-      '....OwOwwOwO....',
-      '...OwOOwwOOwO...',
-      '...OO.OwwO.OO...',
-      '......OwwO......',
+      '...OwwOwwOww O..',
+      '..OwOOwwwwOOwO..',
+      '..OO..OwwO..OO..',
+      '.....OwOOwO.....',
+      '.....OO..OO.....']
+  },
+  // Zumbi → Jikininki
+  zumbi: {
+    pal: { O: '#101f14', W: '#7fa06e', w: '#5c7a50', R: '#ff4040', E: '#101f14', Y: '#e8e060' },
+    rows: [
+      '................',
+      '....OOOOOOOO....',
+      '...OWWWWWWWWO...',
+      '..OWWWWWWWWWWO..',
+      '..OWEYWWWWEYWO..',
+      '..OWERWWWWERWO..',
+      '..OWWWWWWWWWWO..',
+      '..OWWWwwwwWWWO..',
+      '...OWWwYYwWWO...',
+      '....OwwwwwwO....',
+      '...OwwOwwOwwO...',
+      '..OwwOwwwwOwwO..',
+      '..OO..OwwO..OO..',
       '.....OwOOwO.....',
       '.....OO..OO.....',
       '................']
   },
-  orc: {
-    pal: { O: '#14251a', G: '#5a8a4a', g: '#7aac66', B: '#6a4a2e', W: '#e8e4d0', R: '#c03030' },
+  // Goblin → Kappa
+  goblin: {
+    pal: { O: '#0e2418', G: '#3f9a5a', g: '#66c47e', B: '#c8a860', W: '#ffffff', E: '#0e2418', Y: '#e8d060' },
     rows: [
       '................',
-      '....OOOOOOOO....',
-      '...OGGGGGGGGO...',
-      '..OGGGGGGGGGGO..',
-      '..OGOGGGGGGOGO..',
-      '..OGRGGGGGGRGO..',
-      '..OGGGWGGWGGGO..',
-      '..OGGGGOOGGGGO..',
-      '...OGBBBBBBGO...',
-      '..OGgBBBBBBgGO..',
-      '..OGgBBOOBBgGO..',
-      '...OOBBBBBBOO...',
-      '....OBBOOBBO....',
-      '....OBO..OBO....',
-      '....OO....OO....',
+      '.....OOOOOO.....',
+      '....OBBBBBBO....',
+      '...OBYYYYYYBO...',
+      '..OOGGGGGGGGOO..',
+      '.OGgGGGGGGGGgGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGGGGGGGGGGGO.',
+      '..OGGGWWWWGGGO..',
+      '..OGgGGGGGGgGO..',
+      '...OGGBBBBGGO...',
+      '...OGgBBBBgGO...',
+      '....OOBBBBOO....',
+      '.....OBOOBO.....',
+      '.....OO..OO.....']
+  },
+  // Aranha → Jorogumo
+  aranha: {
+    pal: { O: '#12091a', D: '#3d1f4d', d: '#6a3a80', R: '#ff3a5a', W: '#ffffff', S: '#f8d0a8' },
+    rows: [
+      '................',
+      '.O.O......O.O...',
+      '..OdO....OdO....',
+      '.OdddO..OdddO...',
+      '.OddOOOOOOddO...',
+      '..OdOSSSSOdO....',
+      '.OddOSSSSSOddO..',
+      '.OddSRWSSRWSddO.',
+      '.OddSSSSSSSSddO.',
+      '.OddDDDDDDDDddO.',
+      '.OdDDDWWWWDDDdO.',
+      '..ODDDDDDDDDDO..',
+      '.OdO.OOOOOO.OdO.',
+      '.OdO........OdO.',
+      '.OO..........OO.',
       '................']
   },
+  // Fantasma → Yurei
+  fantasma: {
+    pal: { O: '#101828', P: '#5c7ab0', p: '#9db4e0', W: '#e8f0ff', E: '#101828', H: '#1a1a2e' },
+    rows: [
+      '................',
+      '....HHHHHHHH....',
+      '...HHHHHHHHHH...',
+      '..OHHpppppHHO...',
+      '..OHppppppppO...',
+      '..OpEWppppEWpO..',
+      '..OpEEppppEEpO..',
+      '..OppppppppppO..',
+      '..OpppWWWWpppO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '...OPPPPPPPPO...',
+      '....OPOPPOPO....',
+      '.....O.OO.O.....',
+      '................']
+  },
+  // Orc → Oni
+  orc: {
+    pal: { O: '#2a0e12', G: '#c4442f', g: '#e06a4a', B: '#3a2a1a', W: '#fff8e0', E: '#2a0e12', Y: '#f0d060' },
+    rows: [
+      '................',
+      '..Y..OOOOOO..Y..',
+      '..YOOGGGGGGOOY..',
+      '..OGGGGGGGGGGO..',
+      '.OGgGGGGGGGGgGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGGGGGGGGGGGO.',
+      '.OGGWWWWWWWWGGO.',
+      '.OGGWOWOOWOWGGO.',
+      '..OGGGGGGGGGGO..',
+      '..OGBBBBBBBBGO..',
+      '.OGgBBBBBBBBgGO.',
+      '.OGGBBOOOOBBGGO.',
+      '..OOBBO..OBBOO..',
+      '...OOO....OOO...']
+  },
+  // Harpia → Tengu
+  harpia: {
+    pal: { O: '#1a0e14', B: '#8a2a2a', b: '#c04040', S: '#f0b890', Y: '#e8c050', R: '#ff4040', W: '#ffffff', H: '#1a1a26' },
+    rows: [
+      '................',
+      '......HHHH......',
+      '.....HbbbbH.....',
+      '.O..OHSSSSHO..O.',
+      'OBO.OSRWWRSO.OBO',
+      'OBBO.OSYYSO.OBBO',
+      'OBbBOOSSSSOOBbBO',
+      'OBbbBObbbbOBbbBO',
+      'OBbbbBbbbbBbbbBO',
+      '.OBbbBbbbbBbbBO.',
+      '..OBbBbbbbBbBO..',
+      '...OBObbbbOBO...',
+      '....OObbbbOO....',
+      '.....ObbbbO.....',
+      '.....OYOOYO.....',
+      '.....OO..OO.....']
+  },
+  // Golem → Doro-ningyo (boneco de barro)
   golem: {
-    pal: { O: '#161622', C: '#6a6a80', c: '#8e8ea6', Y: '#e8c050' },
+    pal: { O: '#161622', C: '#6a5f50', c: '#95886f', Y: '#e8c050', W: '#ffffff', E: '#161622' },
     rows: [
       '................',
       '....OOOOOOOO....',
       '...OccccccccO...',
-      '..OccOccccOccO..',
-      '..OccYccccYccO..',
+      '..OccccccccccO..',
+      '..OcEYccccYEcO..',
+      '..OcEEccccEEcO..',
       '..OccccccccccO..',
       '...OccOOOOccO...',
       '..OCCCCCCCCCCO..',
@@ -501,51 +699,33 @@ const ENEMY_ART = {
       '..OOCCCCCCCCOO..',
       '...OCCCOOCCCO...',
       '...OCCO..OCCO...',
-      '...OOO....OOO...',
-      '................']
+      '...OOO....OOO...']
   },
-  zumbi: {
-    pal: { O: '#16261a', W: '#8aac7a', w: '#6a8a5c', R: '#c03030' },
+  // Elemental → Onibi (fogo-fátuo)
+  elemental: {
+    pal: { O: '#2a0e08', R: '#e8502a', r: '#ff8a3a', Y: '#ffd040', W: '#fff8c0', E: '#2a0e08' },
     rows: [
+      '.......YY.......',
+      '......YWWY......',
+      '.....YWWWWY.....',
+      '....rYWWWWYr....',
+      '....rrYWWYrr....',
+      '...RrrrYYrrrR...',
+      '...RrEWrrWErR...',
+      '..RRrEErrEErRR..',
+      '..RRrrrrrrrrRR..',
+      '..RRrrrWWrrrRR..',
+      '..RRRrrrrrrRRR..',
+      '...RRRrrrrRRR...',
+      '...OORRRRRROO...',
+      '.....OORROO.....',
       '................',
-      '.....OOOOOO.....',
-      '....OWWWWWWO....',
-      '...OWWWWWWWWO...',
-      '...OWOWWWWOWO...',
-      '...OWRWWWWRWO...',
-      '...OWWWWWWWWO...',
-      '....OWOOOOWO....',
-      '.....OwwwwO.....',
-      '....OwOwwOwO....',
-      '...OwOOwwOOwO...',
-      '...OO.OwwO.OO...',
-      '......OwwO......',
-      '.....OwOOwO.....',
-      '.....OO..OO.....',
       '................']
   },
-  necromante: {
-    pal: { O: '#150f22', P: '#4a3070', p: '#5e4090', D: '#241838', G: '#6ee86e', W: '#8a6a42', Y: '#b06ae8' },
-    rows: [
-      '.Y...OOOOOO.....',
-      '.W..OPPPPPPO....',
-      '.W.OPPPPPPPPO...',
-      '.W.OPDDDDDDPO...',
-      '.W.OPDGDDGDPO...',
-      '.W.OPDDDDDDPO...',
-      '.W.OPPPPPPPPO...',
-      '.W.OpPPPPPPpO...',
-      '.WOppPPPPPPppO..',
-      '.WOppPPPPPPppO..',
-      '.WOpPPPPPPPPpO..',
-      '.W.OPPPPPPPPO...',
-      '.W.OPPPPPPPPO...',
-      '.W.OPPPPPPPPO...',
-      '...OOOOOOOOOO...',
-      '................']
-  },
+  // CHEFES
+  // Rei Slime → Nurarihyon (mestre dos youkai)
   reislime: {
-    pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c', Y: '#f0c050', y: '#c89a30' },
+    pal: { O: '#0e2a18', G: '#3fb05a', g: '#7ce88f', W: '#ffffff', E: '#0e2a18', Y: '#f0c050', y: '#c89a30' },
     rows: [
       '........................',
       '......Y...Y...Y.........',
@@ -558,11 +738,11 @@ const ENEMY_ART = {
       '....OOgggggggggggOO.....',
       '...OgggggggggggggggO....',
       '..OggGGGGGGGGGGGGggO....',
-      '..OgGGWWPGGGGWWPGGgO....',
-      '.OgGGGWWPGGGGWWPGGGgO...',
+      '..OgGGWWEGGGGWWEGGgO....',
+      '.OgGGGWWEGGGGWWEGGGgO...',
       '.OgGGGGGGGGGGGGGGGGgO...',
-      '.OgGGGGGGOOOOGGGGGGgO...',
-      '.OgGGGGGOGGGGOGGGGGgO...',
+      '.OgGGGGGGWWWWGGGGGGgO...',
+      '.OgGGGGGWGGGGWGGGGGgO...',
       '.OgGGGGGGGGGGGGGGGGgO...',
       '..OGGGGGGGGGGGGGGGGO....',
       '..OGGGGGGGGGGGGGGGGO....',
@@ -572,108 +752,30 @@ const ENEMY_ART = {
       '........................',
       '........................']
   },
-  goblin: {
-    pal: { O: '#16220f', G: '#7a9a3a', g: '#96b84e', B: '#6a4a2e', R: '#c03030', W: '#e8e4d0' },
+  // Necromante → Onmyoji sombrio (Kagemaru)
+  necromante: {
+    pal: { O: '#120c1e', P: '#3d2a68', p: '#5c4090', D: '#1e1430', G: '#6eff8e', W: '#c8a860', Y: '#c04ae8', S: '#f0d8c0' },
     rows: [
-      '................',
-      '.....OOOOOO.....',
-      '..OOGGGGGGGGOO..',
-      '.OGGGGGGGGGGGGO.',
-      '.OGGOGGGGGGOGGO.',
-      '..OGRGGGGGGRGO..',
-      '..OGGGWWWWGGGO..',
-      '...OGGGOOGGGO...',
-      '....OGBBBBGO....',
-      '...OGgBBBBgGO...',
-      '...OGgBBBBgGO...',
-      '....OOBBBBOO....',
-      '.....OBOOBO.....',
-      '.....OO..OO.....',
-      '................',
-      '................']
+      '.Y..OOOOOOOO....',
+      '.W..OPPPPPPO....',
+      '.W.OPPPPPPPPO...',
+      '.W.OPDDDDDDPO...',
+      '.W.OPDGDDGDPO...',
+      '.W.OPDDDDDDPO...',
+      '.W.OPSSSSSSPO...',
+      '.W.OPPPPPPPPO...',
+      '.WOppPPPPPPppO..',
+      '.WOppPPYYPPppO..',
+      '.WOppPPPPPPppO..',
+      '.WOpPPPPPPPPpO..',
+      '.W.OPPPPPPPPO...',
+      '.W.OPPPPPPPPO...',
+      '.W.OPPPPPPPPO...',
+      '...OOOOOOOOOO...']
   },
-  aranha: {
-    pal: { O: '#140e18', D: '#3a2a44', d: '#54406a', R: '#e04040', W: '#e8e0f0' },
-    rows: [
-      '................',
-      '.O.O......O.O...',
-      '..OO......OO....',
-      '.OdO.OOOO.OdO...',
-      '.OdOOddddOOdO...',
-      '.OddOddddOddO...',
-      '..OdddddddddO...',
-      '.OddDDDDDDddO...',
-      '.OdDRDDDDRDdO...',
-      '.OdDDDDDDDDdO...',
-      '.OddDDWWDDddO...',
-      '..OdDDDDDDdO....',
-      '.OdO.OOOO.OdO...',
-      '.OdO......OdO...',
-      '.OO........OO...',
-      '................']
-  },
-  fantasma: {
-    pal: { O: '#0e1420', P: '#7a94c8', p: '#a8c0e8', W: '#dce8ff', R: '#8ac0ff' },
-    rows: [
-      '................',
-      '.....OOOOOO.....',
-      '...OOppppppOO...',
-      '..OpppppppppO...',
-      '..OppppppppppO..',
-      '..OpROppppORpO..',
-      '..OppppppppppO..',
-      '..OpppPPPPpppO..',
-      '..OPPPPPPPPPPO..',
-      '..OPPPPPPPPPPO..',
-      '..OPPPPPPPPPPO..',
-      '..OPPPPPPPPPPO..',
-      '..OPPOPPPPOPPO..',
-      '...OPO.OO.OPO...',
-      '....O......O....',
-      '................']
-  },
-  elemental: {
-    pal: { O: '#2a0e08', R: '#e05020', r: '#f08030', Y: '#f8d040', W: '#fff0b0' },
-    rows: [
-      '.......OO.......',
-      '......OYYO......',
-      '.....OYWWYO.....',
-      '.....OYWWYO.....',
-      '....OrYWWYrO....',
-      '....OrrYYrrO....',
-      '...ORrrrrrrRO...',
-      '...ORrrYYrrRO...',
-      '..ORRrrYYrrRRO..',
-      '..ORRrrrrrrRRO..',
-      '..ORRRrrrrRRRO..',
-      '...ORRRrrRRRO...',
-      '...OORRRRRROO...',
-      '.....OORROO.....',
-      '................',
-      '................']
-  },
-  harpia: {
-    pal: { O: '#1a1420', B: '#6a4a9c', b: '#a888e0', S: '#f0c8a0', Y: '#e8c050', R: '#c03030', W: '#c8b0f0' },
-    rows: [
-      '................',
-      '......OOOO......',
-      '.....ObSSbO.....',
-      '.O...ObSSbO...O.',
-      'OBO..OSRRSO..OBO',
-      'OBBO.OSYYSO.OBBO',
-      'OBWBOOSSSSOOBWBO',
-      'OBWWBObbbbOBWWBO',
-      'OBWWWBbbbbBWWWBO',
-      '.OBWWBbbbbBWWBO.',
-      '..OBWBbbbbBWBO..',
-      '...OBObbbbOBO...',
-      '....OObbbbOO....',
-      '.....ObbbbO.....',
-      '.....OYOOYO.....',
-      '.....OO..OO.....']
-  },
+  // Dragão → Yamata-no-Orochi
   dragao: {
-    pal: { O: '#1c1020', R: '#c03838', r: '#e05848', D: '#8a2828', Y: '#f0c050', W: '#f0f0e0', G: '#50c060' },
+    pal: { O: '#1c1020', R: '#a82838', r: '#d84a52', D: '#6a1826', Y: '#f0c050', W: '#f0f0e0', G: '#5ce070' },
     rows: [
       '...OO..............OO...',
       '..OWWO............OWWO..',
@@ -681,10 +783,10 @@ const ENEMY_ART = {
       '...OWO..OORRRROO..OWO...',
       '...OWOOORrrrrrrROOOWO...',
       '....OORrrrrrrrrrrROO....',
-      '.....ORrYYrrrrYYrRO.....',
-      '.....ORrYOrrrrOYrRO.....',
+      '.....ORrGGrrrrGGrRO.....',
+      '.....ORrGWrrrrWGrRO.....',
       '......ORrrrrrrrrRO......',
-      '......ORRrOrrOrRRO......',
+      '......ORRrWWWWrRRO......',
       '..OO...ORrrrrrrRO...OO..',
       '.ODDO.ORRRRRRRRRRO.ODDO.',
       '.ODDDOORrrrrrrrrROODDDO.',
@@ -701,6 +803,7 @@ const ENEMY_ART = {
       '........................']
   }
 };
+
 const PET_ART = {
   slimezinho: {
     pal: { O: '#14311c', G: '#4ec065', g: '#7ee88f', W: '#ffffff', P: '#14311c' },
@@ -883,29 +986,29 @@ function enemySprite(type) {
 
 // ---------- Definições de jogo ----------
 // A "classe" é definida pelo equipamento: espada=Guerreiro, cajado=Mago, adaga=Ladino, arco=Arqueiro
-const CLASS_BY_WEAPON = { espada: 'guerreiro', cajado: 'mago', adaga: 'ladino', arco: 'arqueiro' };
-const CLASS_NAMES = { guerreiro: 'Guerreiro', mago: 'Mago', ladino: 'Ladino', arqueiro: 'Arqueiro', aventureiro: 'Aventureiro' };
-const SET_MATCH = { espada: 'pesada', cajado: 'robe', adaga: 'couro', arco: 'caça' };
+const CLASS_BY_WEAPON = { katana: 'samurai', shakujo: 'onmyoji', tanto: 'shinobi', yumi: 'kyudoka' };
+const CLASS_NAMES = { samurai: 'Samurai', onmyoji: 'Onmyoji', shinobi: 'Shinobi', kyudoka: 'Kyudoka', ronin: 'Ronin' };
+const SET_MATCH = { katana: 'oyoroi', shakujo: 'kariginu', tanto: 'shinobishozoku', yumi: 'karuta' };
 
 const SKILLS = {
-  golpe:   { name: 'Golpe Forte',      mp: 5,  desc: 'Dano físico 1.8x' },
-  grito:   { name: 'Grito de Guerra',  mp: 8,  desc: 'Aumenta ATQ por 3 turnos' },
-  furia:   { name: 'Fúria',            mp: 14, desc: 'Dano físico 3x' },
-  fogo:    { name: 'Bola de Fogo',     mp: 6,  desc: 'Dano mágico 2.2x' },
-  gelo:    { name: 'Raio de Gelo',     mp: 10, desc: 'Dano 1.8x, pode congelar' },
-  meteoro: { name: 'Meteoro',          mp: 18, desc: 'Dano mágico 3.5x' },
-  duplo:   { name: 'Golpe Duplo',      mp: 5,  desc: 'Ataca 2x com 0.9x dano' },
-  veneno:  { name: 'Lâmina Venenosa',  mp: 8,  desc: 'Dano + veneno por 3 turnos' },
-  exec:    { name: 'Execução',         mp: 15, desc: 'Dano 2x, sempre crítico' },
-  precisa: { name: 'Flecha Precisa',   mp: 5,  desc: 'Dano 1.7x, +25% crítico' },
-  chuva:   { name: 'Chuva de Flechas', mp: 10, desc: 'Ataca 3x com 0.7x dano' },
-  fantasma:{ name: 'Flecha Fantasma',  mp: 15, desc: 'Dano 2.2x, ignora defesa' }
+  golpe:   { name: 'Kesagiri',      mp: 5,  desc: 'Corte diagonal · dano 1.8x' },
+  grito:   { name: 'Kiai',          mp: 8,  desc: 'Grito de guerra · +ATQ 3 turnos' },
+  furia:   { name: 'Iai-nuki',      mp: 14, desc: 'Saque relâmpago · dano 3x' },
+  fogo:    { name: 'Katon',         mp: 6,  desc: 'Chama espiritual · dano 2.2x' },
+  gelo:    { name: 'Hyoton',        mp: 10, desc: 'Gelo · dano 1.8x, pode congelar' },
+  meteoro: { name: 'Raijin no Ikari', mp: 18, desc: 'Ira do trovão · dano 3.5x' },
+  duplo:   { name: 'Nitoryu',       mp: 5,  desc: 'Duas lâminas · ataca 2x (0.9x)' },
+  veneno:  { name: 'Dokuba',        mp: 8,  desc: 'Presa venenosa · veneno 3 turnos' },
+  exec:    { name: 'Kagegoroshi',   mp: 15, desc: 'Morte na sombra · 2x, crítico certo' },
+  precisa: { name: 'Isshin Ichii',  mp: 5,  desc: 'Tiro focado · 1.7x, +25% crítico' },
+  chuva:   { name: 'Yasogame',      mp: 10, desc: 'Chuva de flechas · ataca 3x (0.7x)' },
+  fantasma:{ name: 'Kamiya',        mp: 15, desc: 'Flecha divina · 2.2x, ignora DEF' }
 };
 const WEAPON_SKILLS = {
-  espada: [['golpe', 1], ['grito', 5], ['furia', 9]],
-  cajado: [['fogo', 1], ['gelo', 5], ['meteoro', 9]],
-  adaga:  [['duplo', 1], ['veneno', 5], ['exec', 9]],
-  arco:   [['precisa', 1], ['chuva', 5], ['fantasma', 9]]
+  katana:  [['golpe', 1], ['grito', 5], ['furia', 9]],
+  shakujo: [['fogo', 1], ['gelo', 5], ['meteoro', 9]],
+  tanto:   [['duplo', 1], ['veneno', 5], ['exec', 9]],
+  yumi:    [['precisa', 1], ['chuva', 5], ['fantasma', 9]]
 };
 
 // ---------- Raridade e equipamentos ----------
@@ -922,97 +1025,97 @@ const SLOT_NAMES = { arma: 'Arma', corpo: 'Peitoral', elmo: 'Cabeça', luvas: 'L
 
 // bonus: atk/def/mag/spd/hp/mp/crit
 const EQUIP = {
-  // espadas
-  esp1: { name: 'Espada Enferrujada', slot: 'arma', rar: 'comum',    wtype: 'espada', bonus: { atk: 2 } },
-  esp2: { name: 'Espada de Ferro',    slot: 'arma', rar: 'incomum',  wtype: 'espada', bonus: { atk: 5 } },
-  esp3: { name: 'Lâmina de Aço',      slot: 'arma', rar: 'raro',     wtype: 'espada', bonus: { atk: 9, def: 2 } },
-  esp4: { name: 'Espada Flamejante',  slot: 'arma', rar: 'epico',    wtype: 'espada', bonus: { atk: 14, mag: 4 } },
-  esp5: { name: 'Lâmina do Dragão',   slot: 'arma', rar: 'lendario', wtype: 'espada', bonus: { atk: 22, hp: 20 } },
-  esp6: { name: 'Machado de Batalha', slot: 'arma', rar: 'incomum',  wtype: 'espada', bonus: { atk: 6, spd: -1 } },
-  esp7: { name: 'Alabarda',           slot: 'arma', rar: 'raro',     wtype: 'espada', bonus: { atk: 10, def: 1 } },
-  // cajados
-  caj1: { name: 'Galho Torto',        slot: 'arma', rar: 'comum',    wtype: 'cajado', bonus: { mag: 3 } },
-  caj6: { name: 'Varinha de Osso',    slot: 'arma', rar: 'incomum',  wtype: 'cajado', bonus: { mag: 5, mp: 5 } },
-  caj7: { name: 'Grimório Selado',    slot: 'arma', rar: 'raro',     wtype: 'cajado', bonus: { mag: 10, def: 2 } },
-  caj2: { name: 'Cajado de Carvalho', slot: 'arma', rar: 'incomum',  wtype: 'cajado', bonus: { mag: 6 } },
-  caj3: { name: 'Cajado de Cristal',  slot: 'arma', rar: 'raro',     wtype: 'cajado', bonus: { mag: 11, mp: 10 } },
-  caj4: { name: 'Cajado Tempestade',  slot: 'arma', rar: 'epico',    wtype: 'cajado', bonus: { mag: 16, spd: 2 } },
-  caj5: { name: 'Olho do Vazio',      slot: 'arma', rar: 'lendario', wtype: 'cajado', bonus: { mag: 25, mp: 25 } },
-  // adagas
-  ada1: { name: 'Faca Cega',          slot: 'arma', rar: 'comum',    wtype: 'adaga', bonus: { atk: 1, spd: 1 } },
-  ada2: { name: 'Adaga Curva',        slot: 'arma', rar: 'incomum',  wtype: 'adaga', bonus: { atk: 3, spd: 2, crit: 0.03 } },
-  ada6: { name: 'Estilete',           slot: 'arma', rar: 'incomum',  wtype: 'adaga', bonus: { atk: 2, crit: 0.06 } },
-  ada3: { name: 'Adaga Sombria',      slot: 'arma', rar: 'raro',     wtype: 'adaga', bonus: { atk: 6, spd: 4, crit: 0.06 } },
-  ada4: { name: 'Presa da Serpente',  slot: 'arma', rar: 'epico',    wtype: 'adaga', bonus: { atk: 10, spd: 5, crit: 0.10 } },
-  ada5: { name: 'Beijo da Morte',     slot: 'arma', rar: 'lendario', wtype: 'adaga', bonus: { atk: 15, spd: 8, crit: 0.15 } },
-  // arcos
-  arc1: { name: 'Arco Simples',       slot: 'arma', rar: 'comum',    wtype: 'arco', bonus: { atk: 2, crit: 0.02 } },
-  arc2: { name: 'Arco Recurvo',       slot: 'arma', rar: 'incomum',  wtype: 'arco', bonus: { atk: 4, spd: 1, crit: 0.03 } },
-  arc6: { name: 'Besta de Caça',      slot: 'arma', rar: 'raro',     wtype: 'arco', bonus: { atk: 10, crit: 0.04 } },
-  arc3: { name: 'Arco Longo',         slot: 'arma', rar: 'raro',     wtype: 'arco', bonus: { atk: 8, spd: 2, crit: 0.05 } },
-  arc4: { name: 'Arco Élfico',        slot: 'arma', rar: 'epico',    wtype: 'arco', bonus: { atk: 12, spd: 4, crit: 0.08 } },
-  arc5: { name: 'Sussurro da Tempestade', slot: 'arma', rar: 'lendario', wtype: 'arco', bonus: { atk: 18, spd: 6, crit: 0.12 } },
-  // corpo
-  arm1: { name: 'Túnica de Pano',     slot: 'corpo', rar: 'comum',   atype: 'robe',   bonus: { def: 1 } },
-  arm2: { name: 'Armadura de Couro',  slot: 'corpo', rar: 'incomum', atype: 'couro',  bonus: { def: 3, spd: 1 } },
-  arm3: { name: 'Cota de Malha',      slot: 'corpo', rar: 'raro',    atype: 'pesada', bonus: { def: 6 } },
-  arm4: { name: 'Robe Arcano',        slot: 'corpo', rar: 'raro',    atype: 'robe',   bonus: { def: 3, mp: 12, mag: 3 } },
-  arm5: { name: 'Armadura de Placas', slot: 'corpo', rar: 'epico',   atype: 'pesada', bonus: { def: 10, hp: 15 } },
-  arm6: { name: 'Manto Sombrio',      slot: 'corpo', rar: 'epico',   atype: 'couro',  bonus: { def: 6, spd: 4, crit: 0.05 } },
-  arm7: { name: 'Robe do Arquimago',  slot: 'corpo', rar: 'epico',   atype: 'robe',   bonus: { def: 5, mag: 8, mp: 20 } },
-  arm8: { name: 'Escama de Dragão',   slot: 'corpo', rar: 'lendario', atype: 'pesada', bonus: { def: 15, hp: 30 } },
-  arm9: { name: 'Gibão do Caçador',   slot: 'corpo', rar: 'incomum', atype: 'caça',   bonus: { def: 3, atk: 1 } },
-  arm10:{ name: 'Traje do Patrulheiro', slot: 'corpo', rar: 'raro',  atype: 'caça',   bonus: { def: 5, spd: 2, atk: 2 } },
-  arm11:{ name: 'Manto da Floresta',  slot: 'corpo', rar: 'epico',   atype: 'caça',   bonus: { def: 7, atk: 4, spd: 3 } },
-  // botas
-  bot1: { name: 'Sandálias Gastas',   slot: 'botas', rar: 'comum',    bonus: { spd: 1 } },
-  bot2: { name: 'Botas de Couro',     slot: 'botas', rar: 'incomum',  bonus: { spd: 2, def: 1 } },
-  bot3: { name: 'Botas de Ferro',     slot: 'botas', rar: 'raro',     bonus: { def: 4, hp: 8 } },
-  bot4: { name: 'Botas Aladas',       slot: 'botas', rar: 'epico',    bonus: { spd: 6, crit: 0.03 } },
-  bot5: { name: 'Passos do Vento',    slot: 'botas', rar: 'lendario', bonus: { spd: 9, atk: 5, crit: 0.05 } },
-  // elmos e chapéus
-  elm1: { name: 'Capuz de Pano',      slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
-  elm2: { name: 'Elmo de Ferro',      slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
-  elm3: { name: 'Chapéu do Mago',     slot: 'elmo', rar: 'raro',    bonus: { mag: 5, mp: 8 } },
-  elm4: { name: 'Capuz do Assassino', slot: 'elmo', rar: 'raro',    bonus: { spd: 3, crit: 0.04 } },
-  elm5: { name: 'Coroa Real',         slot: 'elmo', rar: 'epico',   bonus: { def: 4, hp: 10, mag: 4 } },
-  elm6: { name: 'Chapéu do Caçador',  slot: 'elmo', rar: 'incomum', bonus: { spd: 2, atk: 1 } },
-  elm7: { name: 'Elmo Alado',         slot: 'elmo', rar: 'epico',   bonus: { def: 6, spd: 3 } },
-  elm8: { name: 'Elmo do Dragão',     slot: 'elmo', rar: 'lendario',bonus: { def: 10, hp: 25, atk: 4 } },
-  // luvas
-  luv1: { name: 'Manoplas de Pano',   slot: 'luvas', rar: 'comum',    bonus: { def: 1 } },
-  luv2: { name: 'Luvas de Couro',     slot: 'luvas', rar: 'incomum',  bonus: { atk: 2, spd: 1 } },
-  luv3: { name: 'Manoplas de Aço',    slot: 'luvas', rar: 'raro',     bonus: { atk: 4, def: 3 } },
-  luv4: { name: 'Luvas do Feiticeiro',slot: 'luvas', rar: 'raro',     bonus: { mag: 6, mp: 6 } },
-  luv5: { name: 'Garras Sombrias',    slot: 'luvas', rar: 'epico',    bonus: { atk: 7, crit: 0.07 } },
-  luv6: { name: 'Punho do Titã',      slot: 'luvas', rar: 'lendario', bonus: { atk: 13, def: 6 } },
-  // amuletos
-  amu1: { name: 'Anel de Cobre',      slot: 'amuleto', rar: 'comum',    bonus: { hp: 5 } },
-  amu2: { name: 'Colar de Jade',      slot: 'amuleto', rar: 'incomum',  bonus: { mp: 8 } },
-  amu3: { name: 'Anel de Rubi',       slot: 'amuleto', rar: 'raro',     bonus: { atk: 3, mag: 3 } },
-  amu4: { name: 'Olho de Corvo',      slot: 'amuleto', rar: 'epico',    bonus: { crit: 0.08, spd: 2 } },
-  amu5: { name: 'Coração do Dragão',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } },
-  amu6: { name: 'Talismã de Prata',   slot: 'amuleto', rar: 'incomum',  bonus: { def: 2, mag: 2 } },
-  amu7: { name: 'Pingente da Sorte',  slot: 'amuleto', rar: 'raro',     bonus: { crit: 0.05, hp: 8 } },
-  amu8: { name: 'Selo Arcano',        slot: 'amuleto', rar: 'epico',    bonus: { mag: 9, mp: 16 } }
+  // katanas (samurai)
+  esp1: { name: 'Katana Enferrujada', slot: 'arma', rar: 'comum',    wtype: 'katana', bonus: { atk: 2 } },
+  esp2: { name: 'Uchigatana',         slot: 'arma', rar: 'incomum',  wtype: 'katana', bonus: { atk: 5 } },
+  esp3: { name: 'Tachi de Aço',       slot: 'arma', rar: 'raro',     wtype: 'katana', bonus: { atk: 9, def: 2 } },
+  esp4: { name: 'Katana Flamejante',  slot: 'arma', rar: 'epico',    wtype: 'katana', bonus: { atk: 14, mag: 4 } },
+  esp5: { name: 'Muramasa',           slot: 'arma', rar: 'lendario', wtype: 'katana', bonus: { atk: 22, hp: 20 } },
+  esp6: { name: 'Naginata',           slot: 'arma', rar: 'incomum',  wtype: 'katana', bonus: { atk: 6, spd: -1 } },
+  esp7: { name: 'Nodachi',            slot: 'arma', rar: 'raro',     wtype: 'katana', bonus: { atk: 10, def: 1 } },
+  // shakujo / cajados (onmyoji)
+  caj1: { name: 'Bastão de Bambu',    slot: 'arma', rar: 'comum',    wtype: 'shakujo', bonus: { mag: 3 } },
+  caj2: { name: 'Shakujo de Carvalho',slot: 'arma', rar: 'incomum',  wtype: 'shakujo', bonus: { mag: 6 } },
+  caj3: { name: 'Gohei Sagrado',      slot: 'arma', rar: 'raro',     wtype: 'shakujo', bonus: { mag: 11, mp: 10 } },
+  caj4: { name: 'Shakujo do Trovão',  slot: 'arma', rar: 'epico',    wtype: 'shakujo', bonus: { mag: 16, spd: 2 } },
+  caj5: { name: 'Olho de Amaterasu',  slot: 'arma', rar: 'lendario', wtype: 'shakujo', bonus: { mag: 25, mp: 25 } },
+  caj6: { name: 'Vara de Ossos',      slot: 'arma', rar: 'incomum',  wtype: 'shakujo', bonus: { mag: 5, mp: 5 } },
+  caj7: { name: 'Pergaminho Selado',  slot: 'arma', rar: 'raro',     wtype: 'shakujo', bonus: { mag: 10, def: 2 } },
+  // tanto / kunai (shinobi)
+  ada1: { name: 'Kunai Cega',         slot: 'arma', rar: 'comum',    wtype: 'tanto', bonus: { atk: 1, spd: 1 } },
+  ada2: { name: 'Tanto Curvo',        slot: 'arma', rar: 'incomum',  wtype: 'tanto', bonus: { atk: 3, spd: 2, crit: 0.03 } },
+  ada3: { name: 'Wakizashi Sombrio',  slot: 'arma', rar: 'raro',     wtype: 'tanto', bonus: { atk: 6, spd: 4, crit: 0.06 } },
+  ada4: { name: 'Presa de Jorogumo',  slot: 'arma', rar: 'epico',    wtype: 'tanto', bonus: { atk: 10, spd: 5, crit: 0.10 } },
+  ada5: { name: 'Kusanagi Menor',     slot: 'arma', rar: 'lendario', wtype: 'tanto', bonus: { atk: 15, spd: 8, crit: 0.15 } },
+  ada6: { name: 'Shuriken Afiado',    slot: 'arma', rar: 'incomum',  wtype: 'tanto', bonus: { atk: 2, crit: 0.06 } },
+  // yumi / arcos (kyudoka)
+  arc1: { name: 'Yumi Simples',       slot: 'arma', rar: 'comum',    wtype: 'yumi', bonus: { atk: 2, crit: 0.02 } },
+  arc2: { name: 'Hankyu',             slot: 'arma', rar: 'incomum',  wtype: 'yumi', bonus: { atk: 4, spd: 1, crit: 0.03 } },
+  arc3: { name: 'Daikyu de Guerra',   slot: 'arma', rar: 'raro',     wtype: 'yumi', bonus: { atk: 8, spd: 2, crit: 0.05 } },
+  arc4: { name: 'Yumi de Cerejeira',  slot: 'arma', rar: 'epico',    wtype: 'yumi', bonus: { atk: 12, spd: 4, crit: 0.08 } },
+  arc5: { name: 'Sussurro de Fujin',  slot: 'arma', rar: 'lendario', wtype: 'yumi', bonus: { atk: 18, spd: 6, crit: 0.12 } },
+  arc6: { name: 'Yumi de Caça',       slot: 'arma', rar: 'raro',     wtype: 'yumi', bonus: { atk: 10, crit: 0.04 } },
+  // peitorais (do / armaduras)
+  arm1: { name: 'Kimono de Linho',    slot: 'corpo', rar: 'comum',   atype: 'kariginu', bonus: { def: 1 } },
+  arm2: { name: 'Do de Couro',        slot: 'corpo', rar: 'incomum', atype: 'karuta',  bonus: { def: 3, spd: 1 } },
+  arm3: { name: 'Haramaki',           slot: 'corpo', rar: 'raro',    atype: 'oyoroi',  bonus: { def: 6 } },
+  arm4: { name: 'Kariginu Arcano',    slot: 'corpo', rar: 'raro',    atype: 'kariginu', bonus: { def: 3, mp: 12, mag: 3 } },
+  arm5: { name: 'O-Yoroi',            slot: 'corpo', rar: 'epico',   atype: 'oyoroi',  bonus: { def: 10, hp: 15 } },
+  arm6: { name: 'Shinobi Shozoku',    slot: 'corpo', rar: 'epico',   atype: 'shinobishozoku', bonus: { def: 6, spd: 4, crit: 0.05 } },
+  arm7: { name: 'Kariginu do Mestre', slot: 'corpo', rar: 'epico',   atype: 'kariginu', bonus: { def: 5, mag: 8, mp: 20 } },
+  arm8: { name: 'Escama de Orochi',   slot: 'corpo', rar: 'lendario', atype: 'oyoroi', bonus: { def: 15, hp: 30 } },
+  arm9: { name: 'Do de Caçador',      slot: 'corpo', rar: 'incomum', atype: 'karuta',  bonus: { def: 3, atk: 1 } },
+  arm10:{ name: 'Karuta-gane',        slot: 'corpo', rar: 'raro',    atype: 'karuta',  bonus: { def: 5, spd: 2, atk: 2 } },
+  arm11:{ name: 'Traje da Névoa',     slot: 'corpo', rar: 'epico',   atype: 'shinobishozoku', bonus: { def: 7, atk: 4, spd: 3 } },
+  // waraji / botas
+  bot1: { name: 'Waraji Gastas',      slot: 'botas', rar: 'comum',    bonus: { spd: 1 } },
+  bot2: { name: 'Tabi de Couro',      slot: 'botas', rar: 'incomum',  bonus: { spd: 2, def: 1 } },
+  bot3: { name: 'Suneate de Ferro',   slot: 'botas', rar: 'raro',     bonus: { def: 4, hp: 8 } },
+  bot4: { name: 'Tabi do Vento',      slot: 'botas', rar: 'epico',    bonus: { spd: 6, crit: 0.03 } },
+  bot5: { name: 'Passos de Fujin',    slot: 'botas', rar: 'lendario', bonus: { spd: 9, atk: 5, crit: 0.05 } },
+  // kabuto / chapéus
+  elm1: { name: 'Hachimaki',          slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
+  elm2: { name: 'Kabuto de Ferro',    slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
+  elm3: { name: 'Eboshi do Onmyoji',  slot: 'elmo', rar: 'raro',    bonus: { mag: 5, mp: 8 } },
+  elm4: { name: 'Zukin do Shinobi',   slot: 'elmo', rar: 'raro',    bonus: { spd: 3, crit: 0.04 } },
+  elm5: { name: 'Kabuto do Daimyo',   slot: 'elmo', rar: 'epico',   bonus: { def: 4, hp: 10, mag: 4 } },
+  elm6: { name: 'Kasa de Palha',      slot: 'elmo', rar: 'incomum', bonus: { spd: 2, atk: 1 } },
+  elm7: { name: 'Menpo de Tengu',     slot: 'elmo', rar: 'epico',   bonus: { def: 6, spd: 3 } },
+  elm8: { name: 'Kabuto de Orochi',   slot: 'elmo', rar: 'lendario',bonus: { def: 10, hp: 25, atk: 4 } },
+  // kote / luvas
+  luv1: { name: 'Tekko de Pano',      slot: 'luvas', rar: 'comum',    bonus: { def: 1 } },
+  luv2: { name: 'Kote de Couro',      slot: 'luvas', rar: 'incomum',  bonus: { atk: 2, spd: 1 } },
+  luv3: { name: 'Kote de Aço',        slot: 'luvas', rar: 'raro',     bonus: { atk: 4, def: 3 } },
+  luv4: { name: 'Tekko do Onmyoji',   slot: 'luvas', rar: 'raro',     bonus: { mag: 6, mp: 6 } },
+  luv5: { name: 'Garras de Nekomata', slot: 'luvas', rar: 'epico',    bonus: { atk: 7, crit: 0.07 } },
+  luv6: { name: 'Punho de Raijin',    slot: 'luvas', rar: 'lendario', bonus: { atk: 13, def: 6 } },
+  // omamori / magatama (amuletos)
+  amu1: { name: 'Omamori de Cobre',   slot: 'amuleto', rar: 'comum',    bonus: { hp: 5 } },
+  amu2: { name: 'Magatama de Jade',   slot: 'amuleto', rar: 'incomum',  bonus: { mp: 8 } },
+  amu3: { name: 'Magatama Rubro',     slot: 'amuleto', rar: 'raro',     bonus: { atk: 3, mag: 3 } },
+  amu4: { name: 'Olho de Karasu',     slot: 'amuleto', rar: 'epico',    bonus: { crit: 0.08, spd: 2 } },
+  amu5: { name: 'Coração de Orochi',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } },
+  amu6: { name: 'Omamori de Prata',   slot: 'amuleto', rar: 'incomum',  bonus: { def: 2, mag: 2 } },
+  amu7: { name: 'Sino da Sorte',      slot: 'amuleto', rar: 'raro',     bonus: { crit: 0.05, hp: 8 } },
+  amu8: { name: 'Selo de Inari',      slot: 'amuleto', rar: 'epico',    bonus: { mag: 9, mp: 16 } }
 };
 function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
 
 // ---------- Pets ----------
 // Companheiros com status: bônus passivo + ataque próprio em batalha
 const PETS = {
-  slimezinho:  { name: 'Slimezinho',    rar: 'comum',    atk: 3,  passive: { hp: 5 },                    desc: '+5 HP' },
-  morceguinho: { name: 'Morceguinho',   rar: 'comum',    atk: 3,  passive: { spd: 1 },                   desc: '+1 VEL' },
-  lobinho:     { name: 'Lobinho',       rar: 'incomum',  atk: 6,  passive: { atk: 2 },                   desc: '+2 ATQ' },
-  caveirinha:  { name: 'Caveirinha',    rar: 'incomum',  atk: 5,  passive: { atk: 1, mag: 1 },           desc: '+1 ATQ, +1 MAG' },
-  golenzinho:  { name: 'Golenzinho',    rar: 'raro',     atk: 8,  passive: { def: 4, hp: 10 },           desc: '+4 DEF, +10 HP' },
-  slimereal:   { name: 'Slime Real',    rar: 'raro',     atk: 8,  passive: { hp: 12, def: 2 },           desc: '+12 HP, +2 DEF' },
-  goblinzinho: { name: 'Goblinzinho',  rar: 'incomum',  atk: 6,  passive: { spd: 2, atk: 1 },           desc: '+2 VEL, +1 ATQ' },
-  aranhinha:   { name: 'Aranhinha',    rar: 'incomum',  atk: 7,  passive: { crit: 0.04 },               desc: '+4% crítico' },
-  fantasminha: { name: 'Fantasminha',  rar: 'raro',     atk: 9,  passive: { mag: 3, mp: 8 },            desc: '+3 MAG, +8 MP' },
-  chaminha:    { name: 'Chaminha',     rar: 'raro',     atk: 11, passive: { atk: 3 },                   desc: '+3 ATQ' },
-  corvo:       { name: 'Corvo Sombrio', rar: 'epico',    atk: 10, passive: { mag: 4, crit: 0.05 },       desc: '+4 MAG, +5% crit' },
-  dragaozinho: { name: 'Dragãozinho',   rar: 'lendario', atk: 14, passive: { atk: 3, mag: 3, hp: 15 },   desc: '+3 ATQ, +3 MAG, +15 HP' }
+  slimezinho:  { name: 'Mitama',        rar: 'comum',    atk: 3,  passive: { hp: 5 },                    desc: '+5 HP' },
+  morceguinho: { name: 'Kobato',        rar: 'comum',    atk: 3,  passive: { spd: 1 },                   desc: '+1 VEL' },
+  lobinho:     { name: 'Inugami',       rar: 'incomum',  atk: 6,  passive: { atk: 2 },                   desc: '+2 ATQ' },
+  caveirinha:  { name: 'Hone-ko',       rar: 'incomum',  atk: 5,  passive: { atk: 1, mag: 1 },           desc: '+1 ATQ, +1 MAG' },
+  golenzinho:  { name: 'Tsuchi-ko',     rar: 'raro',     atk: 8,  passive: { def: 4, hp: 10 },           desc: '+4 DEF, +10 HP' },
+  slimereal:   { name: 'Tama-hime',     rar: 'raro',     atk: 8,  passive: { hp: 12, def: 2 },           desc: '+12 HP, +2 DEF' },
+  goblinzinho: { name: 'Kappa-ko',      rar: 'incomum',  atk: 6,  passive: { spd: 2, atk: 1 },           desc: '+2 VEL, +1 ATQ' },
+  aranhinha:   { name: 'Kumo-ko',       rar: 'incomum',  atk: 7,  passive: { crit: 0.04 },               desc: '+4% crítico' },
+  fantasminha: { name: 'Hitodama',      rar: 'raro',     atk: 9,  passive: { mag: 3, mp: 8 },            desc: '+3 MAG, +8 MP' },
+  chaminha:    { name: 'Onibi-ko',      rar: 'raro',     atk: 11, passive: { atk: 3 },                   desc: '+3 ATQ' },
+  corvo:       { name: 'Karasu-tengu',  rar: 'epico',    atk: 10, passive: { mag: 4, crit: 0.05 },       desc: '+4 MAG, +5% crit' },
+  dragaozinho: { name: 'Ryu-ko',        rar: 'lendario', atk: 14, passive: { atk: 3, mag: 3, hp: 15 },   desc: '+3 ATQ, +3 MAG, +15 HP' }
 };
 // chance de mob deixar um filhote; chefes sempre dão o seu
 const PET_DROPS = {
@@ -1035,32 +1138,32 @@ const ALLOC = [
 ];
 // tier: raridade máxima que o mob costuma dropar (índice em RAR_KEYS)
 const ENEMIES = {
-  slime:      { name: 'Slime',          hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1 },
-  morcego:    { name: 'Morcego',        hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1 },
-  lobo:       { name: 'Lobo Cinzento',  hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2 },
-  esqueleto:  { name: 'Esqueleto',      hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, skill: { name: 'Golpe de Osso', mult: 1.5, chance: 0.25 } },
-  goblin:     { name: 'Goblin Ladrão',  hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, skill: { name: 'Furto', mult: 1.2, chance: 0.25 } },
-  aranha:     { name: 'Aranha Gigante', hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
-  zumbi:      { name: 'Zumbi',          hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, skill: { name: 'Mordida Podre', mult: 1.4, chance: 0.3 } },
-  fantasma:   { name: 'Espectro',       hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, skill: { name: 'Toque Gélido', mult: 1.6, chance: 0.35 } },
-  orc:        { name: 'Orc Bruto',      hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, skill: { name: 'Esmagar', mult: 1.7, chance: 0.3 } },
-  harpia:     { name: 'Harpia',         hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, skill: { name: 'Rajada de Penas', mult: 1.5, chance: 0.35 } },
-  golem:      { name: 'Golem de Pedra', hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, skill: { name: 'Terremoto', mult: 1.6, chance: 0.3 } },
-  elemental:  { name: 'Elemental de Fogo', hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, skill: { name: 'Explosão Ígnea', mult: 1.8, chance: 0.35 } },
+  slime:      { name: 'Konpaku',        hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1 },
+  morcego:    { name: 'Kawahori',       hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1 },
+  lobo:       { name: 'Okuri-inu',      hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2 },
+  esqueleto:  { name: 'Gashadokuro',    hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, skill: { name: 'Hone-uchi', mult: 1.5, chance: 0.25 } },
+  goblin:     { name: 'Kappa',          hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, skill: { name: 'Sumo do Rio', mult: 1.2, chance: 0.25 } },
+  aranha:     { name: 'Jorogumo',       hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
+  zumbi:      { name: 'Jikininki',      hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, skill: { name: 'Mordida Faminta', mult: 1.4, chance: 0.3 } },
+  fantasma:   { name: 'Yurei',          hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, skill: { name: 'Toque do Além', mult: 1.6, chance: 0.35 } },
+  orc:        { name: 'Oni',            hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, skill: { name: 'Kanabo', mult: 1.7, chance: 0.3 } },
+  harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
+  golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
+  elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
   // chefes (stats fixos, drop assinatura garantido)
-  reislime:   { name: 'Rei Slime',        hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, boss: true, sig: 'elm5', skill: { name: 'Salto Esmagador', mult: 1.6, chance: 0.3 } },
-  necromante: { name: 'Malakar, o Necromante', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, boss: true, sig: 'amu4', skill: { name: 'Raio Sombrio', mult: 1.8, chance: 0.4 } },
-  dragao:     { name: 'Vorax, o Dragão',  hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, boss: true, sig: 'weapon', skill: { name: 'Sopro de Fogo', mult: 1.8, chance: 0.4 } }
+  reislime:   { name: 'Nurarihyon',     hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, boss: true, sig: 'elm5', skill: { name: 'Ordem dos Youkai', mult: 1.6, chance: 0.3 } },
+  necromante: { name: 'Kagemaru, o Onmyoji Negro', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, boss: true, sig: 'amu4', skill: { name: 'Shikigami Sombrio', mult: 1.8, chance: 0.4 } },
+  dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } }
 };
 const ITEMS = {
-  pocao:    { name: 'Poção',       desc: 'Recupera 45% do HP',        price: 25 },
-  pocaoG:   { name: 'Poção Grande',desc: 'Recupera 80% do HP',        price: 70 },
-  eter:     { name: 'Éter',        desc: 'Recupera 40% do MP',        price: 40 },
-  elixir:   { name: 'Elixir',      desc: 'Recupera HP e MP totais',   price: 150 },
-  antidoto: { name: 'Antídoto',    desc: 'Cura veneno e cega',        price: 20, battleOnly: true },
-  bomba:    { name: 'Bomba',       desc: 'Dano fixo de 35 no inimigo', price: 60, battleOnly: true },
-  pergaminho:{ name: 'Pergaminho', desc: 'Dobra o ATQ por 3 turnos',  price: 90, battleOnly: true },
-  pao:      { name: 'Pão',         desc: 'Recupera 20% de HP e MP',   price: 18 }
+  pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 25 },
+  pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 70 },
+  eter:     { name: 'Chá Verde',   desc: 'Recupera 40% do MP',         price: 40 },
+  elixir:   { name: 'Sake Divino', desc: 'Recupera HP e MP totais',    price: 150 },
+  antidoto: { name: 'Ervas Kanpo', desc: 'Cura veneno e status',       price: 20, battleOnly: true },
+  bomba:    { name: 'Bomba Ninja', desc: 'Dano fixo de 35 no inimigo', price: 60, battleOnly: true },
+  pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 90, battleOnly: true },
+  pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 18 }
 };
 const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 
@@ -1069,7 +1172,7 @@ const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
 // 20 lápide · 21 altar · 22 arbusto · 23 pedra · 24 cogumelo (decorativos)
-const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23]);
+const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30]);
 const MAPS = {};
 
 function genOverworld() {
@@ -1083,6 +1186,8 @@ function genOverworld() {
   // montanhas ao norte + entrada da caverna
   rect(0, 0, W, 10, 8);
   set(48, 9, 11); set(47, 10, 3); set(48, 10, 3); set(49, 10, 3);
+  set(47, 11, 25); set(48, 11, 26); // torii guardando a caverna (topo)
+  set(47, 12, 29); set(48, 12, 30); // pilares
   // rio horizontal + pontes
   rect(2, 28, 92, 3, 2);
   rect(20, 28, 2, 3, 7); rect(48, 28, 2, 3, 7); rect(76, 28, 2, 3, 7);
@@ -1098,8 +1203,8 @@ function genOverworld() {
   // bolsões de árvores no norte e campos
   for (let i = 0; i < 40; i++) {
     const cx = irnd(4, 91), cy = irnd(11, 60), r = irnd(1, 2);
-    if (cx > 10 && cx < 30 && cy > 42) continue;      // Aldeia Verde
-    if (cx > 64 && cx < 86 && cy > 12 && cy < 26) continue; // Vila Rocha
+    if (cx > 10 && cx < 30 && cy > 42) continue;      // Vila Sakuramura
+    if (cx > 64 && cx < 86 && cy > 12 && cy < 26) continue; // Vila Iwamura
     if (cx > 72 && cy > 48) continue;                  // cemitério
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (hash2(x * 3, y * 3) < 0.7 && t[y] && t[y][x] === 0) set(x, y, 1);
@@ -1113,36 +1218,43 @@ function genOverworld() {
   rect(12, 44, 17, 13, 0);
   rect(14, 45, 4, 2, 18); rect(14, 47, 4, 2, 5); set(15, 48, 19);
   rect(23, 45, 4, 2, 18); rect(23, 47, 4, 2, 5); set(24, 48, 19);
-  set(20, 50, 13); // fonte
+  set(20, 50, 13); // chozuya (fonte)
   rect(23, 52, 3, 1, 18); set(23, 53, 5); set(24, 53, 14); set(25, 53, 5); // loja
-  rect(20, 44, 1, 13, 3); rect(13, 50, 15, 1, 3);
+  rect(20, 44, 1, 13, 28); rect(13, 50, 15, 1, 28); // piso de pedra do templo
   set(20, 50, 13);
   set(16, 53, 21); // altar de encantamento
+  set(19, 42, 25); set(20, 42, 26);  // torii na entrada norte (topo)
+  set(19, 43, 29); set(20, 43, 30);  // pilares
+  set(18, 51, 27); set(22, 51, 27);  // lanternas junto ao chozuya
+  set(14, 52, 27); set(26, 52, 27);
   // VILA ROCHA (nordeste, junto às montanhas)
   rect(66, 13, 19, 12, 0);
   rect(68, 14, 4, 2, 18); rect(68, 16, 4, 2, 5); set(69, 17, 19);
   rect(80, 14, 4, 2, 18); rect(80, 16, 4, 2, 5); set(81, 17, 19);
-  set(74, 20, 13); // fonte
+  set(74, 20, 13); // chozuya
   rect(77, 21, 3, 1, 18); set(77, 22, 5); set(78, 22, 14); set(79, 22, 5); // loja
-  rect(76, 13, 1, 12, 3); rect(67, 20, 17, 1, 3);
+  rect(76, 13, 1, 12, 28); rect(67, 20, 17, 1, 28);
   set(74, 20, 13);
   set(71, 22, 21); // altar de encantamento
+  set(75, 23, 25); set(76, 23, 26);  // torii ao sul (topo)
+  set(75, 24, 29); set(76, 24, 30);  // pilares
+  set(72, 18, 27); set(77, 18, 27);  // lanternas
   // CEMITÉRIO ANTIGO (sudeste)
   for (let y = 50; y < 61; y++) for (let x = 74; x < 91; x++) {
     if (t[y][x] === 1) set(x, y, 0);
     if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
   }
   // estradas
-  rect(20, 31, 1, 13, 3);              // ponte oeste -> Aldeia Verde
+  rect(20, 31, 1, 13, 3);              // ponte oeste -> Sakuramura
   rect(20, 11, 1, 17, 3);              // ponte oeste -> norte
   rect(20, 11, 29, 1, 3);              // norte -> caverna
   rect(48, 11, 1, 17, 3);              // caverna -> ponte central
   rect(48, 31, 1, 19, 3);              // ponte central -> estrada sul
   rect(21, 50, 56, 1, 3);              // estrada sul: aldeia -> cemitério
-  rect(76, 25, 1, 3, 3);               // Vila Rocha -> ponte leste
+  rect(76, 25, 1, 3, 3);               // Iwamura -> ponte leste
   rect(76, 31, 1, 19, 3);              // ponte leste -> estrada sul
   // placas
-  set(19, 46, 15); set(19, 32, 15); set(47, 12, 15); set(73, 50, 15); set(73, 19, 15);
+  set(19, 46, 15); set(19, 32, 15); set(50, 12, 15); set(73, 50, 15); set(73, 19, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
   for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
     if (t[y][x] !== 0) continue;
@@ -1159,13 +1271,13 @@ function genOverworld() {
 
 // regiões nomeadas (toast ao entrar)
 const REGIONS = [
-  { x1: 12, y1: 44, x2: 28, y2: 56, name: 'Aldeia Verde' },
-  { x1: 66, y1: 13, x2: 84, y2: 24, name: 'Vila Rocha' },
-  { x1: 6,  y1: 32, x2: 26, y2: 42, name: 'Floresta Umbria' },
-  { x1: 74, y1: 49, x2: 90, y2: 61, name: 'Cemitério Antigo' },
-  { x1: 56, y1: 33, x2: 90, y2: 49, name: 'Bosque Sombrio' },
-  { x1: 2,  y1: 10, x2: 93, y2: 27, name: 'Terras do Norte' },
-  { x1: 2,  y1: 31, x2: 93, y2: 61, name: 'Campos Verdejantes' }
+  { x1: 12, y1: 44, x2: 28, y2: 56, name: 'Vila Sakuramura' },
+  { x1: 66, y1: 13, x2: 84, y2: 24, name: 'Vila Iwamura' },
+  { x1: 6,  y1: 32, x2: 26, y2: 42, name: 'Bosque de Bambu' },
+  { x1: 74, y1: 49, x2: 90, y2: 61, name: 'Templo Abandonado' },
+  { x1: 56, y1: 33, x2: 90, y2: 49, name: 'Floresta de Aokigahara' },
+  { x1: 2,  y1: 10, x2: 93, y2: 27, name: 'Planalto do Norte' },
+  { x1: 2,  y1: 31, x2: 93, y2: 61, name: 'Campos de Arroz' }
 ];
 function regionAt(tx, ty) {
   for (const r of REGIONS) if (tx >= r.x1 && tx <= r.x2 && ty >= r.y1 && ty <= r.y2) return r.name;
@@ -1378,7 +1490,7 @@ function rollLoot(type) {
     // drop assinatura: dragão dá a arma lendária do estilo atual
     if (d.sig === 'weapon') {
       const t = weaponType();
-      return { cajado: 'caj5', adaga: 'ada5', arco: 'arc5' }[t] || 'esp5';
+      return { shakujo: 'caj5', tanto: 'ada5', yumi: 'arc5' }[t] || 'esp5';
     }
     return d.sig;
   }
@@ -1451,8 +1563,8 @@ function enterMap(name, px, py) {
   spawnEnemies(true);
   if (name === 'cave') {
     if (!G.flags.dragao) G.entities.push(makeEntity('dragao', 18 * TILE, 4 * TILE, 12, true));
-    G.region = 'Caverna de Vorax';
-    toast('Caverna de Vorax');
+    G.region = 'Caverna de Orochi';
+    toast('Caverna de Orochi');
   } else {
     if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 14 * TILE, 37 * TILE, 5, true));
     if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 82 * TILE, 55 * TILE, 8, true));
@@ -1534,11 +1646,11 @@ function facingTile() {
 }
 
 const SIGNS = {
-  '19,46': 'Aldeia Verde.\nBem-vindo, aventureiro!',
-  '19,32': 'Floresta Umbria a oeste.\nDizem que um slime gigante\nvive na clareira...',
-  '47,12': 'CUIDADO! Caverna de Vorax.\nApenas heróis experientes.',
-  '73,50': 'Cemitério Antigo.\nOs mortos não descansam...\nMalakar os comanda.',
-  '73,19': 'Vila Rocha.\nMineradores e bons negócios.'
+  '19,46': 'Vila Sakuramura.\nQue as cerejeiras te abençoem,\nviajante.',
+  '19,32': 'Bosque de Bambu a oeste.\nDizem que Nurarihyon, mestre\ndos youkai, reina na clareira.',
+  '50,12': 'PERIGO! Caverna de Orochi.\nSó guerreiros de alma firme\ndevem cruzar este torii.',
+  '73,50': 'Templo Abandonado.\nOs mortos não descansam...\nKagemaru os comanda.',
+  '73,19': 'Vila Iwamura.\nFerreiros e bons negócios.'
 };
 
 function updateWorld(dt) {
@@ -1609,9 +1721,9 @@ function updateWorld(dt) {
         AU.sfx('heal');
         addFloater(P.x + 8, P.y - 4, '+HP/MP', '#6ee86e');
         burst(P.x + 8, P.y + 8, 24, { color: ['#8ec6f0', '#c6e2f8', '#6ee86e'], spdMax: 50, lifeMax: 1.1, size: 1, lift: 30, g: 30 });
-        showMsg('A fonte mágica restaurou\nsuas forças! (jogo salvo)');
+        showMsg('A água sagrada do chozuya\nrestaurou suas forças!\n(jogo salvo)');
         saveGame();
-      } else showMsg('A água da fonte brilha\ncom energia mágica.');
+      } else showMsg('A água do chozuya reflete\nas pétalas de sakura.');
     } else if (f.t === 14) { // loja (estoque depende da cidade)
       G.shopId = f.tx < 50 ? 'aldeia' : 'rocha';
       G.state = 'shop'; G.shopIdx = 0; AU.sfx('ok');
@@ -1643,7 +1755,7 @@ function updateWorld(dt) {
         saveGame();
       }
     } else if (f.t === 19) {
-      showMsg('A porta está trancada.\nOs moradores estão escondidos\ndos monstros...');
+      showMsg('A porta shoji está fechada.\nOs aldeões se escondem\ndos youkai...');
     }
   }
   if (tap('menu')) { G.state = 'menu'; G.menuIdx = 0; G.menuTab = 0; AU.sfx('menu'); }
@@ -2168,8 +2280,8 @@ function updateAmbient(dt) {
   if (G.ambT > 0) return;
   G.ambT = 0.16;
   const cave = G.map.name === 'cave';
-  const forest = G.region === 'Floresta Umbria' || G.region === 'Bosque Sombrio';
-  const grave = G.region === 'Cemitério Antigo';
+  const forest = G.region === 'Bosque de Bambu' || G.region === 'Floresta de Aokigahara';
+  const grave = G.region === 'Templo Abandonado';
   const x0 = G.camX, y0 = G.camY;
   if (cave) {
     // faíscas subindo dos cristais
@@ -2178,14 +2290,15 @@ function updateAmbient(dt) {
       life: rnd(1.2, 2.2), color: pick(['#8a7ac0', '#6a5a9a', '#b06ae8']), size: 1
     });
   } else if (forest) {
-    // vagalumes e folhas
+    // vagalumes entre os bambus
     if (Math.random() < 0.45) spawnParticle({
       x: x0 + rnd(0, VW), y: y0 + rnd(0, VH), vx: rnd(-6, 6), vy: rnd(-8, -2),
       life: rnd(1.4, 2.6), color: pick(['#c8e860', '#a0d848', '#e8f090']), size: 1
     });
+    // folhas de bambu caindo
     if (Math.random() < 0.25) spawnParticle({
       x: x0 + rnd(0, VW), y: y0 - 4, vx: rnd(-12, -4), vy: rnd(10, 18), g: 4,
-      life: rnd(1.8, 3), color: pick(['#3a7a34', '#4c8a44', '#8a6a2a']), size: 2
+      life: rnd(1.8, 3), color: pick(['#3a7a34', '#4c8a44', '#2f6b30']), size: 2
     });
   } else if (grave) {
     // névoa subindo
@@ -2193,11 +2306,17 @@ function updateAmbient(dt) {
       x: x0 + rnd(0, VW), y: y0 + VH - rnd(0, 40), vx: rnd(-3, 3), vy: rnd(-10, -4),
       life: rnd(1.6, 3), color: pick(['#6a7a8a', '#8a94a4', '#556070']), size: 2
     });
-  } else if (Math.random() < 0.18) {
-    // pólen ao vento nos campos
-    spawnParticle({
+  } else {
+    // pétalas de sakura ao vento (mais densas perto das vilas)
+    const vila = G.region === 'Vila Sakuramura' || G.region === 'Vila Iwamura';
+    if (Math.random() < (vila ? 0.55 : 0.3)) spawnParticle({
+      x: x0 + rnd(-8, VW), y: y0 - 6 + rnd(0, VH * 0.5),
+      vx: rnd(8, 20), vy: rnd(6, 14), g: 2, drag: 0.4,
+      life: rnd(2.4, 4), color: pick(['#f7b3c6', '#ffd6e2', '#e88fa8', '#ffc2d4']), size: 2
+    });
+    if (Math.random() < 0.12) spawnParticle({
       x: x0 - 4, y: y0 + rnd(0, VH), vx: rnd(10, 22), vy: rnd(-4, 4),
-      life: rnd(2, 3.4), color: pick(['#e8e060', '#f0e8a0', '#d8f090']), size: 1
+      life: rnd(2, 3.4), color: pick(['#e8e060', '#f0e8a0']), size: 1
     });
   }
 }
@@ -2285,31 +2404,46 @@ function bakeDirt(v) {
 function bakeTree(v, gv) {
   return bakeTile('tree' + v + '_' + gv, g => {
     g.drawImage(bakeGrass(gv), 0, 0);
-    if (v === 0) {         // copa redonda densa
-      px(g, '#4a3020', 6, 10, 4, 6);
-      px(g, '#3a2418', 6, 10, 1, 6);
-      px(g, '#1c4a20', 2, 2, 12, 10);
-      px(g, '#256030', 2, 1, 11, 9);
-      px(g, '#2f7038', 3, 2, 9, 6);
-      px(g, '#3d8544', 4, 2, 5, 3);
-      px(g, '#1c4a20', 3, 9, 10, 3);
-      px(g, '#154018', 5, 11, 6, 1);
-    } else if (v === 1) {  // pinheiro
-      px(g, '#4a3020', 7, 12, 3, 4);
-      px(g, '#1a4423', 4, 9, 8, 4);
-      px(g, '#235c2c', 5, 8, 6, 4);
-      px(g, '#1a4423', 5, 5, 6, 4);
-      px(g, '#235c2c', 6, 4, 4, 4);
-      px(g, '#2d6e36', 6, 2, 4, 3);
-      px(g, '#38803f', 7, 2, 2, 2);
-    } else {               // árvore alta com galhos
-      px(g, '#54381f', 7, 9, 3, 7);
-      px(g, '#3f2818', 7, 9, 1, 7);
-      px(g, '#1c4a20', 1, 3, 14, 8);
-      px(g, '#256030', 2, 2, 12, 7);
-      px(g, '#2f7038', 4, 3, 8, 4);
-      px(g, '#3d8544', 5, 3, 4, 2);
-      px(g, '#154018', 2, 9, 12, 2);
+    if (v === 0) {         // sakura em flor
+      // tronco com galhos
+      px(g, '#4a3020', 7, 9, 3, 7);
+      px(g, '#3a2418', 7, 9, 1, 7);
+      px(g, '#4a3020', 4, 8, 3, 1);
+      px(g, '#4a3020', 10, 8, 3, 1);
+      // copa larga em camadas
+      px(g, '#b8536e', 1, 5, 14, 5);
+      px(g, '#c9647f', 0, 3, 16, 4);
+      px(g, '#e88fa8', 1, 2, 13, 4);
+      px(g, '#f7b3c6', 2, 1, 10, 3);
+      px(g, '#ffd6e2', 4, 1, 5, 2);
+      // flores soltas nas pontas
+      px(g, '#ffd6e2', 13, 4, 2, 1);
+      px(g, '#f7b3c6', 1, 7, 2, 1);
+      px(g, '#b8536e', 3, 9, 3, 1);
+      px(g, '#b8536e', 11, 9, 3, 1);
+    } else if (v === 1) {  // bambu (colmos verticais)
+      px(g, '#2f6b30', 2, 0, 3, TILE);
+      px(g, '#3f8a3c', 2, 0, 1, TILE);
+      px(g, '#254f26', 2, 5, 3, 1);
+      px(g, '#254f26', 2, 11, 3, 1);
+      px(g, '#2f6b30', 7, 0, 3, TILE);
+      px(g, '#3f8a3c', 7, 0, 1, TILE);
+      px(g, '#254f26', 7, 3, 3, 1);
+      px(g, '#254f26', 7, 9, 3, 1);
+      px(g, '#2f6b30', 12, 0, 2, TILE);
+      px(g, '#3f8a3c', 12, 0, 1, TILE);
+      px(g, '#254f26', 12, 7, 2, 1);
+      px(g, '#4f9a4a', 5, 2, 2, 1);
+      px(g, '#4f9a4a', 10, 8, 2, 1);
+    } else {               // pinheiro japonês (matsu) em camadas
+      px(g, '#54381f', 7, 11, 3, 5);
+      px(g, '#3f2818', 7, 11, 1, 5);
+      px(g, '#17421f', 2, 8, 12, 3);
+      px(g, '#20612c', 3, 7, 10, 3);
+      px(g, '#17421f', 4, 4, 8, 3);
+      px(g, '#20612c', 5, 3, 6, 3);
+      px(g, '#2b7534', 5, 1, 6, 2);
+      px(g, '#37883d', 6, 1, 3, 1);
     }
   });
 }
@@ -2364,19 +2498,18 @@ function bakeMushroom(v, cave) {
   });
 }
 // --- muro de pedra ---
+// parede de taipa clara com viga de madeira (estilo machiya)
 function bakeStoneWall(v) {
   return bakeTile('wall' + v, g => {
-    px(g, '#7a7a8c', 0, 0, TILE, TILE);
-    px(g, '#8e8ea2', 1, 1, 6, 6);
-    px(g, '#8e8ea2', 9, 1, 6, 6);
-    px(g, '#84849a', 1, 9, 3, 6);
-    px(g, '#8e8ea2', 6, 9, 9, 6);
-    px(g, '#5c5c6e', 0, 7, TILE, 1);
-    px(g, '#5c5c6e', 8, 0, 1, 7);
-    px(g, '#5c5c6e', 5, 8, 1, 8);
-    px(g, '#9c9cb0', 1, 1, 5, 1);
-    px(g, '#9c9cb0', 9, 1, 5, 1);
-    px(g, '#9c9cb0', 6, 9, 8, 1);
+    px(g, '#ddd2bb', 0, 0, TILE, TILE);
+    px(g, '#eae0cc', 0, 0, TILE, 2);
+    px(g, '#c4b79c', 0, 14, TILE, 2);
+    // vigas de madeira escura
+    px(g, '#6b4b30', 0, 0, 2, TILE);
+    px(g, '#6b4b30', 14, 0, 2, TILE);
+    px(g, '#7d5a3a', 0, 0, 1, TILE);
+    px(g, '#6b4b30', 0, 6, TILE, 2);
+    px(g, '#7d5a3a', 0, 6, TILE, 1);
   });
 }
 // --- montanha ---
@@ -2427,46 +2560,63 @@ function bakeGrave(v) {
     px(g, '#38583a', 0, 0, TILE, TILE);
     const r = seeded(v * 307 + 17);
     for (let i = 0; i < 6; i++) px(g, '#31502f', Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
-    px(g, '#1a1626', 4, 4, 8, 11);
-    px(g, '#8a8a9a', 5, 5, 6, 9);
-    px(g, '#9e9eae', 6, 4, 4, 2);
-    px(g, '#6a6a7a', 6, 8, 4, 1);
-    px(g, '#6a6a7a', 7, 6, 2, 5);
+    // estátua jizo com babador vermelho
+    px(g, '#1a1626', 4, 3, 8, 12);
+    px(g, '#a8a598', 5, 4, 6, 10);
+    px(g, '#c2bfb0', 6, 3, 4, 3);
+    px(g, '#8f8c80', 6, 6, 1, 1);
+    px(g, '#8f8c80', 9, 6, 1, 1);
+    px(g, '#c0392b', 5, 9, 6, 3);
+    px(g, '#e05548', 5, 9, 6, 1);
+    px(g, '#7a7870', 4, 14, 8, 1);
   });
 }
 // --- telhado e porta ---
+// telhado de telhas kawara (azul-acinzentado, com beiral)
 function bakeRoof() {
   return bakeTile('roof', g => {
-    px(g, '#a04838', 0, 0, TILE, TILE);
-    px(g, '#b85a48', 0, 2, TILE, 2);
-    px(g, '#b85a48', 0, 8, TILE, 2);
-    px(g, '#8a3a2c', 0, 5, TILE, 1);
-    px(g, '#8a3a2c', 0, 11, TILE, 1);
-    px(g, '#c76a56', 0, 0, TILE, 1);
-    px(g, '#7a3226', 0, 14, TILE, 2);
+    px(g, '#3f4a5c', 0, 0, TILE, TILE);
+    px(g, '#4d5a6e', 0, 1, TILE, 3);
+    px(g, '#4d5a6e', 0, 7, TILE, 3);
+    px(g, '#333c4b', 0, 4, TILE, 1);
+    px(g, '#333c4b', 0, 10, TILE, 1);
+    px(g, '#5d6c82', 0, 0, TILE, 1);
+    // beiral saliente
+    px(g, '#2a323e', 0, 13, TILE, 3);
+    px(g, '#6b7b93', 0, 13, TILE, 1);
+    // sulcos das telhas
+    px(g, '#333c4b', 3, 0, 1, 13);
+    px(g, '#333c4b', 8, 0, 1, 13);
+    px(g, '#333c4b', 13, 0, 1, 13);
   });
 }
+// porta shoji: papel translúcido com grade de madeira
 function bakeDoor() {
   return bakeTile('door', g => {
-    px(g, '#7a7a8c', 0, 0, TILE, TILE);
-    px(g, '#3a2418', 3, 2, 10, 14);
-    px(g, '#5c3e28', 4, 3, 8, 12);
-    px(g, '#6e4c32', 5, 4, 3, 10);
-    px(g, '#e8c050', 10, 9, 2, 2);
-    px(g, '#a08840', 10, 11, 2, 1);
+    px(g, '#ddd2bb', 0, 0, TILE, TILE);
+    px(g, '#6b4b30', 2, 1, 12, 15);
+    px(g, '#f2ecd8', 3, 2, 10, 13);
+    // grade
+    px(g, '#8a6540', 3, 6, 10, 1);
+    px(g, '#8a6540', 3, 10, 10, 1);
+    px(g, '#8a6540', 7, 2, 1, 13);
+    px(g, '#c9bfa4', 3, 2, 10, 1);
   });
 }
 // --- ponte ---
+// ponte laqueada de vermelho (estilo taiko-bashi)
 function bakeBridge() {
   return bakeTile('bridge', g => {
-    px(g, '#8a6a42', 0, 0, TILE, TILE);
-    px(g, '#755835', 0, 3, TILE, 1);
-    px(g, '#755835', 0, 8, TILE, 1);
-    px(g, '#755835', 0, 13, TILE, 1);
-    px(g, '#9a7a50', 0, 0, 2, TILE);
-    px(g, '#9a7a50', 14, 0, 2, TILE);
-    px(g, '#6a4e30', 2, 0, 1, TILE);
-    px(g, '#6a4e30', 13, 0, 1, TILE);
+    px(g, '#b8453a', 0, 0, TILE, TILE);
+    px(g, '#c9564a', 0, 2, TILE, 1);
+    px(g, '#c9564a', 0, 8, TILE, 1);
+    px(g, '#8f2f28', 0, 5, TILE, 1);
+    px(g, '#8f2f28', 0, 11, TILE, 1);
+    // guarda-corpo
+    px(g, '#8f2f28', 0, 0, 2, TILE);
+    px(g, '#8f2f28', 14, 0, 2, TILE);
+    px(g, '#d4675a', 0, 0, 1, TILE);
+    px(g, '#d4675a', 14, 0, 1, TILE);
   });
 }
 // --- baús ---
@@ -2522,6 +2672,82 @@ function bakeCaveMouth() {
     px(g, '#1c1826', 3, 3, 10, 3);
     px(g, '#2a2438', 4, 4, 8, 1);
   });
+}
+
+// --- torii (portal xintoísta): 2 tiles de largura x 2 de altura ---
+// topo = travessas kasagi/nuki; base = pilares
+function bakeToriiTop(half) {
+  return bakeTile('toriiT' + half, g => {
+    g.drawImage(bakeGrass(2), 0, 0);
+    // kasagi (travessa curva superior) atravessa os dois tiles
+    px(g, '#8f2f28', 0, 3, TILE, 4);
+    px(g, '#c0392b', 0, 3, TILE, 3);
+    px(g, '#e05548', 0, 3, TILE, 1);
+    // ponta erguida nas extremidades
+    if (half === 0) { px(g, '#c0392b', 0, 1, 4, 2); px(g, '#e05548', 0, 1, 4, 1); }
+    else { px(g, '#c0392b', 12, 1, 4, 2); px(g, '#e05548', 12, 1, 4, 1); }
+    // nuki (travessa inferior)
+    px(g, '#8f2f28', 0, 10, TILE, 3);
+    px(g, '#c0392b', 0, 10, TILE, 2);
+    px(g, '#e05548', 0, 10, TILE, 1);
+    // pilares descendo
+    const cx = half === 0 ? 3 : 10;
+    px(g, '#8f2f28', cx, 7, 3, 9);
+    px(g, '#c0392b', cx, 7, 2, 9);
+    px(g, '#e05548', cx, 7, 1, 9);
+  });
+}
+function bakeToriiBase(half) {
+  return bakeTile('toriiB' + half, g => {
+    g.drawImage(bakeGrass(3), 0, 0);
+    const cx = half === 0 ? 3 : 10;
+    px(g, '#8f2f28', cx, 0, 3, 14);
+    px(g, '#c0392b', cx, 0, 2, 14);
+    px(g, '#e05548', cx, 0, 1, 14);
+    // base de pedra
+    px(g, '#6e6e78', cx - 1, 13, 5, 3);
+    px(g, '#8a8a94', cx - 1, 13, 5, 1);
+  });
+}
+// --- lanterna de pedra (toro) ---
+function bakeLantern() {
+  return bakeTile('lantern', g => {
+    g.drawImage(bakeGrass(1), 0, 0);
+    px(g, '#4a4a52', 5, 13, 6, 3);
+    px(g, '#6e6e78', 6, 10, 4, 4);
+    px(g, '#8a8a94', 4, 6, 8, 5);
+    px(g, '#3a3a42', 5, 7, 6, 3);
+    px(g, '#ffd98a', 6, 8, 4, 2);
+    px(g, '#fff0c0', 7, 8, 2, 1);
+    px(g, '#6e6e78', 3, 4, 10, 2);
+    px(g, '#8a8a94', 3, 4, 10, 1);
+    px(g, '#6e6e78', 6, 2, 4, 2);
+  });
+}
+// --- piso de pedra do templo ---
+function bakeTemplePath(v) {
+  return bakeTile('tpath' + v, g => {
+    px(g, '#9a9384', 0, 0, TILE, TILE);
+    const r = seeded(v * 71 + 23);
+    for (let i = 0; i < 6; i++) px(g, '#8a8375', Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
+    px(g, '#7d7668', 0, 7, TILE, 1);
+    px(g, '#7d7668', 7, 0, 1, TILE);
+    px(g, '#a9a294', 0, 0, TILE, 1);
+    px(g, '#a9a294', 0, 8, TILE, 1);
+  });
+}
+
+// espécie predominante por região do mapa (com variação para não ficar uniforme)
+function treeSpecies(tx, ty) {
+  const r = hash2(tx * 31 + 7, ty * 17 + 3);
+  // Bosque de Bambu (oeste, sul do rio): bambu com alguns pinheiros
+  if (tx <= 30 && ty >= 30) return r < 0.78 ? 1 : 2;
+  // Floresta de Aokigahara (leste): pinheiros densos e escuros
+  if (tx >= 54 && ty >= 32) return r < 0.8 ? 2 : 1;
+  // Planalto do Norte: pinheiros de montanha
+  if (ty <= 28) return r < 0.6 ? 2 : (r < 0.85 ? 0 : 1);
+  // Campos e vilas: sakura em flor
+  return r < 0.72 ? 0 : (r < 0.9 ? 2 : 1);
 }
 
 // tiles animados/dinâmicos ficam em funções de desenho direto
@@ -2582,7 +2808,7 @@ function drawTile(t, x, y, tx, ty, map) {
   const v = hash2(tx, ty);
   switch (t) {
     case 0:  ctx.drawImage(bakeGrass(Math.floor(v * 6) % 6), x, y); break;
-    case 1:  ctx.drawImage(bakeTree(Math.floor(hash2(tx * 31 + 7, ty * 17 + 3) * 3) % 3, Math.floor(v * 6) % 6), x, y); break;
+    case 1:  ctx.drawImage(bakeTree(treeSpecies(tx, ty), Math.floor(v * 6) % 6), x, y); break;
     case 2:  drawWaterTile(null, x, y, tx, ty, map); break;
     case 3:  ctx.drawImage(bakeDirt(Math.floor(v * 4) % 4), x, y); break;
     case 4:  ctx.drawImage(bakeFlower(Math.floor(v * 4) % 4), x, y); break;
@@ -2606,6 +2832,12 @@ function drawTile(t, x, y, tx, ty, map) {
     case 22: ctx.drawImage(bakeBush(Math.floor(v * 2)), x, y); break;
     case 23: ctx.drawImage(bakeRock(Math.floor(v * 4) % 4), x, y); break;
     case 24: ctx.drawImage(bakeMushroom(Math.floor(v * 2), map.name === 'cave'), x, y); break;
+    case 25: ctx.drawImage(bakeToriiTop(0), x, y); break;
+    case 26: ctx.drawImage(bakeToriiTop(1), x, y); break;
+    case 29: ctx.drawImage(bakeToriiBase(0), x, y); break;
+    case 30: ctx.drawImage(bakeToriiBase(1), x, y); break;
+    case 27: ctx.drawImage(bakeLantern(), x, y); break;
+    case 28: ctx.drawImage(bakeTemplePath(Math.floor(v * 3) % 3), x, y); break;
   }
 }
 
@@ -2653,7 +2885,7 @@ function drawWorld(noHud) {
       // respiração quando parado; leve inclinação ao correr
       const idleBob = P.moving ? 0 : Math.round(Math.sin(G.time * 2.2) * 0.5);
       shadow(ex + 8, ey + 15, P.moving ? 6 : 5.5, 0.28);
-      ctx.drawImage(heroSprite(curClass(), P.dir, P.frame), ex, ey + idleBob);
+      ctx.drawImage(heroSprite(curClass(), P.dir, P.frame), ex, ey - 4 + idleBob);
     } else {
       const bob = e.type === 'morcego' ? Math.round(Math.sin(e.animT * 6) * 2)
         : e.isBoss ? Math.round(Math.sin(e.animT * 2) * 1.5)
@@ -2698,14 +2930,14 @@ function drawWorld(noHud) {
     grd.addColorStop(1, 'rgba(4,2,16,0.62)');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, VW, VH);
-  } else if (G.region === 'Cemitério Antigo') {
-    ctx.fillStyle = 'rgba(60,40,90,0.22)';
+  } else if (G.region === 'Templo Abandonado') {
+    ctx.fillStyle = 'rgba(50,35,80,0.34)';
     ctx.fillRect(0, 0, VW, VH);
     const grd = ctx.createRadialGradient(VW / 2, VH / 2, 60, VW / 2, VH / 2, 200);
     grd.addColorStop(0, 'rgba(0,0,0,0)');
     grd.addColorStop(1, 'rgba(20,10,40,0.4)');
     ctx.fillStyle = grd; ctx.fillRect(0, 0, VW, VH);
-  } else if (G.region === 'Floresta Umbria' || G.region === 'Bosque Sombrio') {
+  } else if (G.region === 'Bosque de Bambu' || G.region === 'Floresta de Aokigahara') {
     ctx.fillStyle = 'rgba(20,60,30,0.16)';
     ctx.fillRect(0, 0, VW, VH);
     const grd = ctx.createRadialGradient(VW / 2, VH / 2, 70, VW / 2, VH / 2, 200);
@@ -2757,7 +2989,7 @@ function drawWorldHUD() {
 function drawBattle() {
   const b = G.battle;
   const cave = G.map.name === 'cave';
-  const dusk = !cave && G.region === 'Cemitério Antigo';
+  const dusk = !cave && G.region === 'Templo Abandonado';
   // fundo
   const grd = ctx.createLinearGradient(0, 0, 0, VH);
   if (cave) { grd.addColorStop(0, '#1c1626'); grd.addColorStop(1, '#2e2440'); }
@@ -2820,13 +3052,13 @@ function drawBattle() {
   const ps = heroSprite(curClass(), 'left', Math.floor(G.time * 3) % 2);
   const pscale = 4;
   const px = 236 + (b.phase === 'playerActDone' && b.t < 0.3 ? -Math.round((0.3 - b.t) * 60) : 0);
-  const py = 118 - 16 * pscale + 12;
+  const py = 118 - 20 * pscale + 12;
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
   ctx.ellipse(px + 32, 122, 22, 5, 0, 0, Math.PI * 2);
   ctx.fill();
   if (b.pFlash > 0 && Math.floor(b.pFlash * 20) % 2 === 0) ctx.globalAlpha = 0.4;
-  ctx.drawImage(ps, px, py, 16 * pscale, 16 * pscale);
+  ctx.drawImage(ps, px, py, 16 * pscale, 20 * pscale);
   ctx.globalAlpha = 1;
   if (b.atkBuff > 0) { ctx.fillStyle = '#ffd94e'; ctx.font = '8px monospace'; ctx.fillText('▲ATQ', px + 20, py - 2); }
   // pet ao lado do herói
@@ -3018,12 +3250,23 @@ function drawTitle() {
   for (let x = 0; x <= VW; x += 20) ctx.lineTo(x, 140 - Math.abs(Math.sin(x * 0.05)) * 45 - (x % 40 === 0 ? 10 : 0));
   ctx.lineTo(VW, VH); ctx.lineTo(0, VH);
   ctx.fill();
+  // pétalas de sakura caindo
+  for (let i = 0; i < 22; i++) {
+    const sp = 12 + (i % 5) * 5;
+    const px2 = (i * 61 + G.time * sp * 0.6) % (VW + 20) - 10;
+    const py2 = (i * 43 + G.time * sp) % (VH + 20) - 10;
+    const sw = Math.sin(G.time * 2 + i) * 2;
+    ctx.fillStyle = ['#f7b3c6', '#ffd6e2', '#e88fa8'][i % 3];
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(Math.round(px2 + sw), Math.round(py2), 2, 2);
+  }
+  ctx.globalAlpha = 1;
   // sprites decorativos
   const t = Math.floor(G.time * 2) % 2;
-  ctx.drawImage(heroSprite('guerreiro', 'down', t), 64, 128, 32, 32);
-  ctx.drawImage(heroSprite('mago', 'down', 1 - t), 120, 132, 32, 32);
-  ctx.drawImage(heroSprite('ladino', 'down', t), 176, 128, 32, 32);
-  ctx.drawImage(heroSprite('arqueiro', 'down', 1 - t), 232, 132, 32, 32);
+  ctx.drawImage(heroSprite('samurai', 'down', t), 64, 122, 32, 40);
+  ctx.drawImage(heroSprite('onmyoji', 'down', 1 - t), 120, 126, 32, 40);
+  ctx.drawImage(heroSprite('shinobi', 'down', t), 176, 122, 32, 40);
+  ctx.drawImage(heroSprite('kyudoka', 'down', 1 - t), 232, 126, 32, 40);
 
   // título
   ctx.textAlign = 'center';
@@ -3032,13 +3275,16 @@ function drawTitle() {
   ctx.fillText('FORGED LEGEND', VW / 2 + 2, 62 + 2);
   ctx.fillStyle = '#ffd94e';
   ctx.fillText('FORGED LEGEND', VW / 2, 62);
-  ctx.font = '8px monospace';
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#f7b3c6';
+  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2, 77);
+  ctx.font = '7px monospace';
   ctx.fillStyle = '#b8a8d8';
-  ctx.fillText('~ sua classe é o que você empunha ~', VW / 2, 76);
+  ctx.fillText('~ o caminho é a arma que você empunha ~', VW / 2, 88);
 
   const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
   for (let i = 0; i < opts.length; i++) {
-    const oy = 96 + i * 12;
+    const oy = 103 + i * 12;
     ctx.font = '9px monospace';
     if (i === G.titleIdx) {
       ctx.fillStyle = '#ffd94e';
@@ -3073,10 +3319,10 @@ function startNewGame() {
   fadeTo(() => {
     enterMap('overworld', START.x, START.y);
     G.state = 'world';
-    showMsg('Bem-vindo a Aldeia Verde!\nSua classe vem da arma equipada:\nespada, cajado, adaga ou arco.');
-    showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas habilidades.');
-    showMsg('Monstros dropam Fragmentos ◆.\nUse-os no altar roxo da vila\npara encantar equipamentos!');
-    showMsg('Três chefes ameaçam a região.\nDerrote Vorax, o dragão,\npara trazer a paz!');
+    showMsg('Bem-vindo a Sakuramura!\nSeu caminho vem da arma que\nempunha: katana, shakujo,\ntanto ou yumi.');
+    showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas técnicas.');
+    showMsg('Youkai deixam Fragmentos ◆.\nLeve-os ao altar da vila para\nencantar seu equipamento!');
+    showMsg('Três grandes youkai ameaçam\nestas terras. Derrote\nYamata-no-Orochi e traga a paz!');
     saveGame();
   });
 }
@@ -3196,10 +3442,10 @@ function drawPauseMenu() {
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)', x + 8, y + 26);
     if (!P.pets.length) {
       ctx.fillStyle = '#705a80';
-      ctx.fillText('Nenhum pet ainda.', x + 8, y + 40);
-      ctx.fillText('Monstros raramente deixam filhotes', x + 8, y + 50);
-      ctx.fillText('ao serem derrotados. Chefes sempre', x + 8, y + 60);
-      ctx.fillText('dão um companheiro!', x + 8, y + 70);
+      ctx.fillText('Nenhum espírito ainda.', x + 8, y + 40);
+      ctx.fillText('Youkai raramente deixam crias', x + 8, y + 50);
+      ctx.fillText('ao serem derrotados. Chefes', x + 8, y + 60);
+      ctx.fillText('sempre dão um companheiro!', x + 8, y + 70);
     }
     P.pets.forEach((id, i) => {
       const pet = PETS[id];
@@ -3335,7 +3581,7 @@ function drawShop() {
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText(G.shopId === 'aldeia' ? 'LOJA DA ALDEIA VERDE' : 'EMPÓRIO DE VILA ROCHA', x + 10, y + 13);
+  ctx.fillText(G.shopId === 'aldeia' ? 'MERCADO DE SAKURAMURA' : 'FORJA DE IWAMURA', x + 10, y + 13);
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
@@ -3423,7 +3669,7 @@ function drawEnchant() {
     }
   });
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z encantar · X sair · fragmentos vêm de monstros', x + 10, y + h - 7);
+  ctx.fillText('Z encantar · X sair · fragmentos vêm de youkai', x + 10, y + h - 7);
 }
 function updateEnchant() {
   if (tap('up')) { G.menuIdx = (G.menuIdx + SLOTS.length - 1) % SLOTS.length; AU.sfx('menu'); }
@@ -3453,7 +3699,7 @@ function drawGameOver() {
   ctx.font = '8px monospace';
   ctx.fillStyle = '#a89ac0';
   ctx.fillText('Aldeões te resgataram e', VW / 2, 95);
-  ctx.fillText('te levaram de volta à vila.', VW / 2, 105);
+  ctx.fillText('te levaram de volta ao templo.', VW / 2, 105);
   ctx.fillStyle = '#e07070';
   ctx.fillText('(metade do ouro foi perdida)', VW / 2, 120);
   if (Math.floor(G.time * 2) % 2) {
@@ -3496,12 +3742,12 @@ function drawVictory() {
   ctx.fillText('VITÓRIA!', VW / 2, 52);
   ctx.font = '8px monospace';
   ctx.fillStyle = '#f0e8d8';
-  ctx.fillText('Vorax, o Dragão, foi derrotado!', VW / 2, 74);
-  ctx.fillText('A paz retorna a Aldeia Verde.', VW / 2, 86);
+  ctx.fillText('Yamata-no-Orochi foi derrotado!', VW / 2, 74);
+  ctx.fillText('A paz retorna a Sakuramura.', VW / 2, 86);
   ctx.fillStyle = '#c8b8e0';
-  ctx.fillText(className() + ' · Nível ' + P.lvl + ' · ' + G.stats.kills + ' monstros derrotados', VW / 2, 106);
+  ctx.fillText(className() + ' · Nível ' + P.lvl + ' · ' + G.stats.kills + ' youkai derrotados', VW / 2, 106);
   const t = Math.floor(G.time * 2) % 2;
-  ctx.drawImage(heroSprite(curClass(), 'down', t), VW / 2 - 16, 116, 32, 32);
+  ctx.drawImage(heroSprite(curClass(), 'down', t), VW / 2 - 16, 112, 32, 40);
   if (t) {
     ctx.fillStyle = '#ffd94e';
     ctx.fillText('Z para continuar explorando', VW / 2, 166);
@@ -3679,6 +3925,7 @@ window.DBG = {
   shopStock(id) { return SHOP_STOCK[id]; },
   items() { return ITEMS; },
   tileCache() { return tileVarCache.size; },
+  heroSprite(cls, dir, frame) { return heroSprite(cls, dir, frame); },
   pets() { return PETS; },
   equipCatalog() { return EQUIP; },
   applyEnemyHit(b) { return applyEnemyHit(b); },
