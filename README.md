@@ -98,7 +98,7 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 - Save automático em `localStorage` (continue de onde parou)
 - Derrota amigável: você acorda na vila perdendo metade do ouro
 - Trilha chiptune em **escalas pentatônicas japonesas** (hirajoshi no mundo, in-sen no combate, kumoi na caverna)
-- Personagens em **pixel art estilo anime**: no mapa (16×20) e em **sprites de batalha 32×40** com pose de combate, arma em punho, olhos grandes de íris colorida, blush e cabelo com volume — com troca de pose durante os ataques
+- Personagens em **pixel art estilo anime**: no mapa (16×20) e em **sprites de batalha 32×48** com proporção heroica (~4 cabeças), pose de combate com pernas afastadas, arma em punho, cabelo espetado em mechas e rosto com olhos de íris colorida — com troca de pose durante os ataques
 - Cenários do Japão feudal: sakuras em flor, bambuzais, telhados kawara, paredes de taipa, portas shoji, torii vermelhos, lanternas toro, estátuas jizo e pontes laqueadas — com espécie de árvore predominante por região
 - 60 FPS estáveis no mundo e em batalha; texto nítido em resolução cheia sobre a arte em pixels
 
