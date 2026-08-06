@@ -23,7 +23,7 @@ A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos
 | Shift | Correr |
 | Z / Enter / Espaço | Confirmar · Interagir · Atacar |
 | X / Esc | Voltar / Cancelar |
-| C | Menu do personagem (status, equipamento, itens) |
+| C | Menu do personagem (status, técnicas, equipamento, itens, pets) |
 | ◀ ▶ no menu | Trocar de aba |
 | M | Ligar/desligar som |
 
@@ -31,12 +31,18 @@ A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos
 
 Não existe seleção de classe: **seu caminho é definido pela arma equipada**.
 
-- **Katana** → Samurai (Kesagiri, Kiai, Iai-nuki)
-- **Shakujo** → Onmyoji (Katon, Hyoton, Raijin no Ikari)
-- **Tanto** → Shinobi (Nitoryu, Dokuba, Kagegoroshi)
-- **Yumi** → Kyudoka (Isshin Ichii, Yasogame, Kamiya)
+- **Katana** → Samurai (Kesagiri, Kiai, Tsubame Gaeshi, Iai-nuki, Zanshin, Hyakuretsu)
+- **Shakujo** → Onmyoji (Katon, Hyoton, Kekkai, Raijin no Ikari, Kyuketsu, Amaterasu)
+- **Tanto** → Shinobi (Nitoryu, Dokuba, Kagebunshin, Kagegoroshi, Mikiri, Zetsumei)
+- **Yumi** → Kyudoka (Isshin Ichii, Yasogame, Hibashira, Kamiya, Fuujin no Ya, Tenchuu)
 
-Você começa com as quatro armas básicas e pode trocar de caminho a qualquer momento no menu (C → Equipar). Vestir um peitoral do tipo correspondente à arma (o-yoroi / kariginu / shinobi shozoku / karuta) ativa o **bônus de conjunto**. Técnicas novas desbloqueiam nos níveis 5 e 9.
+Você começa com as quatro armas básicas e pode trocar de caminho a qualquer momento no menu (C → Equipar). Vestir um peitoral do tipo correspondente à arma (o-yoroi / kariginu / shinobi shozoku / karuta) ativa o **bônus de conjunto**.
+
+## 🥋 Técnicas: 4 slots, como em Pokémon
+
+Cada caminho tem **6 técnicas** no repertório, aprendidas em níveis diferentes — mas só **4 podem ficar equipadas** ao mesmo tempo. Quando você sobe de nível e desbloqueia uma técnica nova com os slots cheios, o jogo pergunta **qual esquecer** (ou recusar a nova). Nada se perde para sempre: a aba **Técnicas** do menu (C) deixa reequipar qualquer coisa do repertório a qualquer momento, e **cada caminho guarda seu próprio conjunto de 4** — trocar da katana para o yumi não bagunça o que você montou.
+
+Em batalha, ataque e técnicas ficam **na mesma lista**: o ataque básico (sem custo) vem primeiro, seguido das técnicas equipadas com seu custo de MP. Item e Fugir ficam numa segunda coluna (◀ ▶).
 
 ## 📈 Progressão por pontos
 
@@ -81,7 +87,9 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 
 ## ✨ Recursos
 
-- Combate por turnos com habilidades, itens, buffs, veneno, congelamento e críticos
+- Combate por turnos com técnicas animadas, itens, buffs (ATQ/DEF/VEL/crítico), veneno, congelamento, dreno de vida e críticos
+- **Cinemática de entrada de batalha**: linhas de velocidade radiais, personagens deslizando para a arena e cartão com o nome do youkai
+- **Ataques animados** com efeito próprio por técnica: dash com arco de corte, saque relâmpago que fatia a tela, bola de fogo viajando, cristais de gelo caindo, raio em ziguezague, coluna de luz solar, dreno de vida e flechas em voo
 - Batalhas ambientadas por região (céu, caverna, cemitério ao crepúsculo)
 - **13 youkai do folclore japonês** (Kappa, Oni, Tengu, Yurei, Jorogumo, Gashadokuro, Onibi…) com nível visível, que patrulham e perseguem; alerta "!" ao serem detectados; fuga bloqueada contra chefes
 - Movimento com aceleração e **corrida (Shift)** que levanta poeira
@@ -90,10 +98,10 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 - Save automático em `localStorage` (continue de onde parou)
 - Derrota amigável: você acorda na vila perdendo metade do ouro
 - Trilha chiptune em **escalas pentatônicas japonesas** (hirajoshi no mundo, in-sen no combate, kumoi na caverna)
-- Personagens em **pixel art estilo anime**: olhos grandes com brilho, blush nas bochechas, cabelo em mechas
+- Personagens em **pixel art estilo anime**: no mapa (16×20) e em **sprites de batalha 32×40** com pose de combate, arma em punho, olhos grandes de íris colorida, blush e cabelo com volume — com troca de pose durante os ataques
 - Cenários do Japão feudal: sakuras em flor, bambuzais, telhados kawara, paredes de taipa, portas shoji, torii vermelhos, lanternas toro, estátuas jizo e pontes laqueadas — com espécie de árvore predominante por região
 - 60 FPS estáveis no mundo e em batalha; texto nítido em resolução cheia sobre a arte em pixels
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 74 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba e veneno inimigo — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 85 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes e cinemática de entrada — tudo sem erros de JavaScript.

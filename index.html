@@ -91,6 +91,7 @@ ctx.measureText = function (text) {
 // ---------- Utilidades ----------
 const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
 const rnd = (a, b) => a + Math.random() * (b - a);
 const irnd = (a, b) => Math.floor(rnd(a, b + 1));
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -439,16 +440,21 @@ const BODIES = {
 const WALK_CYCLE = ['N', 'A', 'N', 'B'];
 // Paletas com tons de anime: cores saturadas + sombra
 const CLASS_PAL = {
-  samurai:  { O: '#2a1620', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#241c2e', h: '#4a3f5c',
-              E: '#2a1620', W: '#ffffff', A: '#c8352f', a: '#e05a4e', B: '#3b4a6b', L: '#2f3a52' },
-  onmyoji:  { O: '#12101c', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#2e2842', h: '#4d4570',
-              E: '#12101c', W: '#ffffff', A: '#e8e4ee', a: '#ffffff', B: '#4a4468', L: '#3a4a8a' },
-  shinobi:  { O: '#0e1220', S: '#f0c8a0', s: '#e0a090', m: '#c4756a', H: '#181e30', h: '#2e3a58',
-              E: '#0e1220', W: '#ffffff', A: '#1f2740', a: '#31405f', B: '#4a5a80', L: '#171d30' },
-  kyudoka:  { O: '#241a14', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#5a3418', h: '#8a5528',
-              E: '#241a14', W: '#ffffff', A: '#2f6b4a', a: '#3f8a60', B: '#e8dcc0', L: '#4a4030' },
-  ronin:    { O: '#241c1c', S: '#f8d0a8', s: '#f0a898', m: '#c4756a', H: '#2e2620', h: '#54463a',
-              E: '#241c1c', W: '#ffffff', A: '#8a7a5a', a: '#a89578', B: '#6a5a42', L: '#4a3f30' }
+  samurai:  { O: '#2a1620', S: '#f8d0a8', s: '#f0a898', b: '#f0a0a0', m: '#c4756a', H: '#241c2e', h: '#4a3f5c', d: '#15101f',
+              E: '#2a1620', I: '#8a3a3a', W: '#ffffff', A: '#c8352f', a: '#e05a4e', c: '#8f221f', B: '#3b4a6b', L: '#2f3a52',
+              M: '#d8dce8', G: '#3a2a1a' },
+  onmyoji:  { O: '#12101c', S: '#f8d0a8', s: '#f0a898', b: '#f0a0a0', m: '#c4756a', H: '#2e2842', h: '#4d4570', d: '#1c1830',
+              E: '#12101c', I: '#4a6ae0', W: '#ffffff', A: '#e8e4ee', a: '#ffffff', c: '#b8b2c8', B: '#4a4468', L: '#3a4a8a',
+              M: '#d8dce8', G: '#8a6a42' },
+  shinobi:  { O: '#0e1220', S: '#f0c8a0', s: '#e0a090', b: '#e09090', m: '#c4756a', H: '#181e30', h: '#2e3a58', d: '#0c1020',
+              E: '#0e1220', I: '#3a9a6a', W: '#ffffff', A: '#1f2740', a: '#31405f', c: '#151b2c', B: '#4a5a80', L: '#171d30',
+              M: '#c8ccd8', G: '#2a2118' },
+  kyudoka:  { O: '#241a14', S: '#f8d0a8', s: '#f0a898', b: '#f0a0a0', m: '#c4756a', H: '#5a3418', h: '#8a5528', d: '#3f2410',
+              E: '#241a14', I: '#7a9a3a', W: '#ffffff', A: '#2f6b4a', a: '#3f8a60', c: '#1f4a33', B: '#e8dcc0', L: '#4a4030',
+              M: '#e8e0c8', G: '#8a6a42' },
+  ronin:    { O: '#241c1c', S: '#f8d0a8', s: '#f0a898', b: '#f0a0a0', m: '#c4756a', H: '#2e2620', h: '#54463a', d: '#1c1712',
+              E: '#241c1c', I: '#6a5a3a', W: '#ffffff', A: '#8a7a5a', a: '#a89578', c: '#6a5c42', B: '#6a5a42', L: '#4a3f30',
+              M: '#c8c4b8', G: '#3a2a1a' }
 };
 // rônin (sem arma): mesmo desenho do samurai, paleta desbotada
 HEADS.ronin = HEADS.samurai;
@@ -464,6 +470,367 @@ function heroSprite(cls, dir, frame) {
   const rows = heads[headDir].concat(BODIES[bodyDir + step]);
   let spr = makeSprite(rows, pal);
   if (dir === 'left') spr = flipSprite(spr);
+  spriteCache.set(id, spr);
+  return spr;
+}
+
+
+// ---------- Sprites de batalha (32x40, estilo anime detalhado) ----------
+// Pose de combate virada para o inimigo (à esquerda), rosto 3/4 com olhos
+// grandes de íris colorida, cabelo com volume e a arma em punho.
+// Paleta: O contorno · S pele · s sombra · b blush · H cabelo · h brilho
+//         d sombra cabelo · E cílio/pupila · I íris · W brilho do olho
+//         A traje · a traje claro · c traje sombra · B faixa/detalhe
+//         L hakama · M metal · m brilho metal · G cabo/madeira
+const BATTLE_POSE = {
+  samurai: {
+    idle: [
+      '................................',
+      '..........OOOOOOOO..............',
+      '........OOHHHHHHHHOO............',
+      '.......OHHdHHHHHHHHHO...........',
+      '......OHHhhHHHHHHHHdHO..........',
+      '......OHhhHHHHHHHHHHdHO.........',
+      '.....OHHHHHHHHHHHHHHHdO.........',
+      '.....OHHSSSSSSSSSSSSHHO.........',
+      '.....OHSSSSSSSSSSSSSSHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSEIIWSSSEIIWSHO.........',
+      '.....OHSSEIIISSSEIIISHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSbSSSSSSSSSbSHO.........',
+      '.....OHSSSSSSmmSSSSSSHO.........',
+      '......OHSSSSSSSSSSSSHO..........',
+      '.......OHSSSSSSSSSSHO...........',
+      '........OOSSSSSSSSOO............',
+      '..........OOOOOOOO..............',
+      '....M.....OBBBBBBO..............',
+      '...MMm..OOaAABBAAaOO............',
+      '..MMMm.OaaAAABBAAAaaO...........',
+      '.MMMm.OaAAAAABBAAAAAaO..........',
+      '.MMm.OaAAAAAAAAAAAAAAaO.........',
+      'MMm.OGAAAAAAAAAAAAAAAcO.........',
+      'Mm.OGGAAAAAAAAAAAAAAAcO.........',
+      'm..OGAAAcAAAAAAAAAAAccO.........',
+      '...OAAAAcAAAAAAAAAAccO..........',
+      '...OAAAAAcAAAAAAAAccO...........',
+      '....OAAAAAcAAAAAAccO............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLOLLLLLLO.............',
+      '.....OLLLLOOLLLLLLO.............',
+      '.....OLLLOO.OLLLLLO.............',
+      '....OOLLOO..OOLLLLO.............',
+      '....OOOO.....OOOOOO.............',
+      '................................'],
+    // ataque: corpo inclinado à frente, katana erguida, cabelo esvoaçando
+    atk: [
+      '................................',
+      '.........OOOOOOOO...............',
+      '.......OOHHHHHHHHOO....M........',
+      '......OHHdHHHHHHHHHO..MMm.......',
+      '.....OHHhhHHHHHHHHdHOMMMm.......',
+      '....OHhhHHHHHHHHHHHdMMMm........',
+      'dd..OHHHHHHHHHHHHHHMMMm.........',
+      '.ddOHHSSSSSSSSSSSSMMMm..........',
+      '..dOHSSSSSSSSSSSSMMMm...........',
+      '...OHSSEEEESSSEEEMMm............',
+      '...OHSSEIIWSSSEIIMm.............',
+      '...OHSSEIIISSSEIIGm.............',
+      '...OHSSEEEESSSEEEGO.............',
+      '...OHSSbSSSSSSSSbGO.............',
+      '...OHSSSSSSmmSSSSGO.............',
+      '....OHSSSSSSSSSSGGO.............',
+      '.....OHSSSSSSSSGGO..............',
+      '......OOSSSSSSGGO...............',
+      '........OOOOOGGO................',
+      '.......OOBBBBBGO................',
+      '.....OOaAABBAAaOO...............',
+      '....OaaAAABBAAAaaO..............',
+      '...OaAAAAABBAAAAAaO.............',
+      '..OaAAAAAAAAAAAAAAaO............',
+      '..OAAAAAAAAAAAAAAAcO............',
+      '..OAAAAAAAAAAAAAAAcO............',
+      '..OAAAcAAAAAAAAAAccO............',
+      '..OAAAcAAAAAAAAAccO.............',
+      '...OAAAcAAAAAAAccO..............',
+      '...OAAAAcAAAAAccO...............',
+      '...OLLLLLLLLLLLO................',
+      '..OLLLLLLLLLLLLLO...............',
+      '.OLLLLLLLLLLLLLLLO..............',
+      'OLLLLLLO...OLLLLLLO.............',
+      'OLLLLLO.....OLLLLLO.............',
+      'OLLLLO.......OLLLLO.............',
+      'OLLLO.........OLLLO.............',
+      'OOLOO.........OOLLO.............',
+      '.OOO...........OOOO.............',
+      '................................']
+  },
+  onmyoji: {
+    idle: [
+      '................................',
+      '.........OOOOOOOOO..............',
+      '........OBBBBBBBBBO.............',
+      '........OBBBBBBBBBO.............',
+      '.......OOBBBBBBBBBOO............',
+      '......OHHOBBBBBBBOHHO...........',
+      '.....OHHhHOOOOOOOHhHdO..........',
+      '.....OHHSSSSSSSSSSSSHO..........',
+      '.....OHSSSSSSSSSSSSSHO..........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSEIIWSSSEIIWSHO.........',
+      '.....OHSSEIIISSSEIIISHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSbSSSSSSSSSbSHO.........',
+      '.....OHSSSSSSmmSSSSSSHO.........',
+      '.....OHHSSSSSSSSSSSSHHO.........',
+      '......OHHSSSSSSSSSSHHO..........',
+      '.......OHHOSSSSSSOHHO...........',
+      '.......OHHOOOOOOOOHHO...........',
+      '...M...OHOBBBBBBBBOHO...........',
+      '..MGm.OOaAAAAAAAAAAaOO..........',
+      '..MGm.OaaAAAAAAAAAAaaO..........',
+      '..MGm.OaAAAAABBAAAAAAaO.........',
+      '..MGm.OaAAAABBBBAAAAAaO.........',
+      '..MGm.OAAAAABBBBAAAAAcO.........',
+      '..MGm.OAAAAAABBAAAAAAcO.........',
+      '..MGm.OAAAcAAAAAAAAAccO.........',
+      '..MGm.OAAAcAAAAAAAAccO..........',
+      '..OGO.OAAAAcAAAAAAccO...........',
+      '......OLLLLLLLLLLLLO............',
+      '.....OLLLLLLLLLLLLLLO...........',
+      '.....OLLLLLLLLLLLLLLO...........',
+      '....OLLLLLLLLLLLLLLLLO..........',
+      '....OLLLLLLLLLLLLLLLLO..........',
+      '...OLLLLLLLLLLLLLLLLLLO.........',
+      '...OLLLLLLLLLLLLLLLLLLO.........',
+      '..OLLLLLLLLLLLLLLLLLLLLO........',
+      '..OOOOOOOOOOOOOOOOOOOOOO........',
+      '................................',
+      '................................'],
+    atk: [
+      '................................',
+      '.........OOOOOOOOO..............',
+      '........OBBBBBBBBBO.............',
+      '........OBBBBBBBBBO.............',
+      '.......OOBBBBBBBBBOO..W.........',
+      '......OHHOBBBBBBBOHHOWWW........',
+      '.....OHHhHOOOOOOOHhHWWWWW.......',
+      '.....OHHSSSSSSSSSSSWWWWWW.......',
+      '.....OHSSSSSSSSSSSSWWWWW........',
+      '.....OHSSEEEESSSEEEEWWW.........',
+      '.....OHSSEIIWSSSEIIWSHO.........',
+      '.....OHSSEIIISSSEIIISHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSbSSSSSSSSSbSHO.........',
+      '.....OHSSSSSSmmSSSSSSHO.........',
+      '.....OHHSSSSSSSSSSSSHHO.........',
+      '..M...OHHSSSSSSSSSSHHO..........',
+      '.MGm..OHHOSSSSSSOHHO............',
+      '.MGm..OHHOOOOOOOOHHO............',
+      '.MGm..OHOBBBBBBBBOHO............',
+      '.MGm.OOaAAAAAAAAAAaOO...........',
+      '.MGm.OaaAAAAAAAAAAaaO...........',
+      '.MGm.OaAAAAABBAAAAAAaO..........',
+      '.OGO.OaAAAABBBBAAAAAaO..........',
+      '.....OAAAAABBBBAAAAAcO..........',
+      '.....OAAAAAABBAAAAAAcO..........',
+      '.....OAAAcAAAAAAAAAccO..........',
+      '.....OAAAcAAAAAAAAccO...........',
+      '.....OAAAAcAAAAAAccO............',
+      '.....OLLLLLLLLLLLLO.............',
+      '....OLLLLLLLLLLLLLLO............',
+      '....OLLLLLLLLLLLLLLO............',
+      '...OLLLLLLLLLLLLLLLLO...........',
+      '...OLLLLLLLLLLLLLLLLO...........',
+      '..OLLLLLLLLLLLLLLLLLLO..........',
+      '..OLLLLLLLLLLLLLLLLLLO..........',
+      '.OLLLLLLLLLLLLLLLLLLLLO.........',
+      '.OOOOOOOOOOOOOOOOOOOOOO.........',
+      '................................',
+      '................................']
+  },
+  shinobi: {
+    idle: [
+      '................................',
+      '..........OOOOOOOO..............',
+      '........OOHHHHHHHHOO............',
+      '.......OHHdHHHHHHHHHO...........',
+      '......OHHhhHHHHHHHHdHO..........',
+      '......OHhhHHHHHHHHHHdHO.........',
+      '.....OHHHHHHHHHHHHHHHdO.........',
+      '.....OHHAAAAAAAAAAAAHHO.........',
+      '.....OHAAAAAAAAAAAAAAHO.........',
+      '.....OHASSEEEESSEEEESAHO........',
+      '.....OHASSEIIWSSEIIWSAHO........',
+      '.....OHASSEIIISSEIIISAHO........',
+      '.....OHASSEEEESSEEEESAHO........',
+      '.....OHASSSSSSSSSSSSSAHO........',
+      '.....OHAAAAAAAAAAAAAAHO.........',
+      '......OHAAAAAAAAAAAAHO..........',
+      '.......OHAAAAAAAAAAHO...........',
+      '........OOAAAAAAAAOO............',
+      '..........OOOOOOOO..............',
+      '.......OOOBBBBBBOOO.............',
+      '.....OOaAAABBBBAAAaOO...........',
+      '....OaaAAAABBBBAAAAaaO..........',
+      '..MmOaAAAAAABBAAAAAAAaO.........',
+      '.MMmOaAAAAAAAAAAAAAAAaO.........',
+      'MMm.OGAAAAAAAAAAAAAAAcO.........',
+      'Mm..OGAAAAAAAAAAAAAAAcO.........',
+      'm...OAAAcAAAAAAAAAAAccO.........',
+      '....OAAAcAAAAAAAAAAccO..........',
+      '....OAAAAcAAAAAAAAccO...........',
+      '.....OAAAAcAAAAAAccO............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLOLLLLLLO.............',
+      '.....OLLLLOOLLLLLLO.............',
+      '.....OLLLOO.OLLLLLO.............',
+      '....OOLLOO..OOLLLLO.............',
+      '....OOOO.....OOOOOO.............',
+      '................................'],
+    atk: [
+      '................................',
+      '.........OOOOOOOO...............',
+      '.......OOHHHHHHHHOO.............',
+      '......OHHdHHHHHHHHHO............',
+      '.....OHHhhHHHHHHHHdHO...........',
+      'd...OHhhHHHHHHHHHHHdHO..........',
+      '.dd.OHHHHHHHHHHHHHHHdO..........',
+      '..ddOHHAAAAAAAAAAAAHHO..........',
+      '....OHAAAAAAAAAAAAAAHO..........',
+      '....OHASSEEEESSEEEESAHO.........',
+      '....OHASSEIIWSSEIIWSAHO.........',
+      '....OHASSEIIISSEIIISAHO.........',
+      '....OHASSEEEESSEEEESAHO.........',
+      '....OHASSSSSSSSSSSSSAHO.........',
+      '....OHAAAAAAAAAAAAAAHO..........',
+      '.....OHAAAAAAAAAAAAHO...........',
+      '......OHAAAAAAAAAAHO............',
+      '.......OOAAAAAAAAOO.............',
+      '.........OOOOOOOO...............',
+      'Mm....OOOBBBBBBOOO..............',
+      '.MMm.OOaAAABBBBAAAaOO...........',
+      '..MMmOaaAAAABBBBAAAAaaO.........',
+      '...MGmOaAAAAAABBAAAAAAaO........',
+      '....OGmaAAAAAAAAAAAAAAaO........',
+      '.....OAAAAAAAAAAAAAAAAcO........',
+      '.....OAAAAAAAAAAAAAAAAcO........',
+      '.....OAAAcAAAAAAAAAAAccO........',
+      '.....OAAAcAAAAAAAAAAccO.........',
+      '.....OAAAAcAAAAAAAAccO..........',
+      '.....OAAAAcAAAAAAccO............',
+      '....OLLLLLLLLLLLLLO.............',
+      '...OLLLLLLLLLLLLLLLO............',
+      '..OLLLLLLLLLLLLLLLLLO...........',
+      '.OLLLLLLLO...OLLLLLLO...........',
+      'OLLLLLLLO.....OLLLLLO...........',
+      'OLLLLLLO.......OLLLLO...........',
+      'OLLLLLO.........OLLLO...........',
+      'OOLLLOO.........OOLLO...........',
+      '.OOOOO...........OOOO...........',
+      '................................']
+  },
+  kyudoka: {
+    idle: [
+      '................................',
+      '..........OOOOOOOO..............',
+      '........OOHHHHHHHHOO............',
+      '.......OHHdHHHHHHHHHO...........',
+      '......OHHhhHHHHHHHHdHO..........',
+      '......OHhhHHHHHHHHHHdHO.........',
+      '.....OHHHHHHHHHHHHHHHdO.........',
+      '.....OHHSSSSSSSSSSSSHHO.........',
+      '.....OHSSSSSSSSSSSSSSHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSEIIWSSSEIIWSHO.........',
+      '.....OHSSEIIISSSEIIISHO.........',
+      '.....OHSSEEEESSSEEEESHO.........',
+      '.....OHSSbSSSSSSSSSbSHO.........',
+      '.....OHSSSSSSmmSSSSSSHO.........',
+      '......OHSSSSSSSSSSSSHO..........',
+      '.......OHSSSSSSSSSSHO...........',
+      '........OOSSSSSSSSOO............',
+      '..........OOOOOOOO..............',
+      'G......OOOBBBBBBOOO.............',
+      'GM...OOaAAABBBBAAAaOO...........',
+      'GM..OaaAAAABBBBAAAAaaO..........',
+      'GM..OaAAAAAABBAAAAAAAaO.........',
+      'GM..OaAAAAAAAAAAAAAAAaO.........',
+      'GM..OAAAAAAAAAAAAAAAAcO.........',
+      'GM..OAAAAAAAAAAAAAAAAcO.........',
+      'GM..OAAAcAAAAAAAAAAAccO.........',
+      'GM..OAAAcAAAAAAAAAAccO..........',
+      'GM..OAAAAcAAAAAAAAccO...........',
+      'G....OAAAAcAAAAAAccO............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLOLLLLLLO.............',
+      '.....OLLLLOOLLLLLLO.............',
+      '.....OLLLOO.OLLLLLO.............',
+      '....OOLLOO..OOLLLLO.............',
+      '....OOOO.....OOOOOO.............',
+      '................................'],
+    atk: [
+      '.G..............................',
+      '.G........OOOOOOOO..............',
+      'MG......OOHHHHHHHHOO............',
+      'MG.....OHHdHHHHHHHHHO...........',
+      'MG....OHHhhHHHHHHHHdHO..........',
+      'MG....OHhhHHHHHHHHHHdHO.........',
+      'MG...OHHHHHHHHHHHHHHHdO.........',
+      'MG...OHHSSSSSSSSSSSSHHO.........',
+      'MG...OHSSSSSSSSSSSSSSHO.........',
+      'MG.mmOHSSEEEESSSEEEESHO.........',
+      'MGmm.OHSSEIIWSSSEIIWSHO.........',
+      'MGm..OHSSEIIISSSEIIISHO.........',
+      'MG...OHSSEEEESSSEEEESHO.........',
+      'MG...OHSSbSSSSSSSSSbSHO.........',
+      'MG...OHSSSSSSmmSSSSSSHO.........',
+      'MG....OHSSSSSSSSSSSSHO..........',
+      'MG.....OHSSSSSSSSSSHO...........',
+      'MG......OOSSSSSSSSOO............',
+      'MG........OOOOOOOO..............',
+      'MG.....OOOBBBBBBOOO.............',
+      'MG...OOaAAABBBBAAAaOO...........',
+      'MG..OaaAAAABBBBAAAAaaO..........',
+      'MG..OaAAAAAABBAAAAAAAaO.........',
+      'MG..OaAAAAAAAAAAAAAAAaO.........',
+      'MG..OAAAAAAAAAAAAAAAAcO.........',
+      'MG..OAAAAAAAAAAAAAAAAcO.........',
+      'MG..OAAAcAAAAAAAAAAAccO.........',
+      'MG..OAAAcAAAAAAAAAAccO..........',
+      '.G..OAAAAcAAAAAAAAccO...........',
+      '.G...OAAAAcAAAAAAccO............',
+      '.....OLLLLLLLLLLLLO.............',
+      '....OLLLLLLLLLLLLLLO............',
+      '...OLLLLLLLLLLLLLLLLO...........',
+      '..OLLLLLLLO..OLLLLLLO...........',
+      '.OLLLLLLLO....OLLLLLO...........',
+      'OLLLLLLLO......OLLLLO...........',
+      'OLLLLLLO........OLLLO...........',
+      'OOLLLOO.........OOLLO...........',
+      '.OOOO............OOOO...........',
+      '................................']
+  }
+};
+BATTLE_POSE.ronin = BATTLE_POSE.samurai;
+
+// gera o sprite de batalha (com fallback para o sprite de mapa)
+function battleSprite(cls, pose) {
+  const id = 'bt_' + cls + '_' + (pose || 'idle');
+  if (spriteCache.has(id)) return spriteCache.get(id);
+  const set = BATTLE_POSE[cls];
+  if (!set) return null;
+  const rows = set[pose || 'idle'] || set.idle;
+  const spr = makeSprite(rows, CLASS_PAL[cls]);
   spriteCache.set(id, spr);
   return spr;
 }
@@ -990,26 +1357,49 @@ const CLASS_BY_WEAPON = { katana: 'samurai', shakujo: 'onmyoji', tanto: 'shinobi
 const CLASS_NAMES = { samurai: 'Samurai', onmyoji: 'Onmyoji', shinobi: 'Shinobi', kyudoka: 'Kyudoka', ronin: 'Ronin' };
 const SET_MATCH = { katana: 'oyoroi', shakujo: 'kariginu', tanto: 'shinobishozoku', yumi: 'karuta' };
 
+// ---------- Técnicas (waza) ----------
+// Cada arma tem um repertório grande; o herói equipa no máximo 4 por vez
+// e escolhe o que esquecer ao aprender algo novo (estilo Pokémon).
 const SKILLS = {
-  golpe:   { name: 'Kesagiri',      mp: 5,  desc: 'Corte diagonal · dano 1.8x' },
-  grito:   { name: 'Kiai',          mp: 8,  desc: 'Grito de guerra · +ATQ 3 turnos' },
-  furia:   { name: 'Iai-nuki',      mp: 14, desc: 'Saque relâmpago · dano 3x' },
-  fogo:    { name: 'Katon',         mp: 6,  desc: 'Chama espiritual · dano 2.2x' },
-  gelo:    { name: 'Hyoton',        mp: 10, desc: 'Gelo · dano 1.8x, pode congelar' },
-  meteoro: { name: 'Raijin no Ikari', mp: 18, desc: 'Ira do trovão · dano 3.5x' },
-  duplo:   { name: 'Nitoryu',       mp: 5,  desc: 'Duas lâminas · ataca 2x (0.9x)' },
-  veneno:  { name: 'Dokuba',        mp: 8,  desc: 'Presa venenosa · veneno 3 turnos' },
-  exec:    { name: 'Kagegoroshi',   mp: 15, desc: 'Morte na sombra · 2x, crítico certo' },
-  precisa: { name: 'Isshin Ichii',  mp: 5,  desc: 'Tiro focado · 1.7x, +25% crítico' },
-  chuva:   { name: 'Yasogame',      mp: 10, desc: 'Chuva de flechas · ataca 3x (0.7x)' },
-  fantasma:{ name: 'Kamiya',        mp: 15, desc: 'Flecha divina · 2.2x, ignora DEF' }
+  // --- Katana (Samurai) ---
+  golpe:    { name: 'Kesagiri',        mp: 5,  anim: 'slash',  desc: 'Corte diagonal · 1.8x' },
+  kiai:     { name: 'Kiai',            mp: 8,  anim: 'buff',   desc: 'Grito · +ATQ por 3 turnos' },
+  tsubame:  { name: 'Tsubame Gaeshi',  mp: 10, anim: 'slash2', desc: 'Corte da andorinha · 2x de 1.1x' },
+  iai:      { name: 'Iai-nuki',        mp: 14, anim: 'iai',    desc: 'Saque relâmpago · 3x' },
+  zanshin:  { name: 'Zanshin',         mp: 9,  anim: 'guard',  desc: 'Postura firme · +DEF e cura 15%' },
+  hyakuretsu:{name: 'Hyakuretsu',      mp: 20, anim: 'flurry', desc: 'Cem cortes · 4x de 0.85x' },
+  // --- Shakujo (Onmyoji) ---
+  fogo:     { name: 'Katon',           mp: 6,  anim: 'fire',   desc: 'Chama espiritual · 2.2x MAG' },
+  gelo:     { name: 'Hyoton',          mp: 10, anim: 'ice',    desc: 'Gelo · 1.8x, pode congelar' },
+  kekkai:   { name: 'Kekkai',          mp: 9,  anim: 'guard',  desc: 'Barreira · +DEF por 3 turnos' },
+  meteoro:  { name: 'Raijin no Ikari', mp: 18, anim: 'thunder',desc: 'Ira do trovão · 3.5x MAG' },
+  kyuketsu: { name: 'Kyuketsu',        mp: 14, anim: 'drain',  desc: 'Dreno · 1.6x e cura o dano' },
+  amaterasu:{ name: 'Amaterasu',       mp: 24, anim: 'holy',   desc: 'Luz solar · 4.5x MAG' },
+  // --- Tanto (Shinobi) ---
+  duplo:    { name: 'Nitoryu',         mp: 5,  anim: 'slash2', desc: 'Duas lâminas · 2x de 0.9x' },
+  veneno:   { name: 'Dokuba',          mp: 8,  anim: 'poison', desc: 'Presa venenosa · veneno 3 turnos' },
+  kagebunshin:{name: 'Kagebunshin',    mp: 11, anim: 'flurry', desc: 'Clones · 3x de 0.8x' },
+  exec:     { name: 'Kagegoroshi',     mp: 15, anim: 'iai',    desc: 'Morte na sombra · 2x crítico certo' },
+  mikiri:   { name: 'Mikiri',          mp: 10, anim: 'buff',   desc: 'Leitura · +VEL e +crítico' },
+  zetsumei: { name: 'Zetsumei',        mp: 22, anim: 'iai',    desc: 'Golpe fatal · 2.5x, +50% se HP baixo' },
+  // --- Yumi (Kyudoka) ---
+  precisa:  { name: 'Isshin Ichii',    mp: 5,  anim: 'arrow',  desc: 'Tiro focado · 1.7x, +25% crítico' },
+  chuva:    { name: 'Yasogame',        mp: 10, anim: 'arrows', desc: 'Chuva de flechas · 3x de 0.7x' },
+  hibashira:{ name: 'Hibashira',       mp: 12, anim: 'fire',   desc: 'Flecha incendiária · 2.2x MAG' },
+  fantasma: { name: 'Kamiya',          mp: 15, anim: 'arrow',  desc: 'Flecha divina · 2.2x, ignora DEF' },
+  fuujin:   { name: 'Fuujin no Ya',    mp: 14, anim: 'arrows', desc: 'Flecha do vento · 2x e +VEL' },
+  tenchuu:  { name: 'Tenchuu',         mp: 22, anim: 'arrows', desc: 'Punição celeste · 4x de 0.9x' }
 };
+// repertório por arma: [id, nível em que se aprende]
 const WEAPON_SKILLS = {
-  katana:  [['golpe', 1], ['grito', 5], ['furia', 9]],
-  shakujo: [['fogo', 1], ['gelo', 5], ['meteoro', 9]],
-  tanto:   [['duplo', 1], ['veneno', 5], ['exec', 9]],
-  yumi:    [['precisa', 1], ['chuva', 5], ['fantasma', 9]]
+  katana:  [['golpe', 1], ['kiai', 3], ['tsubame', 6], ['iai', 9], ['zanshin', 12], ['hyakuretsu', 15]],
+  shakujo: [['fogo', 1], ['gelo', 4], ['kekkai', 7], ['meteoro', 10], ['kyuketsu', 13], ['amaterasu', 16]],
+  tanto:   [['duplo', 1], ['veneno', 4], ['kagebunshin', 7], ['exec', 10], ['mikiri', 13], ['zetsumei', 16]],
+  yumi:    [['precisa', 1], ['chuva', 4], ['hibashira', 7], ['fantasma', 10], ['fuujin', 13], ['tenchuu', 16]]
 };
+const MAX_SKILLS = 4;   // técnicas equipadas ao mesmo tempo
+// Ataque básico: sempre disponível, sem custo de MP
+const BASIC_ATTACK = { id: 'basic', name: 'Atacar', mp: 0, anim: 'slash', desc: 'Ataque com a arma · sem custo' };
 
 // ---------- Raridade e equipamentos ----------
 const RARITY = {
@@ -1336,6 +1726,7 @@ const G = {
   region: null,
   shopId: 'aldeia',
   parts: [], ambT: 0, dustT: 0, battleFlash: 0,
+  learnQueue: [], learnIdx: 0,
   victoryShown: false,
   stats: { kills: 0, battles: 0 }
 };
@@ -1355,6 +1746,8 @@ function newPlayer() {
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
     pets: [], activePet: null,
+    // técnicas equipadas por caminho (cada arma tem seu próprio conjunto de 4)
+    skillSets: { katana: ['golpe'], shakujo: ['fogo'], tanto: ['duplo'], yumi: ['precisa'] },
     x: START.x, y: START.y,
     dir: 'down', moving: false, animT: 0, frame: 0,
     mapName: 'overworld'
@@ -1447,11 +1840,42 @@ function equipFromInv(idx) {
   clampVitals();
 }
 
+// conjunto de técnicas do caminho atual (cria vazio se ainda não existir)
+function curSkills() {
+  const t = weaponType();
+  if (!t) return [];
+  if (!P.skillSets) P.skillSets = {};
+  if (!P.skillSets[t]) {
+    // primeira vez com esta arma: aprende o que o nível permitir (até 4)
+    P.skillSets[t] = WEAPON_SKILLS[t].filter(([, lvl]) => P.lvl >= lvl)
+      .slice(0, MAX_SKILLS).map(([id]) => id);
+  }
+  return P.skillSets[t];
+}
+// técnicas equipadas que a arma atual consegue usar
 function playerSkills() {
   const t = weaponType();
   if (!t) return [];
-  return WEAPON_SKILLS[t].filter(([id, lvl]) => P.lvl >= lvl)
-    .map(([id, lvl]) => ({ id, lvl, ...SKILLS[id] }));
+  return curSkills().filter(id => SKILLS[id]).map(id => ({ id, ...SKILLS[id] }));
+}
+// o que a arma atual ainda pode aprender neste nível
+function learnableNow(lvl) {
+  const t = weaponType();
+  if (!t) return [];
+  const atuais = curSkills();
+  return WEAPON_SKILLS[t].filter(([id, l]) => l === lvl && !atuais.includes(id)).map(([id]) => id);
+}
+function knowsSkill(id) { return curSkills().includes(id); }
+function equipSkill(id, replaceIdx) {
+  const s = curSkills();
+  if (replaceIdx !== undefined && replaceIdx !== null && s[replaceIdx]) s[replaceIdx] = id;
+  else if (s.length < MAX_SKILLS) s.push(id);
+  else return false;
+  return true;
+}
+// ações disponíveis em batalha: ataque básico + técnicas equipadas
+function battleActions() {
+  return [BASIC_ATTACK].concat(playerSkills());
 }
 function gainXP(amt) {
   P.xp += amt;
@@ -1464,10 +1888,15 @@ function gainXP(amt) {
     const e = eff();
     P.hp = e.maxHp; P.mp = e.maxMp;  // cura total ao subir
     ups.push(P.lvl);
-    const t = weaponType();
-    if (t) {
-      const ns = WEAPON_SKILLS[t].find(([id, lvl]) => lvl === P.lvl);
-      if (ns) ups.newSkill = SKILLS[ns[0]].name;
+    // técnicas que este nível libera para a arma equipada
+    for (const id of learnableNow(P.lvl)) {
+      if (curSkills().length < MAX_SKILLS) {
+        equipSkill(id);
+        ups.newSkill = SKILLS[id].name;
+      } else {
+        // sem espaço: entra na fila para o jogador escolher o que esquecer
+        G.learnQueue.push(id);
+      }
     }
   }
   return ups;
@@ -1528,6 +1957,15 @@ function loadGame() {
     if (P.frags === undefined) P.frags = 0;
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
+    if (!P.skillSets) {
+      // save antigo: monta o conjunto de cada caminho pelo nível alcançado
+      P.skillSets = {};
+      for (const wt2 of Object.keys(WEAPON_SKILLS)) {
+        P.skillSets[wt2] = WEAPON_SKILLS[wt2].filter(([, l]) => P.lvl >= l)
+          .slice(0, MAX_SKILLS).map(([id]) => id);
+      }
+      delete P.skills; delete P.known;
+    }
     if (P.equip.botas === undefined) P.equip.botas = null;
     if (P.equip.luvas === undefined) P.equip.luvas = null;
     for (const k of Object.keys(ITEMS)) if (P.items[k] === undefined) P.items[k] = 0;
@@ -1826,11 +2264,12 @@ function startBattle(ent) {
   const e = enemyStats(ent.type, ent.lvl);
   G.battle = {
     enemy: e, ent,
-    phase: 'intro', t: 0,
+    phase: 'entrada', t: 0,
     menuIdx: 0, sub: null, subIdx: 0,
     log: e.boss ? e.name + ' bloqueia seu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
     pAnim: 0, eAnim: 0, eFlash: 0, pFlash: 0,
-    atkBuff: 0, poison: 0, frozen: false, scrollBuff: false, pPoison: 0,
+    atkBuff: 0, defBuff: 0, spdBuff: 0, critBuff: 0, poison: 0, frozen: false, scrollBuff: false, pPoison: 0,
+    act: null,
     hpShown: e.hp, pHpShown: P.hp, slash: null,
     petStruck: true, petAnim: 0,
     dmgPops: [], rewards: null, swirl: 0
@@ -1866,6 +2305,7 @@ function playerAttack(b, opts) {
   let dmg;
   let crit = o.forceCrit || Math.random() < E.crit + (o.critBonus || 0);
   const atkNow = E.atk + (b.atkBuff > 0 ? Math.round(E.atk * (b.scrollBuff ? 1.0 : 0.5)) : 0);
+  if (b.critBuff > 0) crit = crit || Math.random() < 0.25;
   const defNow = o.ignoreDef ? 0 : b.enemy.def;
   if (o.magic) {
     dmg = calcDamage(E.mag, defNow, mult, true);
@@ -1930,7 +2370,8 @@ function enemyTurn(b) {
 }
 function applyEnemyHit(b) {
   const pe = b.pendingEnemy || { mult: 1 };
-  const dmg = calcDamage(b.enemy.atk, eff().def, pe.mult);
+  const defNow = eff().def + (b.defBuff > 0 ? Math.round(eff().def * 0.6) : 0);
+  const dmg = calcDamage(b.enemy.atk, defNow, pe.mult);
   P.hp = Math.max(0, P.hp - dmg);
   b.pFlash = 0.25;
   G.shake = pe.skillName ? 6 : 4;
@@ -2001,7 +2442,8 @@ function endBattleWin(b) {
 }
 
 function fleeBattle(b) {
-  const chance = clamp(0.5 + (eff().spd - b.enemy.spd) * 0.06, 0.25, 0.95);
+  const spdNow = eff().spd + (b.spdBuff > 0 ? 6 : 0);
+  const chance = clamp(0.5 + (spdNow - b.enemy.spd) * 0.06, 0.25, 0.95);
   if (b.enemy.boss) { battleLog(b, 'Não dá para fugir de um chefe!'); b.phase = 'menu'; return; }
   if (Math.random() < chance) {
     AU.sfx('flee');
@@ -2076,40 +2518,107 @@ function useItemBattle(b, id) {
   return true;
 }
 
-function useSkill(b, sk) {
-  if (P.mp < sk.mp) { battleLog(b, 'MP insuficiente!'); AU.sfx('back'); return false; }
-  P.mp -= sk.mp;
-  switch (sk.id) {
-    case 'golpe': playerAttack(b, { mult: 1.8 }); battleLog(b, 'Golpe Forte!'); break;
-    case 'grito': b.atkBuff = 3; battleLog(b, 'ATQ aumentado por 3 turnos!'); addDmgPop(b, 'player', 'ATQ+', '#ffd94e'); AU.sfx('magic'); break;
-    case 'furia': playerAttack(b, { mult: 3 }); battleLog(b, 'FÚRIA!'); break;
-    case 'fogo': playerAttack(b, { mult: 2.2, magic: true }); battleLog(b, 'Bola de Fogo!'); break;
-    case 'gelo': {
-      playerAttack(b, { mult: 1.8, magic: true });
-      if (Math.random() < 0.45 && !b.enemy.boss) { b.frozen = true; battleLog(b, 'Raio de Gelo! Inimigo congelou!'); }
-      else battleLog(b, 'Raio de Gelo!');
-      break;
-    }
-    case 'meteoro': playerAttack(b, { mult: 3.5, magic: true }); battleLog(b, 'METEORO!'); G.shake = 8; break;
-    case 'duplo': {
-      playerAttack(b, { mult: 0.9 });
-      setTimeout(() => { if (G.battle === b && b.enemy.hp > 0) playerAttack(b, { mult: 0.9 }); }, 180);
-      battleLog(b, 'Golpe Duplo!');
-      break;
-    }
-    case 'veneno': playerAttack(b, { mult: 1.2 }); b.poison = 3; battleLog(b, 'Lâmina Venenosa! Envenenado!'); break;
-    case 'exec': playerAttack(b, { mult: 2, forceCrit: true }); battleLog(b, 'EXECUÇÃO!'); break;
-    case 'precisa': playerAttack(b, { mult: 1.7, critBonus: 0.25 }); battleLog(b, 'Flecha Precisa!'); break;
-    case 'chuva': {
-      playerAttack(b, { mult: 0.7 });
-      setTimeout(() => { if (G.battle === b && b.enemy.hp > 0) playerAttack(b, { mult: 0.7 }); }, 160);
-      setTimeout(() => { if (G.battle === b && b.enemy.hp > 0) playerAttack(b, { mult: 0.7 }); }, 320);
-      battleLog(b, 'Chuva de Flechas!');
-      break;
-    }
-    case 'fantasma': playerAttack(b, { mult: 2.2, ignoreDef: true }); battleLog(b, 'Flecha Fantasma!'); break;
+// ---------- Ações do jogador com animação ----------
+// Fluxo: escolha → animação (dash + efeito) → impacto → resultado
+function startPlayerAction(b, skill) {
+  const anim = skill ? (SKILLS[skill.id].anim || 'slash') : 'slash';
+  if (skill) P.mp -= skill.mp;
+  b.act = { skill, anim, t: 0, hit: false, hits: 0, dur: ANIM_DUR[anim] || 0.7 };
+  b.phase = 'playerAnim';
+  b.t = 0;
+  b.petStruck = false;
+  battleLog(b, skill ? skill.name + '!' : 'Ataque!');
+  // som de conjuração para técnicas mágicas
+  if (['fire', 'ice', 'thunder', 'holy', 'drain'].includes(anim)) AU.tone(300, 0.18, 'sine', 0.05, 400);
+}
+// duração de cada animação (segundos)
+const ANIM_DUR = {
+  slash: 0.55, slash2: 0.75, iai: 0.85, flurry: 0.95, guard: 0.6, buff: 0.6,
+  fire: 0.85, ice: 0.85, thunder: 0.95, holy: 1.05, drain: 0.9, poison: 0.7,
+  arrow: 0.75, arrows: 0.95
+};
+// momentos de impacto (fração da duração) por animação
+const ANIM_HITS = {
+  slash: [0.45], slash2: [0.4, 0.68], iai: [0.62], flurry: [0.35, 0.5, 0.65, 0.8],
+  guard: [0.4], buff: [0.4], fire: [0.6], ice: [0.6], thunder: [0.62], holy: [0.7],
+  drain: [0.55], poison: [0.5], arrow: [0.55], arrows: [0.4, 0.58, 0.76]
+};
+
+// aplica o efeito de um golpe (chamado nos instantes de impacto)
+function applySkillHit(b, hitIndex) {
+  const sk = b.act.skill;
+  const E = eff();
+  if (!sk) { // ataque básico
+    const r = playerAttack(b, {});
+    battleLog(b, r.crit ? 'Golpe CRÍTICO!' : 'Você atacou!');
+    return;
   }
-  return true;
+  switch (sk.id) {
+    // --- katana ---
+    case 'golpe': playerAttack(b, { mult: 1.8 }); break;
+    case 'kiai': b.atkBuff = 3; addDmgPop(b, 'player', 'ATQ+', '#ffd94e'); battleLog(b, 'Kiai! ATQ elevado!'); AU.sfx('magic'); break;
+    case 'tsubame': playerAttack(b, { mult: 1.1 }); break;
+    case 'iai': playerAttack(b, { mult: 3 }); G.shake = 8; break;
+    case 'zanshin': {
+      b.defBuff = 3;
+      const h = Math.round(E.maxHp * 0.15);
+      P.hp = Math.min(E.maxHp, P.hp + h);
+      addDmgPop(b, 'player', '+' + h, '#6ee86e');
+      battleLog(b, 'Zanshin! DEF elevada e ' + h + ' HP.');
+      AU.sfx('heal');
+      break;
+    }
+    case 'hyakuretsu': playerAttack(b, { mult: 0.85 }); break;
+    // --- shakujo ---
+    case 'fogo': playerAttack(b, { mult: 2.2, magic: true }); break;
+    case 'gelo':
+      playerAttack(b, { mult: 1.8, magic: true });
+      if (Math.random() < 0.45 && !b.enemy.boss) { b.frozen = true; battleLog(b, 'Hyoton! O youkai congelou!'); }
+      break;
+    case 'kekkai': b.defBuff = 3; addDmgPop(b, 'player', 'DEF+', '#8ac0ff'); battleLog(b, 'Kekkai! Barreira erguida!'); AU.sfx('magic'); break;
+    case 'meteoro': playerAttack(b, { mult: 3.5, magic: true }); G.shake = 10; break;
+    case 'kyuketsu': {
+      const r = playerAttack(b, { mult: 1.6, magic: true });
+      const cura = Math.round(r.dmg * 0.8);
+      P.hp = Math.min(E.maxHp, P.hp + cura);
+      addDmgPop(b, 'player', '+' + cura, '#6ee86e');
+      battleLog(b, 'Kyuketsu! Drenou ' + cura + ' de vida.');
+      break;
+    }
+    case 'amaterasu': playerAttack(b, { mult: 4.5, magic: true }); G.shake = 12; break;
+    // --- tanto ---
+    case 'duplo': playerAttack(b, { mult: 0.9 }); break;
+    case 'veneno':
+      playerAttack(b, { mult: 1.2 });
+      b.poison = 3;
+      battleLog(b, 'Dokuba! Youkai envenenado!');
+      break;
+    case 'kagebunshin': playerAttack(b, { mult: 0.8 }); break;
+    case 'exec': playerAttack(b, { mult: 2, forceCrit: true }); break;
+    case 'mikiri':
+      b.spdBuff = 3; b.critBuff = 3;
+      addDmgPop(b, 'player', 'VEL+', '#a0e84e');
+      battleLog(b, 'Mikiri! Reflexos aguçados!');
+      AU.sfx('magic');
+      break;
+    case 'zetsumei': {
+      const baixo = P.hp / E.maxHp < 0.35;
+      playerAttack(b, { mult: baixo ? 3.75 : 2.5, forceCrit: baixo });
+      if (baixo) battleLog(b, 'ZETSUMEI! Golpe desesperado!');
+      G.shake = 9;
+      break;
+    }
+    // --- yumi ---
+    case 'precisa': playerAttack(b, { mult: 1.7, critBonus: 0.25 }); break;
+    case 'chuva': playerAttack(b, { mult: 0.7 }); break;
+    case 'hibashira': playerAttack(b, { mult: 2.2, magic: true }); break;
+    case 'fantasma': playerAttack(b, { mult: 2.2, ignoreDef: true }); break;
+    case 'fuujin':
+      playerAttack(b, { mult: 2 });
+      if (hitIndex === 0) { b.spdBuff = 3; addDmgPop(b, 'player', 'VEL+', '#a0e84e'); }
+      break;
+    case 'tenchuu': playerAttack(b, { mult: 0.9 }); G.shake = 7; break;
+  }
 }
 
 function updateBattle(dt) {
@@ -2125,32 +2634,38 @@ function updateBattle(dt) {
   b.dmgPops = b.dmgPops.filter(p => p.t < 1);
 
   switch (b.phase) {
-    case 'intro':
-      if (b.t > 0.7 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; }
+    case 'entrada':
+      // cinemática: linhas de velocidade, personagens deslizam para a arena
+      if (b.t > 1.35 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; b.t = 0; }
       break;
     case 'menu': {
       if (b.sub === null) {
-        const N = 4;
+        // lista unificada: ataque básico + técnicas equipadas
+        const acts = battleActions();
+        const N = acts.length;
         if (tap('up')) { b.menuIdx = (b.menuIdx + N - 1) % N; AU.sfx('menu'); }
         if (tap('down')) { b.menuIdx = (b.menuIdx + 1) % N; AU.sfx('menu'); }
+        if (tap('left') || tap('right')) { b.sub = 'extra'; b.subIdx = 0; AU.sfx('menu'); }
         if (tap('ok')) {
-          AU.sfx('ok');
-          if (b.menuIdx === 0) { // atacar
-            const r = playerAttack(b, {});
-            battleLog(b, r.crit ? 'Golpe CRÍTICO!' : 'Você atacou!');
-            b.phase = 'playerActDone'; b.t = 0; b.petStruck = false;
-          } else if (b.menuIdx === 1) { b.sub = 'skill'; b.subIdx = 0; }
-          else if (b.menuIdx === 2) { b.sub = 'item'; b.subIdx = 0; }
-          else fleeBattle(b);
+          const a = acts[b.menuIdx];
+          if (a.id === 'basic') {
+            AU.sfx('ok');
+            startPlayerAction(b, null);
+          } else if (P.mp >= a.mp) {
+            AU.sfx('ok');
+            startPlayerAction(b, a);
+          } else { battleLog(b, 'MP insuficiente!'); AU.sfx('back'); }
         }
-      } else if (b.sub === 'skill') {
-        const sk = playerSkills();
-        if (!sk.length) { b.sub = null; battleLog(b, 'Nenhuma habilidade!'); break; }
-        if (tap('up')) { b.subIdx = (b.subIdx + sk.length - 1) % sk.length; AU.sfx('menu'); }
-        if (tap('down')) { b.subIdx = (b.subIdx + 1) % sk.length; AU.sfx('menu'); }
-        if (tap('back')) { b.sub = null; AU.sfx('back'); }
+      } else if (b.sub === 'extra') {
+        // segunda coluna: Item / Fugir
+        const N = 2;
+        if (tap('up')) { b.subIdx = (b.subIdx + N - 1) % N; AU.sfx('menu'); }
+        if (tap('down')) { b.subIdx = (b.subIdx + 1) % N; AU.sfx('menu'); }
+        if (tap('left') || tap('right') || tap('back')) { b.sub = null; AU.sfx('back'); }
         else if (tap('ok')) {
-          if (useSkill(b, sk[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; b.petStruck = false; }
+          AU.sfx('ok');
+          if (b.subIdx === 0) { b.sub = 'item'; b.subIdx = 0; }
+          else { b.sub = null; fleeBattle(b); }
         }
       } else if (b.sub === 'item') {
         const its = Object.keys(ITEMS).filter(k => P.items[k] > 0);
@@ -2163,6 +2678,19 @@ function updateBattle(dt) {
           if (useItemBattle(b, its[b.subIdx])) { b.sub = null; b.phase = 'playerActDone'; b.t = 0; b.petStruck = false; }
         }
       }
+      break;
+    }
+    case 'playerAnim': {
+      const a = b.act;
+      a.t += dt;
+      const k = a.t / a.dur;
+      const marcos = ANIM_HITS[a.anim] || [0.5];
+      // dispara os impactos nos instantes certos
+      while (a.hits < marcos.length && k >= marcos[a.hits]) {
+        if (b.enemy.hp > 0 || a.hits === 0) applySkillHit(b, a.hits);
+        a.hits++;
+      }
+      if (a.t >= a.dur) { b.phase = 'playerActDone'; b.t = 0; }
       break;
     }
     case 'playerActDone':
@@ -2181,6 +2709,9 @@ function updateBattle(dt) {
         if (b.enemy.hp <= 0) endBattleWin(b);
         else {
           if (b.atkBuff > 0) b.atkBuff--;
+          if (b.defBuff > 0) b.defBuff--;
+          if (b.spdBuff > 0) b.spdBuff--;
+          if (b.critBuff > 0) b.critBuff--;
           enemyTurn(b);
         }
       }
@@ -2206,9 +2737,13 @@ function updateBattle(dt) {
         } else {
           const wasBoss = b.enemy.boss, bossName = b.enemy.name;
           fadeTo(() => {
-            G.state = 'world'; G.battle = null;
+            G.battle = null;
             AU.setTrack(G.map.name === 'cave' ? AU.CAVE : AU.WORLD);
-            if (wasBoss) showMsg(bossName + ' foi derrotado!\nA região está mais segura.');
+            if (G.learnQueue.length) { G.state = 'learn'; G.learnIdx = 0; }
+            else {
+              G.state = 'world';
+              if (wasBoss) showMsg(bossName + ' foi derrotado!\nA região está mais segura.');
+            }
           });
         }
       }
@@ -2985,6 +3520,204 @@ function drawWorldHUD() {
   }
 }
 
+// ---------- Animações de combate ----------
+// Desenha o efeito da técnica em curso. ex/ey = centro do inimigo,
+// px/py = posição do herói. Tudo em coordenadas de tela (320x180).
+const ENEMY_CX = 76, ENEMY_CY = 74, HERO_CX = 274, HERO_CY = 70;
+function drawActionFX(b) {
+  const a = b.act;
+  if (!a) return;
+  const k = clamp(a.t / a.dur, 0, 1);
+  const marcos = ANIM_HITS[a.anim] || [0.5];
+
+  switch (a.anim) {
+    case 'slash': case 'slash2': case 'flurry': {
+      // arcos de corte no inimigo, sincronizados com os impactos
+      marcos.forEach((m, i) => {
+        const dt2 = k - m;
+        if (dt2 < 0 || dt2 > 0.22) return;
+        const f = 1 - dt2 / 0.22;
+        ctx.globalAlpha = f;
+        ctx.strokeStyle = i % 2 ? '#ffd0d0' : '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const r = 30 + (1 - f) * 14, ang = -0.9 + i * 1.1;
+        ctx.arc(ENEMY_CX, ENEMY_CY, r, ang, ang + 1.9);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 1;
+      });
+      break;
+    }
+    case 'iai': {
+      // saque relâmpago: carrega e corta a tela na horizontal
+      if (k < 0.55) {
+        ctx.globalAlpha = k * 1.2;
+        ctx.fillStyle = '#ffd94e';
+        ctx.fillRect(HERO_CX - 8, HERO_CY - 2, 16, 3);
+      } else if (k < 0.8) {
+        const f = (k - 0.55) / 0.25;
+        ctx.globalAlpha = 1 - f * 0.4;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, ENEMY_CY - 2, VW * (1 - f * 0.2), 4);
+        ctx.fillStyle = '#ffd94e';
+        ctx.fillRect(0, ENEMY_CY - 1, VW * (1 - f * 0.2), 2);
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'fire': {
+      // bola de fogo viajando e explodindo
+      if (k < 0.6) {
+        const f = k / 0.6;
+        const fx = lerp(HERO_CX - 20, ENEMY_CX, f), fy = lerp(HERO_CY, ENEMY_CY, f);
+        const r = 5 + Math.sin(G.time * 30) * 1.5;
+        ctx.fillStyle = '#ff8a3a'; ctx.beginPath(); ctx.arc(fx, fy, r + 2, 0, 6.3); ctx.fill();
+        ctx.fillStyle = '#ffd040'; ctx.beginPath(); ctx.arc(fx, fy, r, 0, 6.3); ctx.fill();
+        ctx.fillStyle = '#fff8c0'; ctx.beginPath(); ctx.arc(fx, fy, r * 0.5, 0, 6.3); ctx.fill();
+        if (Math.random() < 0.6) spawnParticle({ screen: true, x: fx, y: fy, vx: rnd(-20, 20), vy: rnd(-10, 25), life: 0.35, size: 2, color: pick(['#ff8a3a', '#ffd040']), shrink: true });
+      } else {
+        const f = (k - 0.6) / 0.4;
+        ctx.globalAlpha = 1 - f;
+        ctx.fillStyle = '#ffd040';
+        ctx.beginPath(); ctx.arc(ENEMY_CX, ENEMY_CY, 12 + f * 30, 0, 6.3); ctx.fill();
+        ctx.fillStyle = '#ff8a3a';
+        ctx.beginPath(); ctx.arc(ENEMY_CX, ENEMY_CY, 8 + f * 22, 0, 6.3); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'ice': {
+      // cristais caindo sobre o inimigo
+      for (let i = 0; i < 5; i++) {
+        const off = i * 0.08;
+        const f = clamp((k - off) / 0.6, 0, 1);
+        if (f <= 0) continue;
+        const ix = ENEMY_CX - 24 + i * 12;
+        const iy = lerp(-10, ENEMY_CY + 4, f);
+        ctx.globalAlpha = f < 0.9 ? 1 : (1 - f) * 10;
+        ctx.fillStyle = '#8ac0ff';
+        ctx.beginPath();
+        ctx.moveTo(ix, iy - 7); ctx.lineTo(ix + 4, iy); ctx.lineTo(ix, iy + 7); ctx.lineTo(ix - 4, iy);
+        ctx.fill();
+        ctx.fillStyle = '#dcf0ff';
+        ctx.fillRect(ix - 1, iy - 4, 2, 8);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'thunder': {
+      // raio descendo em ziguezague
+      if (k > 0.4 && k < 0.85) {
+        const f = (k - 0.4) / 0.45;
+        ctx.globalAlpha = f < 0.7 ? 1 : (1 - f) / 0.3;
+        ctx.strokeStyle = '#fff8c0'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(ENEMY_CX, 0);
+        for (let y = 0; y < ENEMY_CY; y += 12) {
+          ctx.lineTo(ENEMY_CX + Math.sin(y * 0.7 + a.t * 40) * 9, y);
+        }
+        ctx.lineTo(ENEMY_CX, ENEMY_CY);
+        ctx.stroke();
+        ctx.strokeStyle = '#8ac0ff'; ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // clarão
+        if (f < 0.25) { ctx.fillStyle = 'rgba(255,255,220,' + (0.4 * (1 - f * 4)) + ')'; ctx.fillRect(0, 0, VW, VH); }
+      }
+      break;
+    }
+    case 'holy': {
+      // coluna de luz solar
+      if (k > 0.35) {
+        const f = clamp((k - 0.35) / 0.6, 0, 1);
+        const w = 44 * Math.sin(f * Math.PI);
+        const grd = ctx.createLinearGradient(0, 0, 0, VH);
+        grd.addColorStop(0, 'rgba(255,248,200,0.9)');
+        grd.addColorStop(1, 'rgba(255,200,80,0.15)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(ENEMY_CX - w / 2, 0, w, 130);
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.5 * Math.sin(f * Math.PI)) + ')';
+        ctx.fillRect(ENEMY_CX - w / 4, 0, w / 2, 130);
+      }
+      break;
+    }
+    case 'drain': {
+      // partículas de vida indo do inimigo ao herói
+      if (k > 0.5 && Math.random() < 0.8) {
+        spawnParticle({
+          screen: true, x: ENEMY_CX + rnd(-14, 14), y: ENEMY_CY + rnd(-14, 14),
+          vx: (HERO_CX - ENEMY_CX) * 0.9, vy: (HERO_CY - ENEMY_CY) * 0.9 + rnd(-20, 20),
+          life: 0.4, size: 2, color: pick(['#b06ae8', '#6ee86e', '#d8a0ff'])
+        });
+      }
+      if (k > 0.3 && k < 0.7) {
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#b06ae8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ENEMY_CX, ENEMY_CY); ctx.lineTo(HERO_CX - 16, HERO_CY); ctx.stroke();
+        ctx.lineWidth = 1; ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'poison': {
+      if (k > 0.35) {
+        const f = (k - 0.35) / 0.65;
+        ctx.globalAlpha = (1 - f) * 0.7;
+        ctx.fillStyle = '#7ac04a';
+        ctx.beginPath(); ctx.ellipse(ENEMY_CX, ENEMY_CY + 6, 24 + f * 10, 16 + f * 6, 0, 0, 6.3); ctx.fill();
+        ctx.globalAlpha = 1;
+        if (Math.random() < 0.5) spawnParticle({ screen: true, x: ENEMY_CX + rnd(-20, 20), y: ENEMY_CY + rnd(-8, 12), vx: rnd(-8, 8), vy: rnd(-24, -8), life: 0.6, size: 2, color: '#a0e84e' });
+      }
+      break;
+    }
+    case 'arrow': case 'arrows': {
+      // flechas voando do herói ao inimigo
+      marcos.forEach((m, i) => {
+        const inicio = m - 0.3;
+        const f = (k - inicio) / 0.3;
+        if (f < 0 || f > 1) return;
+        const ax = lerp(HERO_CX - 18, ENEMY_CX + 6, f);
+        const ay = lerp(HERO_CY - 4 + i * 5, ENEMY_CY + (i - 1) * 6, f) - Math.sin(f * Math.PI) * 10;
+        ctx.fillStyle = '#c9a86a';
+        ctx.fillRect(ax, ay, 12, 2);
+        ctx.fillStyle = '#e8e4d0';
+        ctx.fillRect(ax - 2, ay - 1, 4, 4);   // ponta
+        ctx.fillStyle = '#e05548';
+        ctx.fillRect(ax + 10, ay - 1, 3, 4);  // penas
+      });
+      break;
+    }
+    case 'guard': case 'buff': {
+      // aura ao redor do herói
+      const f = Math.sin(k * Math.PI);
+      ctx.globalAlpha = f * 0.8;
+      ctx.strokeStyle = a.anim === 'guard' ? '#8ac0ff' : '#ffd94e';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const r = 14 + i * 9 + f * 8;
+        ctx.beginPath(); ctx.ellipse(HERO_CX, HERO_CY, r, r * 1.25, 0, 0, 6.3); ctx.stroke();
+      }
+      ctx.lineWidth = 1; ctx.globalAlpha = 1;
+      if (Math.random() < 0.7) spawnParticle({
+        screen: true, x: HERO_CX + rnd(-20, 20), y: HERO_CY + 24, vx: rnd(-6, 6), vy: rnd(-60, -30),
+        life: 0.5, size: 2, color: a.anim === 'guard' ? '#8ac0ff' : '#ffd94e', shrink: true
+      });
+      break;
+    }
+  }
+}
+// deslocamento do herói durante a animação (dash de investida)
+function heroLunge(b) {
+  if (!b.act) return 0;
+  const a = b.act, k = clamp(a.t / a.dur, 0, 1);
+  const corpoACorpo = ['slash', 'slash2', 'flurry', 'iai'].includes(a.anim);
+  if (!corpoACorpo) return k < 0.3 ? -Math.sin(k / 0.3 * Math.PI) * 5 : 0;
+  // avança rápido, segura, volta
+  if (k < 0.35) return -Math.pow(k / 0.35, 0.6) * 98;
+  if (k < 0.75) return -98;
+  return -98 * (1 - (k - 0.75) / 0.25);
+}
+
 // ---------- Desenho: batalha ----------
 function drawBattle() {
   const b = G.battle;
@@ -3029,9 +3762,11 @@ function drawBattle() {
   // inimigo (esquerda-centro)
   const e = b.enemy;
   const es = enemySprite(e.type);
-  const escale = e.boss ? 4 : 4;
+  const escale = e.boss ? 4.4 : 4.2;
   const ew = es.width * escale, eh = es.height * escale;
-  const ex = 76 - ew / 2 + (b.phase === 'enemyAct' && b.t < 0.45 ? Math.round(b.t * 40) : 0);
+  const entrada = b.phase === 'entrada' ? clamp(b.t / 0.55, 0, 1) : 1;
+  const slideE = Math.round((1 - easeOut(entrada)) * -140);
+  const ex = 76 - ew / 2 + slideE + (b.phase === 'enemyAct' && b.t < 0.45 ? Math.round(b.t * 40) : 0);
   const bob = Math.sin(G.time * 2.5) * 2;
   const ey = 118 - eh + (e.boss ? 8 : 4) + bob;
   if (e.hp > 0 || b.phase !== 'result') {
@@ -3049,24 +3784,41 @@ function drawBattle() {
     if (b.poison > 0) { ctx.fillStyle = '#a0e84e'; ctx.font = '8px monospace'; ctx.fillText('☠', ex + ew - 6, ey + 8); }
   }
   // jogador (direita)
-  const ps = heroSprite(curClass(), 'left', Math.floor(G.time * 3) % 2);
-  const pscale = 4;
-  const px = 236 + (b.phase === 'playerActDone' && b.t < 0.3 ? -Math.round((0.3 - b.t) * 60) : 0);
-  const py = 118 - 20 * pscale + 12;
+  // sprite de batalha em alta resolução; troca para a pose de ataque na hora certa
+  const cls = curClass();
+  let pose = 'idle';
+  if (b.act && b.phase === 'playerAnim') {
+    const k = b.act.t / b.act.dur;
+    pose = (k > 0.18 && k < 0.85) ? 'atk' : 'idle';
+  }
+  const bs = battleSprite(cls, pose);
+  const ps = bs || heroSprite(cls, 'left', Math.floor(G.time * 3) % 2);
+  const pscale = bs ? 2.2 : 4;
+  const sw = bs ? 32 : 16, sh = bs ? 40 : 20;
+  const slideH = Math.round((1 - easeOut(clamp((b.phase === 'entrada' ? b.t : 99) / 0.55, 0, 1))) * 150);
+  // respiração sutil na pose parada
+  const breath = pose === 'idle' && b.phase !== 'playerAnim' ? Math.round(Math.sin(G.time * 2.4) * 1) : 0;
+  const px = 238 + Math.round(heroLunge(b)) + slideH;
+  const py = 122 - sh * pscale + breath;
   ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
-  ctx.ellipse(px + 32, 122, 22, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(px + sw * pscale / 2, 122, 24, 5, 0, 0, Math.PI * 2);
   ctx.fill();
   if (b.pFlash > 0 && Math.floor(b.pFlash * 20) % 2 === 0) ctx.globalAlpha = 0.4;
-  ctx.drawImage(ps, px, py, 16 * pscale, 20 * pscale);
+  ctx.drawImage(ps, px, py, sw * pscale, sh * pscale);
   ctx.globalAlpha = 1;
-  if (b.atkBuff > 0) { ctx.fillStyle = '#ffd94e'; ctx.font = '8px monospace'; ctx.fillText('▲ATQ', px + 20, py - 2); }
+  ctx.font = '7px monospace';
+  let byo = py - 3;
+  if (b.atkBuff > 0) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▲ATQ', px + 20, byo); byo -= 8; }
+  if (b.defBuff > 0) { ctx.fillStyle = '#8ac0ff'; ctx.fillText('▲DEF', px + 20, byo); byo -= 8; }
+  if (b.spdBuff > 0) { ctx.fillStyle = '#a0e84e'; ctx.fillText('▲VEL', px + 20, byo); byo -= 8; }
+  if (b.pPoison > 0) { ctx.fillStyle = '#a0e84e'; ctx.fillText('☠', px + 4, py - 3); }
   // pet ao lado do herói
   if (P.activePet) {
     const pspr = petSprite(P.activePet);
     const lunge = b.petAnim > 0 ? -Math.round(b.petAnim * 60) : 0;
     const pbob = Math.round(Math.sin(G.time * 3.5) * 2);
-    const petX = 206 + lunge, petY = 118 - 22 + pbob;
+    const petX = 198 + lunge, petY = 118 - 22 + pbob;
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(petX + 12, 119, 9, 3, 0, 0, Math.PI * 2);
@@ -3074,7 +3826,8 @@ function drawBattle() {
     ctx.drawImage(pspr, petX, petY, pspr.width * 2, pspr.height * 2);
   }
 
-  // barra HP inimigo
+  // barra HP inimigo (some durante a cinemática de entrada)
+  ctx.globalAlpha = b.phase === 'entrada' ? clamp((b.t - 0.9) / 0.35, 0, 1) : 1;
   ctx.fillStyle = 'rgba(12,10,20,0.85)';
   ctx.fillRect(8, 6, 130, 26);
   ctx.strokeStyle = e.boss ? '#c04040' : '#5a4a8a';
@@ -3089,6 +3842,10 @@ function drawBattle() {
   ctx.fillStyle = 'rgba(255,255,255,0.28)';
   ctx.fillRect(13, 19, Math.round(110 * clamp(e.hp / e.maxHp, 0, 1)), 1);
   ctx.fillStyle = '#cfc8e0'; ctx.fillText(e.hp + '/' + e.maxHp, 13, 31);
+  ctx.globalAlpha = 1;
+
+  // efeitos da técnica em curso
+  if (b.phase === 'playerAnim') drawActionFX(b);
 
   // rastro do golpe sobre o inimigo
   if (b.slash) {
@@ -3121,107 +3878,156 @@ function drawBattle() {
     ctx.globalAlpha = 1;
   }
 
+  // cinemática de entrada: speed lines e cartão com o nome
+  if (b.phase === 'entrada') {
+    const k = b.t;
+    // linhas de velocidade radiais (estilo anime)
+    if (k < 0.75) {
+      const f = 1 - k / 0.75;
+      ctx.globalAlpha = f * 0.85;
+      ctx.strokeStyle = b.enemy.boss ? '#ffb0b0' : '#ffffff';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 26; i++) {
+        const ang = (i / 26) * Math.PI * 2 + k * 0.6;
+        const r0 = 40 + f * 90, r1 = r0 + 40 + f * 70;
+        ctx.beginPath();
+        ctx.moveTo(VW / 2 + Math.cos(ang) * r0, VH / 2 + Math.sin(ang) * r0 * 0.7);
+        ctx.lineTo(VW / 2 + Math.cos(ang) * r1, VH / 2 + Math.sin(ang) * r1 * 0.7);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // cartão com o nome do youkai deslizando
+    if (k > 0.45) {
+      const f = clamp((k - 0.45) / 0.3, 0, 1);
+      const cw = 150, cx0 = lerp(-cw, VW / 2 - cw / 2, easeOut(f));
+      const sair = k > 1.1 ? (k - 1.1) / 0.25 : 0;
+      ctx.globalAlpha = 1 - sair;
+      ctx.fillStyle = b.enemy.boss ? 'rgba(90,10,20,0.95)' : 'rgba(20,14,34,0.95)';
+      ctx.fillRect(cx0, 52, cw, 22);
+      ctx.strokeStyle = b.enemy.boss ? '#e05050' : '#ffd94e';
+      ctx.strokeRect(cx0 + 0.5, 52.5, cw - 1, 21);
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = b.enemy.boss ? '#ff8a8a' : '#ffd94e';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.enemy.name, cx0 + cw / 2, 63);
+      ctx.font = '7px monospace';
+      ctx.fillStyle = '#c8b8e0';
+      ctx.fillText(b.enemy.boss ? '— chefe youkai —' : 'Nível ' + b.enemy.lvl, cx0 + cw / 2, 71);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
+    }
+  }
   // clarão de entrada
   if (G.battleFlash > 0) {
     ctx.fillStyle = 'rgba(255,255,255,' + (G.battleFlash * 0.55) + ')';
     ctx.fillRect(0, 0, VW, VH);
   }
   // painel inferior
-  ctx.fillStyle = 'rgba(10,8,18,0.92)';
-  ctx.fillRect(0, 132, VW, 48);
+  ctx.fillStyle = 'rgba(10,8,18,0.94)';
+  ctx.fillRect(0, 126, VW, 54);
   ctx.strokeStyle = '#5a4a8a';
-  ctx.strokeRect(0.5, 132.5, VW - 1, 47);
+  ctx.strokeRect(0.5, 126.5, VW - 1, 53);
 
   // status do jogador (direita)
   const PE = eff();
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
-  ctx.fillText(className() + ' Nv.' + P.lvl, 216, 143);
-  barRect(216, 147, 72, 5, b.pHpShown / PE.maxHp, '#8a2a2a');
+  ctx.fillText(className() + ' Nv.' + P.lvl, 216, 138);
+  barRect(216, 142, 72, 5, b.pHpShown / PE.maxHp, '#8a2a2a');
   ctx.fillStyle = P.hp / PE.maxHp < 0.3 ? '#e05050' : '#50c060';
-  ctx.fillRect(216, 147, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 5);
+  ctx.fillRect(216, 142, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 5);
   ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.fillRect(216, 147, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 1);
-  ctx.fillStyle = '#cfc8e0'; ctx.fillText('HP ' + P.hp + '/' + PE.maxHp, 216, 160);
-  barRect(216, 163, 72, 4, P.mp / PE.maxMp, '#5080e0');
-  ctx.fillStyle = '#cfc8e0'; ctx.fillText('MP ' + P.mp + '/' + PE.maxMp, 216, 175);
+  ctx.fillRect(216, 142, Math.round(72 * clamp(P.hp / PE.maxHp, 0, 1)), 1);
+  ctx.fillStyle = '#cfc8e0'; ctx.fillText('HP ' + P.hp + '/' + PE.maxHp, 216, 155);
+  barRect(216, 159, 72, 4, P.mp / PE.maxMp, '#5080e0');
+  ctx.fillStyle = '#cfc8e0'; ctx.fillText('MP ' + P.mp + '/' + PE.maxMp, 216, 172);
 
-  // log (com faixa escura para legibilidade)
-  ctx.fillStyle = 'rgba(10,8,18,0.75)';
-  ctx.fillRect(0, 118, VW, 14);
+  // faixa de mensagem: mostra a descrição da ação em foco durante o menu
+  ctx.fillStyle = 'rgba(10,8,18,0.8)';
+  ctx.fillRect(0, 112, VW, 14);
   ctx.font = '8px monospace';
-  ctx.fillStyle = '#f0e8c8';
-  ctx.fillText(b.log, 10, 128);
+  if (b.phase === 'menu' && b.sub === null) {
+    const foco = battleActions()[b.menuIdx];
+    ctx.fillStyle = '#b8a8d8';
+    if (foco) ctx.fillText(foco.desc, 10, 122);
+  } else if (b.phase === 'menu' && b.sub === 'extra') {
+    ctx.fillStyle = '#b8a8d8';
+    ctx.fillText(b.subIdx === 0 ? 'Usar um item da bolsa' : 'Tentar escapar da batalha', 10, 122);
+  } else {
+    ctx.fillStyle = '#f0e8c8';
+    ctx.fillText(b.log, 10, 122);
+  }
 
   if (b.phase === 'menu') {
-    if (b.sub === null) {
-      const opts = ['Atacar', 'Habilidade', 'Item', 'Fugir'];
-      for (let i = 0; i < opts.length; i++) {
-        const oy = 144 + i * 9;
-        if (i === b.menuIdx) {
-          ctx.fillStyle = '#ffd94e';
-          ctx.fillText('▶', 10, oy);
+    if (b.sub === null || b.sub === 'extra') {
+      // coluna 1: ataque + técnicas equipadas
+      const acts = battleActions();
+      acts.forEach((a, i) => {
+        const oy = 137 + i * 9;
+        const sel = b.sub === null && i === b.menuIdx;
+        const podeMp = a.mp === 0 || P.mp >= a.mp;
+        if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', 8, oy); }
+        ctx.fillStyle = sel ? (podeMp ? '#fff' : '#e07070') : (podeMp ? '#a89ac0' : '#6a5a70');
+        ctx.fillText(a.name, 17, oy);
+        if (a.mp > 0) {
+          ctx.fillStyle = podeMp ? '#6ea8ff' : '#5a5070';
+          ctx.fillText(a.mp + 'MP', 122, oy);
         }
-        ctx.fillStyle = i === b.menuIdx ? '#fff' : '#a89ac0';
-        ctx.fillText(opts[i], 20, oy);
-      }
-    } else if (b.sub === 'skill') {
-      const sk = playerSkills();
-      for (let i = 0; i < sk.length; i++) {
-        const oy = 144 + i * 9;
-        const can = P.mp >= sk[i].mp;
-        if (i === b.subIdx) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', 10, oy); }
-        ctx.fillStyle = i === b.subIdx ? (can ? '#fff' : '#e07070') : (can ? '#a89ac0' : '#705a70');
-        ctx.fillText(sk[i].name + ' (' + sk[i].mp + 'MP)', 20, oy);
-      }
-      if (sk[b.subIdx]) {
-        ctx.fillStyle = '#8a7ab0';
-        ctx.fillText(sk[b.subIdx].desc, 108, 144);
-      }
+      });
+      // coluna 2: Item / Fugir
+      ['Item', 'Fugir'].forEach((t, i) => {
+        const oy = 137 + i * 9;
+        const sel = b.sub === 'extra' && i === b.subIdx;
+        if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', 152, oy); }
+        ctx.fillStyle = sel ? '#fff' : '#8a7ab0';
+        ctx.fillText(t, 161, oy);
+      });
+      if (b.sub === null) { ctx.fillStyle = '#5a4a70'; ctx.fillText('◀▶', 152, 137 + 2 * 9); }
     } else if (b.sub === 'item') {
       const its = Object.keys(ITEMS).filter(k => P.items[k] > 0);
       const show = 4;
       const first = clamp(b.subIdx - 2, 0, Math.max(0, its.length - show));
       its.slice(first, first + show).forEach((id, j) => {
         const i = first + j;
-        const oy = 144 + j * 9;
+        const oy = 138 + j * 9;
         if (i === b.subIdx) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', 10, oy); }
         ctx.fillStyle = i === b.subIdx ? '#fff' : '#a89ac0';
         ctx.fillText(ITEMS[id].name + ' x' + P.items[id], 20, oy);
       });
-      if (first > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', 98, 144); }
-      if (first + show < its.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', 98, 171); }
-      if (its[b.subIdx]) { ctx.fillStyle = '#8a7ab0'; ctx.fillText(ITEMS[its[b.subIdx]].desc, 112, 144); }
+      if (first > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', 100, 138); }
+      if (first + show < its.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', 100, 165); }
+      if (its[b.subIdx]) { ctx.fillStyle = '#8a7ab0'; ctx.fillText(ITEMS[its[b.subIdx]].desc, 114, 138); }
     }
   } else if (b.phase === 'result' && b.rewards) {
     const r = b.rewards;
     ctx.fillStyle = '#ffd94e';
     ctx.font = 'bold 9px monospace';
-    ctx.fillText('VITÓRIA!', 10, 146);
+    ctx.fillText('VITÓRIA!', 10, 140);
     ctx.font = '7px monospace';
     ctx.fillStyle = '#e8e0f0';
-    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro' + (r.frags ? '   +' + r.frags + '◆' : ''), 10, 157);
+    ctx.fillText('+' + r.xp + ' XP   +' + r.gold + ' ouro' + (r.frags ? '   +' + r.frags + '◆' : ''), 10, 151);
     if (r.dropTxt) {
       ctx.fillStyle = r.dropColor || '#c8c8d0';
-      ctx.fillText('Loot: ' + r.dropTxt, 118, 157);
+      ctx.fillText('Loot: ' + r.dropTxt, 118, 151);
     }
     if (r.ups.length) {
       ctx.fillStyle = '#6ee86e';
-      ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos de status (menu C)', 10, 167);
-      if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova habilidade: ' + r.newSkill, 118, 176); }
+      ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos de status (C)', 10, 161);
+      if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova técnica: ' + r.newSkill, 130, 171); }
     }
     if (r.petTxt) {
       ctx.fillStyle = r.petColor;
-      ctx.fillText('♥ Novo pet: ' + r.petTxt + '!', 10, 176);
+      ctx.fillText('♥ Novo espírito: ' + r.petTxt + '!', 10, 171);
     }
     if (b.t > 0.6 && Math.floor(G.time * 2) % 2) {
       ctx.fillStyle = '#a89ac0';
-      ctx.fillText('Z para continuar', 220, 176);
+      ctx.fillText('Z para continuar', 220, 174);
     }
-  } else if (b.phase === 'intro') {
+  } else if (b.phase === 'entrada') {
     ctx.fillStyle = '#a89ac0';
     ctx.font = '7px monospace';
-    ctx.fillText('Prepare-se...', 10, 146);
+    if (b.t > 0.9) ctx.fillText('Prepare-se...', 10, 140);
   }
 }
 
@@ -3342,10 +4148,10 @@ function drawPauseMenu() {
   ctx.fillStyle = '#ffd94e';
   ctx.fillText(className() + ' Nv.' + P.lvl, x + 8, y + 12);
   // abas
-  const tabs = ['Status', 'Equipar', 'Itens', 'Pets'];
+  const tabs = ['Status', 'Técnicas', 'Equipar', 'Itens', 'Pets'];
   ctx.font = '7px monospace';
   tabs.forEach((t, i) => {
-    const tx = x + w - 148 + i * 38;
+    const tx = x + w - 172 + i * 35;
     ctx.fillStyle = i === G.menuTab ? '#ffd94e' : '#705a80';
     ctx.fillText((i === G.menuTab ? '[' + t + ']' : ' ' + t), tx, y + 12);
   });
@@ -3378,10 +4184,10 @@ function drawPauseMenu() {
       ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, y + 26 + i * 10);
       ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 206, y + 26 + i * 10);
     });
-    // habilidades (abaixo da alocação)
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Habilidades da arma:', x + 8, y + 114);
+    // técnicas equipadas (resumo; a aba Técnicas gerencia)
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Técnicas equipadas:', x + 8, y + 114);
     const sks = playerSkills();
-    if (!sks.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(sem arma equipada)', x + 8, y + 124); }
+    if (!sks.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(nenhuma para esta arma)', x + 8, y + 124); }
     sks.forEach((s, i) => {
       ctx.fillStyle = '#a89ac0';
       ctx.fillText(s.name + ' (' + s.mp + 'MP)', x + 8, y + 124 + i * 9);
@@ -3389,9 +4195,54 @@ function drawPauseMenu() {
     const t = weaponType();
     if (t) {
       const nx = WEAPON_SKILLS[t].find(([id, lvl]) => lvl > P.lvl);
-      if (nx) { ctx.fillStyle = '#705a80'; ctx.fillText('Nv.' + nx[1] + ': ' + SKILLS[nx[0]].name, x + 8, y + 124 + sks.length * 9); }
+      if (nx) { ctx.fillStyle = '#705a80'; ctx.fillText('Nv.' + nx[1] + ': ' + SKILLS[nx[0]].name, x + 8, y + 124 + Math.max(sks.length, 1) * 9); }
     }
   } else if (G.menuTab === 1) {
+    // ---- TÉCNICAS (estilo Pokémon: 4 equipadas, troca livre) ----
+    const t = weaponType();
+    const eq = curSkills();
+    ctx.fillStyle = '#ffd94e';
+    ctx.fillText('Equipadas (' + eq.length + '/' + MAX_SKILLS + ')', x + 8, y + 26);
+    if (!eq.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(nenhuma)', x + 16, y + 38); }
+    eq.forEach((id, i) => {
+      const s = SKILLS[id];
+      const oy = y + 38 + i * 10;
+      const sel = G.menuIdx === i;
+      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+      ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+      ctx.fillText(s.name, x + 16, oy);
+      ctx.fillStyle = '#6ea8ff';
+      ctx.fillText(s.mp + 'MP', x + 92, oy);
+    });
+    // repertório da arma equipada
+    ctx.fillStyle = '#ffd94e';
+    ctx.fillText('Repertório do caminho ' + className(), x + 8, y + 82);
+    if (!t) { ctx.fillStyle = '#705a80'; ctx.fillText('(sem arma equipada)', x + 8, y + 93); }
+    else {
+      const rep = WEAPON_SKILLS[t];
+      const base = eq.length;
+      rep.forEach(([id, lvl], j) => {
+        const oy = y + 93 + j * 9;
+        const s = SKILLS[id];
+        const idx = base + j;
+        const sel = G.menuIdx === idx;
+        const temNivel = P.lvl >= lvl;
+        const equipada = eq.includes(id);
+        if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
+        ctx.fillStyle = equipada ? '#4a7a5a' : (temNivel ? (sel ? '#fff' : '#a89ac0') : '#5a4a70');
+        ctx.fillText(s.name, x + 16, oy);
+        ctx.fillStyle = temNivel ? '#705a80' : '#4a3a5a';
+        ctx.fillText(equipada ? 'equipada' : (temNivel ? 'Z equipar' : 'Nv.' + lvl), x + 104, oy);
+      });
+    }
+    // detalhe da técnica em foco
+    const todas = eq.concat(t ? WEAPON_SKILLS[t].map(([id]) => id) : []);
+    const foco = todas[G.menuIdx];
+    if (foco) {
+      ctx.fillStyle = '#8a7ab0';
+      ctx.fillText(SKILLS[foco].desc, x + 8, y + 148);
+    }
+  } else if (G.menuTab === 2) {
     // ---- EQUIPAR ----
     // equipados (6 slots, coluna esquerda)
     SLOTS.forEach((s, i) => {
@@ -3437,7 +4288,7 @@ function drawPauseMenu() {
       if (eq.wtype) ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, dy);
       else if (eq.atype) ctx.fillText('Conjunto: ' + eq.atype, x + 178, dy);
     }
-  } else if (G.menuTab === 3) {
+  } else if (G.menuTab === 4) {
     // ---- PETS ----
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)', x + 8, y + 26);
     if (!P.pets.length) {
@@ -3491,15 +4342,18 @@ function drawPauseMenu() {
     });
   }
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('◀ ▶ aba · X fechar', x + 8, y + h - 6);
+  ctx.fillText(G.menuTab === 1 ? 'Z equipar/trocar · ◀▶ aba · X fechar' : '◀ ▶ aba · X fechar', x + 8, y + h - 6);
 }
 function updatePauseMenu() {
+  const wt = weaponType();
+  const repLen = wt ? WEAPON_SKILLS[wt].length : 0;
   const listLen = G.menuTab === 0 ? ALLOC.length
-    : G.menuTab === 1 ? Math.max(1, P.equipInv.length)
-    : G.menuTab === 3 ? Math.max(1, P.pets.length)
+    : G.menuTab === 1 ? Math.max(1, (wt ? curSkills().length : 0) + repLen)
+    : G.menuTab === 2 ? Math.max(1, P.equipInv.length)
+    : G.menuTab === 4 ? Math.max(1, P.pets.length)
     : Object.keys(ITEMS).length;
-  if (tap('left')) { G.menuTab = (G.menuTab + 3) % 4; G.menuIdx = 0; AU.sfx('menu'); }
-  if (tap('right')) { G.menuTab = (G.menuTab + 1) % 4; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('left')) { G.menuTab = (G.menuTab + 4) % 5; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('right')) { G.menuTab = (G.menuTab + 1) % 5; G.menuIdx = 0; AU.sfx('menu'); }
   if (tap('up')) { G.menuIdx = (G.menuIdx + listLen - 1) % listLen; AU.sfx('menu'); }
   if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % listLen; AU.sfx('menu'); }
   if (tap('ok')) {
@@ -3514,12 +4368,24 @@ function updatePauseMenu() {
         AU.sfx('ok');
       } else AU.sfx('back');
     } else if (G.menuTab === 1) {
+      // equipar/trocar técnica
+      const t2 = weaponType();
+      const rep = t2 ? WEAPON_SKILLS[t2] : [];
+      const eqs = t2 ? curSkills() : [];
+      if (G.menuIdx >= eqs.length && rep.length) {
+        const [id, lvl] = rep[G.menuIdx - eqs.length];
+        if (P.lvl < lvl) { toast('Requer nível ' + lvl); AU.sfx('back'); }
+        else if (eqs.includes(id)) { toast('Já equipada'); AU.sfx('back'); }
+        else if (eqs.length < MAX_SKILLS) { equipSkill(id); AU.sfx('ok'); toast(SKILLS[id].name + ' equipada!'); saveGame(); }
+        else { G.learnQueue.push(id); G.state = 'learn'; G.learnIdx = 0; AU.sfx('ok'); }
+      } else AU.sfx('back');
+    } else if (G.menuTab === 2) {
       if (P.equipInv[G.menuIdx]) {
         equipFromInv(G.menuIdx);
         G.menuIdx = Math.min(G.menuIdx, Math.max(0, P.equipInv.length - 1));
         AU.sfx('ok');
       } else AU.sfx('back');
-    } else if (G.menuTab === 3) {
+    } else if (G.menuTab === 4) {
       const id = P.pets[G.menuIdx];
       if (id) {
         P.activePet = P.activePet === id ? null : id;
@@ -3629,6 +4495,70 @@ function updateShop() {
   }
   if (tap('back')) { G.state = 'world'; AU.sfx('back'); }
 }
+// ---------- Aprender técnica (estilo Pokémon) ----------
+function drawLearn() {
+  drawWorld(true);
+  ctx.fillStyle = 'rgba(8,6,16,0.88)';
+  ctx.fillRect(0, 0, VW, VH);
+  const novaId = G.learnQueue[0];
+  if (!novaId) return;
+  const nova = SKILLS[novaId];
+  const x = 26, y = 14, w = VW - 52, h = VH - 28;
+  ctx.fillStyle = 'rgba(24,18,44,0.97)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#ffd94e';
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('NOVA TÉCNICA!', x + 8, y + 14);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#e8e0f0';
+  ctx.fillText('Você pode aprender ' + nova.name + '.', x + 8, y + 27);
+  ctx.fillStyle = '#8a7ab0';
+  ctx.fillText(nova.desc + '  ·  ' + nova.mp + ' MP', x + 8, y + 37);
+  ctx.fillStyle = '#a89ac0';
+  ctx.fillText('Já conhece 4 técnicas. Esquecer qual?', x + 8, y + 52);
+  // lista das 4 atuais + opção de não aprender
+  const atuais = curSkills();
+  atuais.forEach((id, i) => {
+    const s = SKILLS[id];
+    const oy = y + 68 + i * 11;
+    const sel = G.learnIdx === i;
+    if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 10, oy); }
+    ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+    ctx.fillText(s.name, x + 20, oy);
+    ctx.fillStyle = '#705a80';
+    ctx.fillText(s.mp + 'MP  ' + s.desc, x + 96, oy);
+  });
+  const oy = y + 68 + atuais.length * 11 + 4;
+  const selN = G.learnIdx === atuais.length;
+  if (selN) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 10, oy); }
+  ctx.fillStyle = selN ? '#fff' : '#8a7ab0';
+  ctx.fillText('Não aprender ' + nova.name, x + 20, oy);
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('▲▼ escolher · Z confirmar', x + 8, y + h - 8);
+}
+function updateLearn() {
+  const atuais = curSkills();
+  const n = atuais.length + 1;
+  if (tap('up')) { G.learnIdx = (G.learnIdx + n - 1) % n; AU.sfx('menu'); }
+  if (tap('down')) { G.learnIdx = (G.learnIdx + 1) % n; AU.sfx('menu'); }
+  if (tap('ok')) {
+    const novaId = G.learnQueue.shift();
+    if (G.learnIdx < atuais.length) {
+      const esquecida = SKILLS[atuais[G.learnIdx]].name;
+      equipSkill(novaId, G.learnIdx);
+      AU.sfx('level');
+      toast(esquecida + ' → ' + SKILLS[novaId].name);
+      burstScreen(VW / 2, VH / 2, 24, { color: ['#ffd94e', '#fff0a0', '#6ee86e'], spdMax: 90, lifeMax: 0.8, size: 2 });
+    } else {
+      AU.sfx('back');   // recusou; pode reequipar depois pelo menu
+    }
+    G.learnIdx = 0;
+    if (!G.learnQueue.length) { G.state = 'world'; saveGame(); }
+  }
+}
+
 // ---------- Altar de encantamento ----------
 function drawEnchant() {
   drawWorld(true);
@@ -3821,6 +4751,7 @@ function frame(now) {
         case 'menu': updatePauseMenu(); break;
         case 'shop': updateShop(); break;
         case 'enchant': updateEnchant(); break;
+        case 'learn': updateLearn(); break;
         case 'gameover': updateGameOver(); break;
         case 'victory': updateVictory(); break;
       }
@@ -3848,6 +4779,7 @@ function frame(now) {
     case 'menu': drawPauseMenu(); break;
     case 'shop': drawShop(); break;
     case 'enchant': drawEnchant(); break;
+    case 'learn': drawLearn(); break;
     case 'gameover': drawGameOver(); break;
     case 'victory': drawVictory(); break;
   }
@@ -3865,7 +4797,7 @@ function frame(now) {
   }
   if (G.msgQueue.length && G.state === 'world') drawDialog();
   // toasts
-  G.toasts.forEach((t, i) => {
+  if (G.state !== 'battle') G.toasts.forEach((t, i) => {
     ctx.font = '7px monospace';
     ctx.globalAlpha = t.t > 1.5 ? (2 - t.t) / 0.5 : 1;
     ctx.fillStyle = 'rgba(12,10,22,0.9)';
@@ -3925,6 +4857,12 @@ window.DBG = {
   shopStock(id) { return SHOP_STOCK[id]; },
   items() { return ITEMS; },
   tileCache() { return tileVarCache.size; },
+  actions() { return battleActions(); },
+  curSkills() { return curSkills(); },
+  setSkills(arr) { const t = weaponType(); if (t) P.skillSets[t] = arr.slice(); },
+  battleSprite(c,p) { return battleSprite(c,p); },
+  skills() { return SKILLS; },
+  weaponSkills() { return WEAPON_SKILLS; },
   heroSprite(cls, dir, frame) { return heroSprite(cls, dir, frame); },
   pets() { return PETS; },
   equipCatalog() { return EQUIP; },
