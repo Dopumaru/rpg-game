@@ -125,6 +125,9 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 function tap(k) { const v = pressed[k]; pressed[k] = false; return v; }
+// consulta sem consumir (para distinguir esquerda/direita no mesmo quadro)
+let ultimaDir = null;
+function tap2(k) { return ultimaDir === k; }
 
 // ---------- Áudio (WebAudio chiptune) ----------
 const AU = {
@@ -459,12 +462,28 @@ const CLASS_PAL = {
 // rônin (sem arma): mesmo desenho do samurai, paleta desbotada
 HEADS.ronin = HEADS.samurai;
 
+// Sprite do mapa (16x20): usa a aparência escolhida e o que está equipado.
+// A cabeça varia com o elmo (se houver) ou com o estilo de cabelo.
+function mapHeadKind() {
+  const elmo = P && P.equip && P.equip.elmo;
+  if (elmo) {
+    const n = EQUIP[elmo] && EQUIP[elmo].name || '';
+    if (n.includes('Eboshi')) return 'onmyoji';
+    if (n.includes('Zukin') || n.includes('Menpo')) return 'shinobi';
+  }
+  const est = (P && P.look ? P.look.cabelo : 0) % ESTILO_CABELO.length;
+  // longo e rabo caem dos lados; os demais ficam presos ao alto
+  return (est === 2 || est === 4) ? 'kyudoka' : 'samurai';
+}
 function heroSprite(cls, dir, frame) {
   const step = WALK_CYCLE[(frame | 0) % WALK_CYCLE.length];
-  const id = `hero_${cls}_${dir}_${step}`;
+  const lk = (P && P.look) || defaultLook();
+  const kind = mapHeadKind();
+  const corpoId = P && P.equip && P.equip.corpo;
+  const id = `hero_${kind}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${corpoId || 'x'}_${dir}_${step}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
-  const pal = CLASS_PAL[cls] || CLASS_PAL.ronin;
-  const heads = HEADS[cls] || HEADS.ronin;
+  const pal = lookPal();
+  const heads = HEADS[kind] || HEADS.samurai;
   const headDir = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
   const rows = heads[headDir].concat(BODIES[bodyDir + step]);
@@ -475,430 +494,555 @@ function heroSprite(cls, dir, frame) {
 }
 
 
-// ---------- Sprites de batalha (32x40, estilo anime detalhado) ----------
-// Pose de combate virada para o inimigo (à esquerda), rosto 3/4 com olhos
-// grandes de íris colorida, cabelo com volume e a arma em punho.
-// Paleta: O contorno · S pele · s sombra · b blush · H cabelo · h brilho
-//         d sombra cabelo · E cílio/pupila · I íris · W brilho do olho
-//         A traje · a traje claro · c traje sombra · B faixa/detalhe
-//         L hakama · M metal · m brilho metal · G cabo/madeira
-const BATTLE_POSE = {
-  // Proporção heroica (~4 cabeças), pose de combate com pernas afastadas,
-  // cabelo espetado com mechas, silhueta definida e arma em punho.
-  samurai: {
+
+// ---------- Aparência do personagem ----------
+// O visual é montado em camadas: corpo (características escolhidas na criação)
+// + cabelo + peitoral + elmo + arma equipada. A arma define a CLASSE; o resto
+// é personalização que aparece no sprite.
+const PELE = [
+  { name: 'Clara',   S: '#f8d0a8', s: '#e0a878', b: '#f0a0a0' },
+  { name: 'Média',   S: '#e8b088', s: '#c88a60', b: '#e09090' },
+  { name: 'Morena',  S: '#c08050', s: '#9a6038', b: '#c07060' },
+  { name: 'Escura',  S: '#8a5838', s: '#663d24', b: '#9a5a4a' }
+];
+const COR_CABELO = [
+  { name: 'Preto',    H: '#241c2e', h: '#4a3f5c', d: '#15101f' },
+  { name: 'Castanho', H: '#5a3418', h: '#8a5528', d: '#3f2410' },
+  { name: 'Ruivo',    H: '#8a3a1a', h: '#c05a2a', d: '#5e2410' },
+  { name: 'Loiro',    H: '#c8a040', h: '#f0d070', d: '#8a6a20' },
+  { name: 'Branco',   H: '#d8d8e0', h: '#ffffff', d: '#a0a0b0' },
+  { name: 'Azulado',  H: '#2a4a7a', h: '#4a7ab8', d: '#1a2f52' },
+  { name: 'Violeta',  H: '#4a2a6a', h: '#7a4aa8', d: '#301a48' }
+];
+const COR_OLHOS = [
+  { name: 'Castanho', I: '#7a4a2a' }, { name: 'Azul', I: '#3a6ad0' },
+  { name: 'Verde',    I: '#3a9a5a' }, { name: 'Âmbar', I: '#c08a20' },
+  { name: 'Cinza',    I: '#6a7a8a' }, { name: 'Rubro', I: '#a83a3a' }
+];
+const ESTILO_CABELO = [
+  { name: 'Espetado' }, { name: 'Topete' }, { name: 'Longo' },
+  { name: 'Curto' },    { name: 'Rabo' },   { name: 'Franja' }
+];
+const CORPO = [{ name: 'Esbelto' }, { name: 'Robusto' }];
+
+function defaultLook() {
+  return { corpo: 0, pele: 0, cabelo: 0, corCabelo: 0, olhos: 0 };
+}
+// paleta montada a partir da aparência + equipamento atual
+function lookPal() {
+  const lk = (P && P.look) || defaultLook();
+  const pele = PELE[lk.pele % PELE.length];
+  const cab = COR_CABELO[lk.corCabelo % COR_CABELO.length];
+  const olho = COR_OLHOS[lk.olhos % COR_OLHOS.length];
+  // cores do peitoral: do equipamento, com fallback para roupa simples
+  const corpoId = P && P.equip && P.equip.corpo;
+  const arte = corpoId && ARMOR_ART[EQUIP[corpoId].atype] ? ARMOR_ART[EQUIP[corpoId].atype] : ARMOR_ART.none;
+  return {
+    O: '#1a1420',
+    S: pele.S, s: pele.s, b: pele.b, m: '#c4756a',
+    H: cab.H, h: cab.h, d: cab.d,
+    E: '#1a1420', I: olho.I, W: '#ffffff',
+    A: arte.A, a: arte.a, c: arte.c, B: arte.B, L: arte.L,
+    M: '#d8dce8', G: '#8a6a42', Y: '#e8c050', R: '#c0392b', P: '#e8e4ee'
+  };
+}
+
+// ---------- Sprites de batalha em camadas (32x48) ----------
+// Cada camada usa os mesmos símbolos; a paleta vem de lookPal(), então o
+// mesmo desenho muda de cor conforme aparência e equipamento.
+
+// --- corpo base (com rosto): 2 tipos, poses idle e atk ---
+const BODY_ART = {
+  esbelto: {
     idle: [
-      '.......O...O..O.................',
-      '......OHO.OHOOHOO...............',
-      '....OOHHHOHHHHHHHHO.............',
-      '...OHHHHhHHHHHHHHHHO............',
-      '....OHHHHHHHHHHHHHHO............',
-      '......OHHSSSSSSSSHHO............',
-      '......OHSSSSSSSSSSHO............',
-      '......OHSEWSSSSEWSHO............',
-      '......OHSEISSSSEISHO............',
-      '......OHSSSSSSSSSSHO............',
-      '.......OSSSSmmSSSSO.............',
-      '........OOSSSSSSOO..............',
-      '..........OSSSSO...............M',
-      '.....OOOOOOSSSSOOOOOO.........MM',
-      '...OOaaaAAAAAAAAAAaaaOO......MMm',
-      '..OaaaaAAAAABBAAAAAaaaaO....MMm.',
-      '..OaAAaAAAAABBAAAAAaAAaO...MMm..',
-      '..OaAAaAAAAABBAAAAAaAAaO..MMm...',
-      '..OaAAaAAAAABBAAAAAaAAaO.MMm....',
-      '..OaAAaAAAAABBAAAAAaAAaOMMm.....',
-      '..OSSSaAAAAABBAAAAAaGGGm........',
-      '..OSSSaAAAAABBAAAAAaGGO.........',
-      '...OSSAAAAAABBAAAAAASSO.........',
-      '....OAAAAAAABBAAAAAASO..........',
-      '....OAAAcAAABBAAAAccO...........',
-      '.....OAAcAAABBAAAccO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '...OLLLLLLLLOOLLLLLLLO..........',
-      '..OLLLLLLLLO..OLLLLLLLO.........',
-      '..OLLLLLLLO....OLLLLLLO.........',
-      '..OLLLLLLO......OLLLLLO.........',
-      '..OLLLLLO........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OMMO............OMMMO.........',
+      '................................',
+      '................................',
+      '................................',
+      '................................',
+      '................................',
+      '......OOSSSSSSSSOO..............',
+      '......OSSSSSSSSSSO..............',
+      '......OSEWSSSSEWSO..............',
+      '......OSEISSSSEISO..............',
+      '......OSSSSSSSSSSO..............',
+      '.......OSSSSmmSSO...............',
+      '........OOSSSSOO................',
+      '..........OSSO..................',
+      '.....OOOOOOSSOOOOOO.............',
+      '...OOSSSSSSSSSSSSSSOO...........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSSO..........',
+      '...OSSSSSSSSSSSSSSSSO...........',
+      '....OSSSSSSSSSSSSSSO............',
+      '....OSSSSSSSSSSSSSSO............',
+      '.....OSSSSSSSSSSSSO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '.....OLLLLLLLLLLLLO.............',
+      '....OLLLLLLLLLLLLLLO............',
+      '....OLLLLLLLLLLLLLLO............',
+      '...OLLLLLLLLLLLLLLLLO...........',
+      '...OLLLLLLLLOOLLLLLLO...........',
+      '..OLLLLLLLLO..OLLLLLLO..........',
+      '..OLLLLLLLO....OLLLLLO..........',
+      '..OLLLLLLO......OLLLLO..........',
+      '..OLLLLLO........OLLLO..........',
+      '..OLLLLO.........OLLLO..........',
+      '..OLLLLO.........OLLLO..........',
+      '..OLLLO...........OLLO..........',
+      '..OLLLO...........OLLO..........',
+      '..OMMO............OMMO..........',
       '.OMMMO............OMMMO.........',
       '.OMMMMO...........OMMMMO........',
       '.OOOOOO...........OOOOOO........',
       '................................',
       '................................'],
     atk: [
-      '........O...O..O............MMM.',
-      '.......OHO.OHOOHOO........MMMm..',
-      '.....OOHHHOHHHHHHHHO....MMMm....',
-      'd...OHHHHhHHHHHHHHHHO..MMMm.....',
-      '.dd..OHHHHHHHHHHHHHHOOMMm.......',
-      '..dd...OHHSSSSSSSSHHOMGm........',
-      '....d..OHSSSSSSSSSSHGGm.........',
-      '.......OHSEWSSSSEWSGGO..........',
-      '.......OHSEISSSSEISGO...........',
-      '.......OHSSSSSSSSSGSO...........',
-      '........OSSSSmmSSSSSO...........',
-      '.........OOSSSSSSOSSO...........',
-      '...........OSSSSOSSSO...........',
-      '....OOOOOOOSSSSOSSSOO...........',
-      '..OOaaaAAAAAAAAAAaaSO...........',
-      '.OaaaaAAAAABBAAAAAaaO...........',
-      '.OaAAaAAAAABBAAAAAaAO...........',
-      '.OaAAaAAAAABBAAAAAaAO...........',
-      '.OaAAaAAAAABBAAAAAaAO...........',
-      '.OSSSaAAAAABBAAAAAaAO...........',
-      '.OSSSaAAAAABBAAAAAaAO...........',
-      '..OSSAAAAAABBAAAAAAAO...........',
-      '..OAAAAAAAABBAAAAAAAO...........',
-      '..OAAAcAAAABBAAAAAccO...........',
-      '...OAAcAAAABBAAAAccO............',
-      '...OBBBBBBBBBBBBBBBO............',
-      '...OBBBBBBBBBBBBBBBO............',
-      '...OLLLLLLLLLLLLLLLO............',
-      '..OLLLLLLLLLLLLLLLLLO...........',
-      '..OLLLLLLLLLLLLLLLLLO...........',
-      '.OLLLLLLLLLLLLLLLLLLLO..........',
-      '.OLLLLLLLLLOOLLLLLLLLO..........',
-      'OLLLLLLLLLO..OLLLLLLLLO.........',
-      'OLLLLLLLLO....OLLLLLLLO.........',
-      'OLLLLLLLO......OLLLLLLO.........',
-      'OLLLLLLO........OLLLLLO.........',
-      'OLLLLLO..........OLLLLO.........',
-      'OLLLLO...........OLLLLO.........',
-      'OLLLO............OLLLLO.........',
-      'OLLO..............OLLLO.........',
-      'OMMO..............OLLLO.........',
-      'OMMMO.............OMMMO.........',
-      'OMMMMO............OMMMMO........',
-      'OOOOOO............OOOOOO........',
-      '................................',
-      '................................',
-      '................................',
-      '................................']
-  },
-  onmyoji: {
-    idle: [
-      '.........OOOOOOOO...............',
-      '........OBBBBBBBBO..............',
-      '........OBBBBBBBBO..............',
-      '.......OOBBBBBBBBOO.............',
-      '......OHHOOOOOOOOHHO............',
-      '......OHHSSSSSSSSHHO............',
-      '......OHSSSSSSSSSSHO............',
-      '......OHSEWSSSSEWSHO............',
-      '......OHSEISSSSEISHO............',
-      '......OHSSSSSSSSSSHO............',
-      '.......OSSSSmmSSSSO.............',
-      '.......OHOSSSSSSOHO.............',
-      '.......OHHOSSSSOHHO............M',
-      '.....OOHHOOSSSSOOHHOO.........MG',
-      '...OOaaaAAAAAAAAAAaaaOO.......MG',
-      '..OaaaaAAAAABBAAAAAaaaaO......MG',
-      '..OaAAaAAAAABBAAAAAaAAaO......MG',
-      '..OaAAaAAAABBBBAAAAaAAaO......MG',
-      '..OaAAaAAAABBBBAAAAaAAaO......MG',
-      '..OaAAaAAAAABBAAAAAaAAaO......MG',
-      '..OSSSaAAAAABBAAAAAaSSSO......MG',
-      '..OSSSaAAAAABBAAAAAaSSSO....OOMG',
-      '...OSSAAAAAABBAAAAAASSGGGGGGGGMG',
-      '....OAAAAAAABBAAAAAASGGGGGGGGGMG',
-      '....OAAAcAAABBAAAAccO.........MG',
-      '.....OAAcAAABBAAAccO..........MG',
-      '.....OBBBBBBBBBBBBBO..........MG',
-      '.....OBBBBBBBBBBBBBO..........MG',
-      '.....OLLLLLLLLLLLLLO..........MG',
-      '....OLLLLLLLLLLLLLLLO.........MG',
-      '....OLLLLLLLLLLLLLLLO.........MG',
-      '...OLLLLLLLLLLLLLLLLLO........MG',
-      '...OLLLLLLLLLLLLLLLLLO........MG',
-      '..OLLLLLLLLLLLLLLLLLLLO.......MG',
-      '..OLLLLLLLLLLLLLLLLLLLO.......MG',
-      '.OLLLLLLLLLLLLLLLLLLLLLO......MG',
-      '.OLLLLLLLLLLLLLLLLLLLLLO.......G',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OOOOOOOOOOOOOOOOOOOOOOOOO.......',
       '................................',
       '................................',
       '................................',
       '................................',
       '................................',
+      '.......OOSSSSSSSSOO.............',
+      '.......OSSSSSSSSSSO.............',
+      '.......OSEWSSSSEWSO.............',
+      '.......OSEISSSSEISO.............',
+      '.......OSSSSSSSSSSO.............',
+      '........OSSSSmmSSO..............',
+      '.........OOSSSSOO...............',
+      '...........OSSO.................',
+      '....OOOOOOOOSSOOOOO.............',
+      '..OOSSSSSSSSSSSSSSSOO...........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '.OSSSSSSSSSSSSSSSSSSSO..........',
+      '..OSSSSSSSSSSSSSSSSSO...........',
+      '..OSSSSSSSSSSSSSSSSSO...........',
+      '..OSSSSSSSSSSSSSSSSO............',
+      '...OSSSSSSSSSSSSSSO.............',
+      '...OSSSSSSSSSSSSSSO.............',
+      '...OLLLLLLLLLLLLLLO.............',
+      '..OLLLLLLLLLLLLLLLLO............',
+      '..OLLLLLLLLLLLLLLLLO............',
+      '.OLLLLLLLLLLLLLLLLLLO...........',
+      '.OLLLLLLLLLOOLLLLLLLO...........',
+      'OLLLLLLLLLO..OLLLLLLLO..........',
+      'OLLLLLLLLO....OLLLLLLO..........',
+      'OLLLLLLLO......OLLLLLO..........',
+      'OLLLLLLO........OLLLLO..........',
+      'OLLLLLO..........OLLLO..........',
+      'OLLLLO...........OLLLO..........',
+      'OLLLO............OLLLO..........',
+      'OLLO.............OLLLO..........',
+      'OMMO.............OLLLO..........',
+      'OMMMO............OMMMO..........',
+      'OMMMMO...........OMMMMO.........',
+      'OOOOOO...........OOOOOO.........',
       '................................',
-      '................................'],
-    atk: [
-      '.........OOOOOOOO..........W....',
-      '........OBBBBBBBBO........WWW...',
-      '........OBBBBBBBBO.......WWWWW..',
-      '.......OOBBBBBBBBOO.....WWWWWWW.',
-      '......OHHOOOOOOOOHHO....WWWWWWW.',
-      '......OHHSSSSSSSSHHO.....WWWWW..',
-      '......OHSSSSSSSSSSHO..M...WWW...',
-      '......OHSEWSSSSEWSHO.MG....W....',
-      '......OHSEISSSSEISHO.MG.........',
-      '......OHSSSSSSSSSSHOMG..........',
-      '.......OSSSSmmSSSSOMG...........',
-      '.......OHOSSSSSSOHMG............',
-      '.......OHHOSSSSOHMG.............',
-      '.....OOHHOOSSSSOMGO.............',
-      '...OOaaaAAAAAAAAMGaaOO..........',
-      '..OaaaaAAAAABBAAMGAaaaO.........',
-      '..OaAAaAAAAABBAAMGAAAaO.........',
-      '..OaAAaAAAABBBBAMGAAAaO.........',
-      '..OaAAaAAAABBBBAAGAAAaO.........',
-      '..OaAAaAAAAABBAAAOAAAaO.........',
-      '..OSSSaAAAAABBAAAASSSSO.........',
-      '..OSSSaAAAAABBAAAASSSSO.........',
-      '...OSSAAAAAABBAAAAAASSO.........',
-      '....OAAAAAAABBAAAAAASO..........',
-      '....OAAAcAAABBAAAAccO...........',
-      '.....OAAcAAABBAAAccO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '..OLLLLLLLLLLLLLLLLLLLO.........',
-      '..OLLLLLLLLLLLLLLLLLLLO.........',
-      '.OLLLLLLLLLLLLLLLLLLLLLO........',
-      '.OLLLLLLLLLLLLLLLLLLLLLO........',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OLLLLLLLLLLLLLLLLLLLLLLLO.......',
-      'OOOOOOOOOOOOOOOOOOOOOOOOO.......',
-      '................................',
-      '................................',
-      '................................',
-      '................................',
-      '................................',
-      '................................',
-      '................................']
-  },
-  shinobi: {
-    idle: [
-      '.........OOOOOOOO...............',
-      '.......OOHHHHHHHHOO.............',
-      '......OHHhHHHHHHHHHO............',
-      '.....OHHhHHHHHHHHHHHO...........',
-      '.....OHHHHHHHHHHHHHHO...........',
-      '......OHHAAAAAAAAHHO............',
-      '......OHAAAAAAAAAAHO............',
-      '......OHASEWSSEWSAHO............',
-      '......OHASEISSEISAHO............',
-      '......OHAAAAAAAAAAHO............',
-      '.......OAAAAAAAAAAO.............',
-      '........OOAAAAAAOO..............',
-      '..........OAAAAO................',
-      '.....OOOOOOAAAAOOOOOO...........',
-      '...OOaaaAAAAAAAAAAaaaOO.........',
-      '..OaaaaAAAAABBAAAAAaaaaO........',
-      '..OaAAaAAAAABBAAAAAaAAaO........',
-      '..OaAAaAAAAABBAAAAAaAAaO........',
-      'MmOaAAaAAAAABBAAAAAaAAaO........',
-      '.MmaAAaAAAAABBAAAAAaAAaO........',
-      '..GGSaAAAAABBAAAAAAaSSSO........',
-      '..OSSSaAAAAABBAAAAAaSSSO........',
-      '...OSSAAAAAABBAAAAAASSO.........',
-      '....OAAAAAAABBAAAAAASO..........',
-      '....OAAAcAAABBAAAAccO...........',
-      '.....OAAcAAABBAAAccO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '...OLLLLLLLLOOLLLLLLLO..........',
-      '..OLLLLLLLLO..OLLLLLLLO.........',
-      '..OLLLLLLLO....OLLLLLLO.........',
-      '..OLLLLLLO......OLLLLLO.........',
-      '..OLLLLLO........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OMMO............OMMMO.........',
-      '.OMMMO............OMMMO.........',
-      '.OMMMMO...........OMMMMO........',
-      '.OOOOOO...........OOOOOO........',
-      '................................',
-      '................................'],
-    atk: [
-      '..........OOOOOOOO..............',
-      '........OOHHHHHHHHOO............',
-      'd......OHHhHHHHHHHHHO...........',
-      '.dd...OHHhHHHHHHHHHHHO..........',
-      '..dd..OHHHHHHHHHHHHHHO..........',
-      '....d..OHHAAAAAAAAHHO...........',
-      '.......OHAAAAAAAAAAHO...........',
-      '.......OHASEWSSEWSAHO...........',
-      '.......OHASEISSEISAHO...........',
-      '.......OHAAAAAAAAAAHO...........',
-      '........OAAAAAAAAAAO............',
-      '.........OOAAAAAAOO.............',
-      'Mm.........OAAAAO..............M',
-      '.Mm...OOOOOOAAAAOOOOOO.......MMm',
-      '..GGOOaaaAAAAAAAAAAaaaOO...MMm..',
-      '...GOaaaaAAAAABBAAAAAaaGGGGm....',
-      '....OaAAaAAAAABBAAAAAaAGGO......',
-      '....OaAAaAAAAABBAAAAAaAAO.......',
-      '....OaAAaAAAAABBAAAAAaAAO.......',
-      '....OSSSaAAAAABBAAAAAaAAO.......',
-      '....OSSSaAAAAABBAAAAAaSSO.......',
-      '.....OSSAAAAAABBAAAAAASSO.......',
-      '.....OAAAAAAAABBAAAAAAASO.......',
-      '.....OAAAcAAAABBAAAAAccO........',
-      '......OAAcAAAABBAAAAccO.........',
-      '......OBBBBBBBBBBBBBBO..........',
-      '......OBBBBBBBBBBBBBBO..........',
-      '......OLLLLLLLLLLLLLLO..........',
-      '.....OLLLLLLLLLLLLLLLLO.........',
-      '.....OLLLLLLLLLLLLLLLLO.........',
-      '....OLLLLLLLLLLLLLLLLLLO........',
-      '....OLLLLLLLLOOLLLLLLLLO........',
-      '...OLLLLLLLLO..OLLLLLLLLO.......',
-      '..OLLLLLLLLO....OLLLLLLLO.......',
-      '..OLLLLLLLO......OLLLLLLO.......',
-      '.OLLLLLLLO........OLLLLLO.......',
-      '.OLLLLLLO..........OLLLLO.......',
-      'OLLLLLLO...........OLLLLO.......',
-      'OLLLLLO............OLLLLO.......',
-      'OLLLLO.............OLLLO........',
-      'OMMMO..............OLLLO........',
-      'OMMMMO............OMMMMO........',
-      'OOOOOO............OOOOOO........',
-      '................................',
-      '................................',
-      '................................',
-      '................................',
-      '................................']
-  },
-  kyudoka: {
-    idle: [
-      '........O..O...O................',
-      '.......OHOOHO.OHO...............',
-      '.....OOHHHHHHHHHHHO.............',
-      '....OHHhhHHHHHHHHHHO............',
-      '.....OHHHHHHHHHHHHHO............',
-      '......OHHSSSSSSSSHHO............',
-      '......OHSSSSSSSSSSHO............',
-      '......OHSEWSSSSEWSHO............',
-      '......OHSEISSSSEISHO............',
-      '......OHSSSSSSSSSSHO............',
-      '.......OSSSSmmSSSSO.............',
-      '........OOSSSSSSOO..............',
-      'G.........OSSSSO................',
-      'G....OOOOOOSSSSOOOOOO...........',
-      'M..OOaaaAAAAAAAAAAaaaOO.........',
-      'M.OaaaaAAAAABBAAAAAaaaaO........',
-      'M.OaAAaAAAAABBAAAAAaAAaO........',
-      'M.OaAAaAAAAABBAAAAAaAAaO........',
-      'M.OaAAaAAAAABBAAAAAaAAaO........',
-      'MGOaAAaAAAAABBAAAAAaAAaO........',
-      'MGOSSSaAAAAABBAAAAAaSSSO........',
-      'M.OSSSaAAAAABBAAAAAaSSSO........',
-      'M..OSSAAAAAABBAAAAAASSO.........',
-      'M...OAAAAAAABBAAAAAASO..........',
-      'M...OAAAcAAABBAAAAccO...........',
-      'M....OAAcAAABBAAAccO............',
-      'M....OBBBBBBBBBBBBBO............',
-      'M....OBBBBBBBBBBBBBO............',
-      'G....OLLLLLLLLLLLLLO............',
-      'G....OLLLLLLLLLLLLLO............',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '...OLLLLLLLLOOLLLLLLLO..........',
-      '..OLLLLLLLLO..OLLLLLLLO.........',
-      '..OLLLLLLLO....OLLLLLLO.........',
-      '..OLLLLLLO......OLLLLLO.........',
-      '..OLLLLLO........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLLO.........OLLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OLLLO...........OLLLO.........',
-      '..OMMO............OMMMO.........',
-      '.OMMMO............OMMMO.........',
-      '.OMMMMO...........OMMMMO........',
-      '.OOOOOO...........OOOOOO........',
-      '................................',
-      '................................'],
-    atk: [
-      'G.......O..O...O................',
-      'G......OHOOHO.OHO...............',
-      'G....OOHHHHHHHHHHHO.............',
-      'G...OHHhhHHHHHHHHHHO............',
-      'M....OHHHHHHHHHHHHHO............',
-      'M.....OHHSSSSSSSSHHO............',
-      'M.....OHSSSSSSSSSSHO............',
-      'M..mmmOHSEWSSSSEWSHO............',
-      'M.mm..OHSEISSSSEISHO............',
-      'Mmm...OHSSSSSSSSSSHO............',
-      'M......OSSSSmmSSSSO.............',
-      'M.......OOSSSSSSOO..............',
-      'M.........OSSSSO................',
-      'M....OOOOOOSSSSOOOOOO...........',
-      'M..OOaaaAAAAAAAAAAaaaOO.........',
-      'M.OaaaaAAAAABBAAAAAaaaaO........',
-      'M.OaAAaAAAAABBAAAAAaAAaO........',
-      'MGOaAAaAAAAABBAAAAAaAAaO........',
-      'MGOaAAaAAAAABBAAAAAaAAaO........',
-      'MGOSSSaAAAAABBAAAAAaAAaO........',
-      'MGOSSSaAAAAABBAAAAAaSSSO........',
-      'M.OSSSaAAAAABBAAAAAaSSSO........',
-      'M..OSSAAAAAABBAAAAAASSO.........',
-      'M...OAAAAAAABBAAAAAASO..........',
-      'G...OAAAcAAABBAAAAccO...........',
-      'G....OAAcAAABBAAAccO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OBBBBBBBBBBBBBO............',
-      '.....OLLLLLLLLLLLLLO............',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '....OLLLLLLLLLLLLLLLO...........',
-      '...OLLLLLLLLLLLLLLLLLO..........',
-      '..OLLLLLLLLLOOLLLLLLLLO.........',
-      '..OLLLLLLLLO..OLLLLLLLO.........',
-      '.OLLLLLLLLO....OLLLLLLLO........',
-      '.OLLLLLLLO......OLLLLLLO........',
-      'OLLLLLLLO........OLLLLLO........',
-      'OLLLLLLO.........OLLLLLO........',
-      'OLLLLLO..........OLLLLO.........',
-      'OLLLLO...........OLLLLO.........',
-      'OMMMO............OLLLO..........',
-      'OMMMMO...........OMMMO..........',
-      'OOOOOO..........OMMMMO..........',
-      '................OOOOOO..........',
       '................................',
       '................................',
       '................................',
       '................................']
   }
 };
-BATTLE_POSE.ronin = BATTLE_POSE.samurai;
+// corpo robusto: ombros e tronco mais largos
+BODY_ART.robusto = {
+  idle: BODY_ART.esbelto.idle.map((r, i) =>
+    (i >= 14 && i <= 25) ? r.replace('..OSSS', '.OSSSS').replace('SSO...', 'SSSO..') : r),
+  atk: BODY_ART.esbelto.atk
+};
 
-// gera o sprite de batalha (com fallback para o sprite de mapa)
-function battleSprite(cls, pose) {
-  const id = 'bt_' + cls + '_' + (pose || 'idle');
-  if (spriteCache.has(id)) return spriteCache.get(id);
-  const set = BATTLE_POSE[cls];
-  if (!set) return null;
-  const rows = set[pose || 'idle'] || set.idle;
-  const spr = makeSprite(rows, CLASS_PAL[cls]);
-  spriteCache.set(id, spr);
-  return spr;
+// --- cabelos (6 estilos) ---
+const HAIR_ART = {
+  espetado: [
+    '.......O...O..O.................',
+    '......OHO.OHOOHOO...............',
+    '....OOHHHOHHHHHHHHO.............',
+    '...OHHHHhHHHHHHHHHHO............',
+    '....OHHHHHHHHHHHHHHO............',
+    '.....OHH........HHO.............',
+    '.....OH..........HO.............',
+    '.....OH..........HO.............',
+    '.....OH..........HO.............',
+    '.....OH..........HO.............',
+    '......O..........O..............'],
+  topete: [
+    '..........OOOO..................',
+    '........OOHHHHOO................',
+    '.......OHHhHHHHHO...............',
+    '......OHHhHHHHHHHO..............',
+    '......OHHHHHHHHHHHO.............',
+    '.....OHHH........HHO............',
+    '.....OHH..........HO............',
+    '.....OH...........HO............',
+    '.....OH...........HO............',
+    '.....OH...........HO............',
+    '......O...........O.............'],
+  longo: [
+    '.........OOOOOOOO...............',
+    '.......OOHHHHHHHHOO.............',
+    '......OHHhHHHHHHHHHO............',
+    '.....OHHhHHHHHHHHHHHO...........',
+    '.....OHHHHHHHHHHHHHHO...........',
+    '....OHHHH........HHHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHH..........HHHO..........',
+    '....OHHHO........OHHHO..........',
+    '.....OHHO........OHHO...........',
+    '.....OHHO........OHHO...........',
+    '......OO..........OO............'],
+  curto: [
+    '.........OOOOOOOO...............',
+    '........OHHHHHHHHO..............',
+    '.......OHHhHHHHHHHO.............',
+    '......OHHhHHHHHHHHHO............',
+    '......OHHHHHHHHHHHHO............',
+    '......OHH........HHO............',
+    '......OH..........HO............',
+    '......OH..........HO............',
+    '.......O..........O.............'],
+  rabo: [
+    '.........OOOOOOOO...............',
+    '.......OOHHHHHHHHOO.............',
+    '......OHHhHHHHHHHHHO............',
+    '.....OHHhHHHHHHHHHHHOO..........',
+    '.....OHHHHHHHHHHHHHHHHO.........',
+    '.....OHH........HHHHHHHO........',
+    '.....OH..........HHHHHHO........',
+    '.....OH...........OHHHHO........',
+    '......O............OHHHO........',
+    '....................OHHO........',
+    '....................OHHO........',
+    '.....................OHO........',
+    '.....................OO.........'],
+  franja: [
+    '.........OOOOOOOO...............',
+    '.......OOHHHHHHHHOO.............',
+    '......OHHHHHHHHHHHHO............',
+    '.....OHHhHHhHHhHHhHHO...........',
+    '.....OHHHHHHHHHHHHHHO...........',
+    '.....OHHOHHOHHOHHOHHO...........',
+    '.....OHH.O..O..O..HHO...........',
+    '.....OH...........HHO...........',
+    '.....OH............HO...........',
+    '......O............O............']
+};
+
+// --- peitorais por tipo (define as cores A/a/c/B/L da paleta) ---
+const ARMOR_ART = {
+  none:    { A: '#8a7a5a', a: '#a89578', c: '#6a5c42', B: '#6a5a42', L: '#4a3f30', rows: null },
+  kariginu:{ A: '#e8e4ee', a: '#ffffff', c: '#b8b2c8', B: '#4a4468', L: '#3a4a8a', rows: [
+    '.....OOOOAAAAAAOOOO.............',
+    '...OOaaaAAAAAAAAAAaaaOO.........',
+    '..OaaaaAAAAABBAAAAAaaaaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..O..AaAAAAABBAAAAAa..O.........',
+    '.....AAAAAAABBAAAAAA............',
+    '.....AAAAAAABBAAAAAA............',
+    '.....AAAcAAABBAAAAcc............',
+    '......AAcAAABBAAAcc.............',
+    '.....OBBBBBBBBBBBBBO............',
+    '.....OBBBBBBBBBBBBBO............'] },
+  oyoroi:  { A: '#c8352f', a: '#e05a4e', c: '#8f221f', B: '#3b4a6b', L: '#2f3a52', rows: [
+    '.....OOOOAAAAAAOOOO.............',
+    '...OOaaaAAAAAAAAAAaaaOO.........',
+    '..OaaaaAAAAABBAAAAAaaaaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..OaAAaAAAAABBAAAAAaAAaO........',
+    '..O..AaAAAAABBAAAAAa..O.........',
+    '.....AAAAAAABBAAAAAA............',
+    '.....AAAAAAABBAAAAAA............',
+    '.....AAAcAAABBAAAAcc............',
+    '......AAcAAABBAAAcc.............',
+    '.....OBBBBBBBBBBBBBO............',
+    '.....OBBBBBBBBBBBBBO............'] },
+  // karuta: placas retangulares costuradas, silhueta média
+  karuta:  { A: '#2f6b4a', a: '#3f8a60', c: '#1f4a33', B: '#e8dcc0', L: '#4a4030', rows: [
+    '......OOOAAAAAAOOO..............',
+    '....OOaaAAAAAAAAAAaaOO..........',
+    '...OaaaAAAcAAAAcAAAaaaO.........',
+    '...OaAaAAAcAAAAcAAAaAAaO........',
+    '...OaAaAAAAABBAAAAAaAAaO........',
+    '...OaAaAAAcAAAAcAAAaAAaO........',
+    '...OaAaAAAcAAAAcAAAaAAaO........',
+    '...O.AaAAAAABBAAAAAa..O.........',
+    '.....AAAcAAAAAAcAAAA............',
+    '.....AAAcAAABBAAcAAA............',
+    '.....AAAAAAABBAAAAAA............',
+    '......AAcAAABBAAAcc.............',
+    '.....OBBBBBBBBBBBBBO............',
+    '.....OBBBBBBBBBBBBBO............'] },
+  // shinobi shozoku: traje justo, sem ombreiras, com faixa cruzada
+  shinobishozoku: { A: '#1f2740', a: '#31405f', c: '#151b2c', B: '#4a5a80', L: '#171d30', rows: [
+    '.......OOOAAAAOOO...............',
+    '......OaAAAAAAAAAaO.............',
+    '.....OaAAAAAAAAAAAAaO...........',
+    '.....OaAAAcAAAAAAAAaO...........',
+    '.....OaAAAAcAAAAAAAaO...........',
+    '.....OaAAAAAcAAAAAAaO...........',
+    '.....OaAAAAAAcAAAAAaO...........',
+    '.....O.AAAAAAAcAAAA.O...........',
+    '......AAAAAAAAAcAAA.............',
+    '......AAAAAAAAAAcAA.............',
+    '......AAAcAAAAAAAAA.............',
+    '.......AAcAAAAAAcc..............',
+    '.....OBBBBBBBBBBBBBO............',
+    '.....OBBBBBBBBBBBBBO............'] }
+};
+// sem armadura: roupa simples de linho
+ARMOR_ART.none.rows = [
+  '......OOOAAAAAAOOO..............',
+  '....OOaaAAAAAAAAAAaaOO..........',
+  '...OaaaAAAAAAAAAAAAaaaO.........',
+  '...OaAaAAAAABBAAAAAaAAaO........',
+  '...OaAaAAAAABBAAAAAaAAaO........',
+  '...OaAaAAAAABBAAAAAaAAaO........',
+  '...OaAaAAAAABBAAAAAaAAaO........',
+  '...O.AaAAAAABBAAAAAa..O.........',
+  '.....AAAAAAABBAAAAAA............',
+  '.....AAAAAAABBAAAAAA............',
+  '.....AAAcAAABBAAAAcc............',
+  '......AAcAAABBAAAcc.............',
+  '.....OBBBBBBBBBBBBBO............',
+  '.....OBBBBBBBBBBBBBO............'];
+// o-yoroi ganha ombreiras largas (sode) características do samurai
+ARMOR_ART.oyoroi.rows = [
+  '....OOOOOAAAAAAOOOOO............',
+  '..OOaaaaAAAAAAAAAAaaaaOO........',
+  '.OaaaaaAAAAcAAcAAAAaaaaaO.......',
+  '.OaAAAaAAAAcAAcAAAAaAAAaO.......',
+  '.OaAAAaAAAAABBAAAAAaAAAaO.......',
+  '.OaAAAaAAAAcAAcAAAAaAAAaO.......',
+  '.OaAAAaAAAAcAAcAAAAaAAAaO.......',
+  '.OO..AaAAAAABBAAAAAa..OOO.......',
+  '.....AAAcAAABBAAAcAAA...........',
+  '.....AAAcAAABBAAAcAAA...........',
+  '.....AAAAAAABBAAAAAA............',
+  '......AAcAAABBAAAcc.............',
+  '.....OBBBBBBBBBBBBBO............',
+  '.....OBBBBBBBBBBBBBO............'];
+
+// --- elmos e chapéus ---
+const HELM_ART = {
+  kabuto: [
+    '.......OOOOOOOOOO...............',
+    '.....OOMMMMMMMMMMOO.............',
+    '....OMMMMMMMMMMMMMMO............',
+    '....OMMYMMMMMMMMYMMO............',
+    '....OMMMMMMMMMMMMMMO............',
+    '...OMMOOOOOOOOOOOOMMO...........',
+    '...OMO............OMO...........'],
+  eboshi: [
+    '.........OOOOOO.................',
+    '........OBBBBBBO................',
+    '........OBBBBBBO................',
+    '.......OOBBBBBBOO...............',
+    '......OOOOOOOOOOOO..............'],
+  zukin: [
+    '.........OOOOOOOO...............',
+    '.......OOAAAAAAAAOO.............',
+    '......OAAAAAAAAAAAAO............',
+    '.....OAAAAAAAAAAAAAAO...........',
+    '.....OAAAAAAAAAAAAAAO...........',
+    '.....OAA........AAAAO...........',
+    '.....OA..........AAAO...........'],
+  kasa: [
+    '..........OOOO..................',
+    '.......OOOYYYYOOO...............',
+    '....OOOYYYYYYYYYYOOO............',
+    '..OOYYYYYYYYYYYYYYYYOO..........',
+    '..OYYYYYYYYYYYYYYYYYYO..........',
+    '...OOOOOOOOOOOOOOOOOO...........'],
+  hachimaki: [
+    '................................',
+    '................................',
+    '.....ORRRRRRRRRRRRRO............',
+    '.....ORRRRRRRRRRRRRO............',
+    '....OR............RO............']
+};
+// cores próprias de cada peça de cabeça
+const HELM_PAL = {
+  kabuto:    { M: '#5a6478', m: '#8a94a8', Y: '#e8c050', O: '#1a1a24' },   // aço escuro com maedate dourado
+  eboshi:    { B: '#181420', O: '#0c0a12' },                              // preto lacado
+  zukin:     { A: '#1a2030', O: '#0c1018' },                              // capuz ninja
+  kasa:      { Y: '#c8a860', O: '#4a3a1a' },                              // palha trançada
+  hachimaki: { R: '#c0392b', O: '#7a1f18' }                               // faixa vermelha
+};
+// mapeia cada elmo do catálogo para uma arte
+const HELM_OF = {
+  elm1: 'hachimaki', elm2: 'kabuto', elm3: 'eboshi', elm4: 'zukin',
+  elm5: 'kabuto', elm6: 'kasa', elm7: 'kabuto', elm8: 'kabuto'
+};
+
+// --- armas (definem a classe) ---
+const WEAPON_ART = {
+  katana: {
+    idle: [
+      '...............................M',
+      '..............................MM',
+      '.............................MMm',
+      '............................MMm.',
+      '...........................MMm..',
+      '..........................MMm...',
+      '.........................MMm....',
+      '........................MMm.....',
+      '.......................GGm......',
+      '.......................GGO......'],
+    idleY: 12,
+    atk: [
+      '............................MMM.',
+      '..........................MMMm..',
+      '........................MMMm....',
+      '......................MMMm......',
+      '....................MMMm........',
+      '..................MGm...........',
+      '................GGm.............',
+      '...............GGO..............'],
+    atkY: 0
+  },
+  shakujo: {
+    idle: [
+      '..............................M.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '.............................MG.',
+      '..............................G.'],
+    idleY: 10,
+    atk: [
+      '..........................W.....',
+      '.........................WWW....',
+      '........................WWWWW...',
+      '.........................WWW....',
+      '..........................W.....',
+      '..........................M.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '.........................MG.....',
+      '..........................G.....'],
+    atkY: 2
+  },
+  tanto: {
+    idle: [
+      '.............................Mm.',
+      '............................MMm.',
+      '...........................GGO..'],
+    idleY: 20,
+    atk: [
+      '..........................Mm....',
+      '.........................MMm....',
+      '........................GGO.....'],
+    atkY: 14
+  },
+  yumi: {
+    idle: [
+      '.............................G..',
+      '............................GM..',
+      '............................GM..',
+      '...........................GM...',
+      '...........................GM...',
+      '...........................GM...',
+      '...........................GM...',
+      '...........................GM...',
+      '...........................GM...',
+      '............................GM..',
+      '............................GM..',
+      '.............................G..'],
+    idleY: 12,
+    atk: [
+      '..........................G.....',
+      '.........................GM.....',
+      '.........................GM.....',
+      '........................GM......',
+      '.....mmmmmmmmmmmmmmmmmmmGM......',
+      '........................GM......',
+      '.........................GM.....',
+      '.........................GM.....',
+      '..........................G.....'],
+    atkY: 14
+  }
+};
+
+// --- composição: monta o sprite completo em camadas ---
+function composeSprite(pose) {
+  const lk = (P && P.look) || defaultLook();
+  const wt = weaponType() || 'katana';
+  const corpoId = P && P.equip && P.equip.corpo;
+  const atype = corpoId ? (EQUIP[corpoId].atype || 'none') : 'none';
+  const elmoId = P && P.equip && P.equip.elmo;
+  const helm = elmoId ? HELM_OF[elmoId] : null;
+  const key = ['bt', pose, lk.corpo, lk.pele, lk.cabelo, lk.corCabelo, lk.olhos, wt, atype, helm || '-'].join('_');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const pal = lookPal();
+  const W = 32, H = 48;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const stamp = (rows, oy, palOverride) => {
+    if (!rows) return;
+    const p = palOverride ? Object.assign({}, pal, palOverride) : pal;
+    for (let y = 0; y < rows.length; y++) {
+      const yy = y + (oy || 0);
+      if (yy < 0 || yy >= H) continue;
+      for (let x = 0; x < rows[y].length && x < W; x++) {
+        const ch = rows[y][x];
+        if (ch !== '.' && p[ch]) { g.fillStyle = p[ch]; g.fillRect(x, yy, 1, 1); }
+      }
+    }
+  };
+  // 1. corpo (rosto e pernas)
+  const body = BODY_ART[CORPO[lk.corpo % CORPO.length].name.toLowerCase()] || BODY_ART.esbelto;
+  stamp(body[pose] || body.idle, 0);
+  // 2. peitoral por cima do torso
+  const armor = ARMOR_ART[atype] || ARMOR_ART.none;
+  stamp(armor.rows, pose === 'atk' ? 13 : 13);
+  // 3. cabelo
+  const estilo = ESTILO_CABELO[lk.cabelo % ESTILO_CABELO.length].name.toLowerCase();
+  stamp(HAIR_ART[estilo] || HAIR_ART.espetado, pose === 'atk' ? 1 : 0);
+  // 4. elmo/chapéu
+  if (helm && HELM_ART[helm]) stamp(HELM_ART[helm], pose === 'atk' ? 1 : 0, HELM_PAL[helm]);
+  // 5. arma
+  const w = WEAPON_ART[wt];
+  if (w) stamp(pose === 'atk' ? w.atk : w.idle, pose === 'atk' ? w.atkY : w.idleY);
+
+  spriteCache.set(key, c);
+  return c;
 }
+function battleSprite(cls, pose) { return composeSprite(pose === 'atk' ? 'atk' : 'idle'); }
+
+
+
 
 // --- Inimigos ---
 const ENEMY_ART = {
@@ -1790,7 +1934,7 @@ const G = {
   chests: {},         // id -> true (abertos)
   region: null,
   shopId: 'aldeia',
-  parts: [], ambT: 0, dustT: 0, battleFlash: 0,
+  parts: [], ambT: 0, dustT: 0, battleFlash: 0, criaIdx: 0,
   learnQueue: [], learnIdx: 0,
   victoryShown: false,
   stats: { kills: 0, battles: 0 }
@@ -1811,6 +1955,7 @@ function newPlayer() {
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
     pets: [], activePet: null,
+    look: defaultLook(),
     // técnicas equipadas por caminho (cada arma tem seu próprio conjunto de 4)
     skillSets: { katana: ['golpe'], shakujo: ['fogo'], tanto: ['duplo'], yumi: ['precisa'] },
     x: START.x, y: START.y,
@@ -1903,6 +2048,7 @@ function equipFromInv(idx) {
   P.equipInv.splice(idx, 1);
   if (old) P.equipInv.push(old);
   clampVitals();
+  spriteCache.clear();   // o visual acompanha o equipamento
 }
 
 // conjunto de técnicas do caminho atual (cria vazio se ainda não existir)
@@ -2022,6 +2168,7 @@ function loadGame() {
     if (P.frags === undefined) P.frags = 0;
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
+    if (!P.look) P.look = defaultLook();
     if (!P.skillSets) {
       // save antigo: monta o conjunto de cada caminho pelo nível alcançado
       P.skillSets = {};
@@ -4186,19 +4333,12 @@ function startNewGame() {
   G.flags = { reislime: false, necromante: false, dragao: false };
   G.chests = {}; G.victoryShown = false;
   G.stats = { kills: 0, battles: 0 };
+  G.learnQueue = []; G.criaIdx = 0;
   MAPS.overworld = genOverworld(); MAPS.cave = genCave();
-  fadeTo(() => {
-    enterMap('overworld', START.x, START.y);
-    G.state = 'world';
-    showMsg('Bem-vindo a Sakuramura!\nSeu caminho vem da arma que\nempunha: katana, shakujo,\ntanto ou yumi.');
-    showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas técnicas.');
-    showMsg('Youkai deixam Fragmentos ◆.\nLeve-os ao altar da vila para\nencantar seu equipamento!');
-    showMsg('Três grandes youkai ameaçam\nestas terras. Derrote\nYamata-no-Orochi e traga a paz!');
-    saveGame();
-  });
+  spriteCache.clear();
+  G.state = 'create';   // primeiro a criação do personagem
 }
 
-// ---------- Menu do jogador ----------
 function drawPauseMenu() {
   drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
@@ -4485,6 +4625,109 @@ function updatePauseMenu() {
   }
   if (tap('back') || tap('menu')) { G.state = 'world'; AU.sfx('back'); saveGame(); }
 }
+// ---------- Criação do personagem ----------
+// Escolhas puramente físicas: a classe continua vindo da arma equipada.
+const CRIA_OPCOES = [
+  { key: 'corpo',     label: 'Porte',         lista: () => CORPO },
+  { key: 'pele',      label: 'Pele',          lista: () => PELE },
+  { key: 'cabelo',    label: 'Cabelo',        lista: () => ESTILO_CABELO },
+  { key: 'corCabelo', label: 'Cor do cabelo', lista: () => COR_CABELO },
+  { key: 'olhos',     label: 'Olhos',         lista: () => COR_OLHOS }
+];
+function drawCreate() {
+  const grd = ctx.createLinearGradient(0, 0, 0, VH);
+  grd.addColorStop(0, '#141024'); grd.addColorStop(1, '#2a1c46');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, VW, VH);
+  for (let i = 0; i < 16; i++) {
+    const sx = (i * 71 + G.time * (10 + i % 4 * 4)) % (VW + 16) - 8;
+    const sy = (i * 47 + G.time * 16) % (VH + 16) - 8;
+    ctx.fillStyle = ['#f7b3c6', '#ffd6e2', '#e88fa8'][i % 3];
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(Math.round(sx), Math.round(sy), 2, 2);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 11px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('CRIE SEU GUERREIRO', VW / 2, 18);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#b8a8d8';
+  ctx.fillText('a arma que empunhar definirá seu caminho', VW / 2, 28);
+  ctx.textAlign = 'left';
+
+  const x = 14, y = 38, w = 168;
+  ctx.fillStyle = 'rgba(20,14,38,0.9)';
+  ctx.fillRect(x, y, w, 118);
+  ctx.strokeStyle = '#5a4a8a';
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 117);
+  CRIA_OPCOES.forEach((op, i) => {
+    const oy = y + 16 + i * 17;
+    const sel = G.criaIdx === i;
+    const lista = op.lista();
+    const val = lista[P.look[op.key] % lista.length];
+    if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 6, oy); }
+    ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+    ctx.fillText(op.label, x + 15, oy);
+    ctx.fillStyle = sel ? '#ffd94e' : '#6a5a8a';
+    ctx.fillText('◀', x + 80, oy);
+    ctx.fillText('▶', x + w - 12, oy);
+    ctx.fillStyle = sel ? '#fff' : '#8a7ab0';
+    ctx.fillText(val.name, x + 90, oy);
+    if (op.key === 'pele') { ctx.fillStyle = val.S; ctx.fillRect(x + w - 32, oy - 6, 9, 7); }
+    if (op.key === 'corCabelo') { ctx.fillStyle = val.H; ctx.fillRect(x + w - 32, oy - 6, 9, 7); ctx.fillStyle = val.h; ctx.fillRect(x + w - 32, oy - 6, 9, 3); }
+    if (op.key === 'olhos') { ctx.fillStyle = val.I; ctx.fillRect(x + w - 32, oy - 6, 9, 7); }
+  });
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('◀▶ trocar · ▲▼ opção · Z começar', x + 6, y + 110);
+
+  // preview ao vivo usando o mesmo sprite da batalha
+  const bx = 196, by = 34;
+  ctx.fillStyle = 'rgba(20,14,38,0.9)';
+  ctx.fillRect(bx, by, 108, 124);
+  ctx.strokeStyle = '#5a4a8a';
+  ctx.strokeRect(bx + 0.5, by + 0.5, 107, 123);
+  const atacando = Math.floor(G.time * 1.2) % 5 === 4;
+  const spr = composeSprite(atacando ? 'atk' : 'idle');
+  if (spr) {
+    const esc = 2.2;
+    const bob = atacando ? 0 : Math.round(Math.sin(G.time * 2.4));
+    ctx.drawImage(spr, Math.round(bx + 54 - 32 * esc / 2), Math.round(by + 6 + bob), 32 * esc, 48 * esc);
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8a7ab0';
+  ctx.fillText('começa com a katana', bx + 54, by + 118);
+  ctx.textAlign = 'left';
+}
+function updateCreate() {
+  const op = CRIA_OPCOES[G.criaIdx];
+  const n = CRIA_OPCOES.length;
+  if (tap('up')) { G.criaIdx = (G.criaIdx + n - 1) % n; AU.sfx('menu'); }
+  if (tap('down')) { G.criaIdx = (G.criaIdx + 1) % n; AU.sfx('menu'); }
+  const foiEsq = pressed['left'];
+  if (tap('left') || tap('right')) {
+    const lista = op.lista();
+    P.look[op.key] = (P.look[op.key] + (foiEsq ? -1 : 1) + lista.length) % lista.length;
+    spriteCache.clear();      // aparência mudou: refaz os sprites
+    AU.sfx('menu');
+  }
+  if (tap('back')) { G.state = 'title'; AU.sfx('back'); }
+  if (tap('ok')) {
+    AU.sfx('ok');
+    fadeTo(() => {
+      enterMap('overworld', START.x, START.y);
+      G.state = 'world';
+      showMsg('Bem-vindo a Sakuramura!\nSeu caminho vem da arma que\nempunha: katana, shakujo,\ntanto ou yumi.');
+      showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas técnicas.');
+      showMsg('O que você veste aparece no\nseu personagem: peitorais,\nelmos e armas mudam o visual!');
+      showMsg('Youkai deixam Fragmentos ◆.\nLeve-os ao altar da vila para\nencantar seu equipamento!');
+      showMsg('Três grandes youkai ameaçam\nestas terras. Derrote\nYamata-no-Orochi e traga a paz!');
+      saveGame();
+    });
+  }
+}
+
 // ---------- Loja ----------
 // estoque por cidade: 'i:' consumível, senão id de equipamento
 const SHOP_STOCK = {
@@ -4817,6 +5060,7 @@ function frame(now) {
         case 'shop': updateShop(); break;
         case 'enchant': updateEnchant(); break;
         case 'learn': updateLearn(); break;
+        case 'create': updateCreate(); break;
         case 'gameover': updateGameOver(); break;
         case 'victory': updateVictory(); break;
       }
@@ -4845,6 +5089,7 @@ function frame(now) {
     case 'shop': drawShop(); break;
     case 'enchant': drawEnchant(); break;
     case 'learn': drawLearn(); break;
+    case 'create': drawCreate(); break;
     case 'gameover': drawGameOver(); break;
     case 'victory': drawVictory(); break;
   }
@@ -4923,6 +5168,8 @@ window.DBG = {
   items() { return ITEMS; },
   tileCache() { return tileVarCache.size; },
   actions() { return battleActions(); },
+  clearSprites() { spriteCache.clear(); },
+  save() { saveGame(); },
   curSkills() { return curSkills(); },
   setSkills(arr) { const t = weaponType(); if (t) P.skillSets[t] = arr.slice(); },
   battleSprite(c,p) { return battleSprite(c,p); },

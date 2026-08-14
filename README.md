@@ -27,9 +27,15 @@ A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos
 | ◀ ▶ no menu | Trocar de aba |
 | M | Ligar/desligar som |
 
+## 🎭 Crie seu guerreiro
+
+O jogo abre com uma **tela de criação de personagem** onde você define as características físicas — porte, tom de pele, estilo e cor do cabelo e cor dos olhos — com **preview ao vivo** do sprite de batalha, que inclusive alterna entre a pose parada e a de ataque enquanto você escolhe.
+
+A aparência é só sua: o **equipamento aparece visualmente no personagem**. O sprite é montado em camadas (paper doll) — corpo com suas características + cabelo + peitoral + elmo + arma —, então vestir um O-Yoroi coloca ombreiras largas de samurai, um Shinobi Shozoku deixa a silhueta justa com faixa cruzada, e cada peça de cabeça tem visual próprio (kabuto de aço com maedate dourado, eboshi preto lacado, zukin de ninja, kasa de palha, hachimaki). Isso vale no mapa e na batalha.
+
 ## 🧙 O caminho é a arma que você empunha
 
-Não existe seleção de classe: **seu caminho é definido pela arma equipada**.
+Independente da aparência, **seu caminho é definido pela arma equipada**.
 
 - **Katana** → Samurai (Kesagiri, Kiai, Tsubame Gaeshi, Iai-nuki, Zanshin, Hyakuretsu)
 - **Shakujo** → Onmyoji (Katon, Hyoton, Kekkai, Raijin no Ikari, Kyuketsu, Amaterasu)
@@ -99,9 +105,10 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 - Derrota amigável: você acorda na vila perdendo metade do ouro
 - Trilha chiptune em **escalas pentatônicas japonesas** (hirajoshi no mundo, in-sen no combate, kumoi na caverna)
 - Personagens em **pixel art estilo anime**: no mapa (16×20) e em **sprites de batalha 32×48** com proporção heroica (~4 cabeças), pose de combate com pernas afastadas, arma em punho, cabelo espetado em mechas e rosto com olhos de íris colorida — com troca de pose durante os ataques
+- **Sprites em camadas (paper doll)**: 4 tons de pele, 6 estilos e 7 cores de cabelo, 6 cores de olhos e 2 portes, combinados com o peitoral, elmo e arma equipados
 - Cenários do Japão feudal: sakuras em flor, bambuzais, telhados kawara, paredes de taipa, portas shoji, torii vermelhos, lanternas toro, estátuas jizo e pontes laqueadas — com espécie de árvore predominante por região
 - 60 FPS estáveis no mundo e em batalha; texto nítido em resolução cheia sobre a arte em pixels
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 85 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes e cinemática de entrada — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 94 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), e persistência da aparência no save — tudo sem erros de JavaScript.
