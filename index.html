@@ -87,6 +87,18 @@ ctx.measureText = function (text) {
   octx.font = ctx.font;
   return { width: octx.measureText(text).width };
 };
+// Preenche nos dois canvas: caixas que aparecem por cima de outra tela
+// precisam cobrir também o texto, que vive na camada de alta resolução.
+function coverRect(x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+  const m = ctx.getTransform();
+  octx.save();
+  octx.setTransform(m.a * SCALE, m.b * SCALE, m.c * SCALE, m.d * SCALE, m.e * SCALE, m.f * SCALE);
+  octx.fillStyle = fill;
+  octx.fillRect(x, y, w, h);
+  octx.restore();
+}
 
 // ---------- Utilidades ----------
 const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
@@ -111,6 +123,7 @@ const KEYMAP = {
   z: 'ok', Z: 'ok', Enter: 'ok', ' ': 'ok',
   x: 'back', X: 'back', Escape: 'back',
   c: 'menu', C: 'menu', m: 'mute', M: 'mute',
+  q: 'alt', Q: 'alt',
   Shift: 'run'
 };
 window.addEventListener('keydown', e => {
@@ -1632,6 +1645,10 @@ const EQUIP = {
   esp5: { name: 'Muramasa',           slot: 'arma', rar: 'lendario', wtype: 'katana', bonus: { atk: 22, hp: 20 } },
   esp6: { name: 'Naginata',           slot: 'arma', rar: 'incomum',  wtype: 'katana', bonus: { atk: 6, spd: -1 } },
   esp7: { name: 'Nodachi',            slot: 'arma', rar: 'raro',     wtype: 'katana', bonus: { atk: 10, def: 1 } },
+  esp8: { name: 'Kodachi Lascada',    slot: 'arma', rar: 'comum',    wtype: 'katana', bonus: { atk: 3 } },
+  esp9: { name: 'Katana do Ronin',    slot: 'arma', rar: 'incomum',  wtype: 'katana', bonus: { atk: 5, crit: 0.02 } },
+  esp10:{ name: 'Nagamaki de Ferro',  slot: 'arma', rar: 'raro',     wtype: 'katana', bonus: { atk: 9, hp: 8 } },
+  esp11:{ name: 'Katana Kagenui',     slot: 'arma', rar: 'epico',    wtype: 'katana', bonus: { atk: 13, spd: 3 } },
   // shakujo / cajados (onmyoji)
   caj1: { name: 'Bastão de Bambu',    slot: 'arma', rar: 'comum',    wtype: 'shakujo', bonus: { mag: 3 } },
   caj2: { name: 'Shakujo de Carvalho',slot: 'arma', rar: 'incomum',  wtype: 'shakujo', bonus: { mag: 6 } },
@@ -1640,6 +1657,10 @@ const EQUIP = {
   caj5: { name: 'Olho de Amaterasu',  slot: 'arma', rar: 'lendario', wtype: 'shakujo', bonus: { mag: 25, mp: 25 } },
   caj6: { name: 'Vara de Ossos',      slot: 'arma', rar: 'incomum',  wtype: 'shakujo', bonus: { mag: 5, mp: 5 } },
   caj7: { name: 'Pergaminho Selado',  slot: 'arma', rar: 'raro',     wtype: 'shakujo', bonus: { mag: 10, def: 2 } },
+  caj8: { name: 'Galho de Sakaki',    slot: 'arma', rar: 'comum',    wtype: 'shakujo', bonus: { mag: 2, mp: 3 } },
+  caj9: { name: 'Nyoibo',             slot: 'arma', rar: 'incomum',  wtype: 'shakujo', bonus: { mag: 5, def: 1 } },
+  caj10:{ name: 'Shakujo de Prata',   slot: 'arma', rar: 'raro',     wtype: 'shakujo', bonus: { mag: 10, def: 1, mp: 6 } },
+  caj11:{ name: 'Ofuda do Sol',       slot: 'arma', rar: 'epico',    wtype: 'shakujo', bonus: { mag: 15, mp: 12 } },
   // tanto / kunai (shinobi)
   ada1: { name: 'Kunai Cega',         slot: 'arma', rar: 'comum',    wtype: 'tanto', bonus: { atk: 1, spd: 1 } },
   ada2: { name: 'Tanto Curvo',        slot: 'arma', rar: 'incomum',  wtype: 'tanto', bonus: { atk: 3, spd: 2, crit: 0.03 } },
@@ -1647,6 +1668,10 @@ const EQUIP = {
   ada4: { name: 'Presa de Jorogumo',  slot: 'arma', rar: 'epico',    wtype: 'tanto', bonus: { atk: 10, spd: 5, crit: 0.10 } },
   ada5: { name: 'Kusanagi Menor',     slot: 'arma', rar: 'lendario', wtype: 'tanto', bonus: { atk: 15, spd: 8, crit: 0.15 } },
   ada6: { name: 'Shuriken Afiado',    slot: 'arma', rar: 'incomum',  wtype: 'tanto', bonus: { atk: 2, crit: 0.06 } },
+  ada7: { name: 'Kunai de Treino',    slot: 'arma', rar: 'comum',    wtype: 'tanto', bonus: { spd: 2 } },
+  ada8: { name: 'Kaiken',             slot: 'arma', rar: 'incomum',  wtype: 'tanto', bonus: { atk: 3, crit: 0.04 } },
+  ada9: { name: 'Tanto Venenoso',     slot: 'arma', rar: 'raro',     wtype: 'tanto', bonus: { atk: 5, spd: 3, crit: 0.05 } },
+  ada10:{ name: 'Kusarigama',         slot: 'arma', rar: 'epico',    wtype: 'tanto', bonus: { atk: 9, spd: 4, crit: 0.08 } },
   // yumi / arcos (kyudoka)
   arc1: { name: 'Yumi Simples',       slot: 'arma', rar: 'comum',    wtype: 'yumi', bonus: { atk: 2, crit: 0.02 } },
   arc2: { name: 'Hankyu',             slot: 'arma', rar: 'incomum',  wtype: 'yumi', bonus: { atk: 4, spd: 1, crit: 0.03 } },
@@ -1654,6 +1679,10 @@ const EQUIP = {
   arc4: { name: 'Yumi de Cerejeira',  slot: 'arma', rar: 'epico',    wtype: 'yumi', bonus: { atk: 12, spd: 4, crit: 0.08 } },
   arc5: { name: 'Sussurro de Fujin',  slot: 'arma', rar: 'lendario', wtype: 'yumi', bonus: { atk: 18, spd: 6, crit: 0.12 } },
   arc6: { name: 'Yumi de Caça',       slot: 'arma', rar: 'raro',     wtype: 'yumi', bonus: { atk: 10, crit: 0.04 } },
+  arc7: { name: 'Yumi de Bambu',      slot: 'arma', rar: 'comum',    wtype: 'yumi', bonus: { atk: 1, spd: 1 } },
+  arc8: { name: 'Arco do Vilarejo',   slot: 'arma', rar: 'incomum',  wtype: 'yumi', bonus: { atk: 4, crit: 0.02 } },
+  arc9: { name: 'Yumi Laqueado',      slot: 'arma', rar: 'raro',     wtype: 'yumi', bonus: { atk: 8, mag: 3 } },
+  arc10:{ name: 'Hankyu de Tengu',    slot: 'arma', rar: 'epico',    wtype: 'yumi', bonus: { atk: 11, spd: 5, crit: 0.06 } },
   // peitorais (do / armaduras)
   arm1: { name: 'Kimono de Linho',    slot: 'corpo', rar: 'comum',   atype: 'kariginu', bonus: { def: 1 } },
   arm2: { name: 'Do de Couro',        slot: 'corpo', rar: 'incomum', atype: 'karuta',  bonus: { def: 3, spd: 1 } },
@@ -1666,12 +1695,22 @@ const EQUIP = {
   arm9: { name: 'Do de Caçador',      slot: 'corpo', rar: 'incomum', atype: 'karuta',  bonus: { def: 3, atk: 1 } },
   arm10:{ name: 'Karuta-gane',        slot: 'corpo', rar: 'raro',    atype: 'karuta',  bonus: { def: 5, spd: 2, atk: 2 } },
   arm11:{ name: 'Traje da Névoa',     slot: 'corpo', rar: 'epico',   atype: 'shinobishozoku', bonus: { def: 7, atk: 4, spd: 3 } },
+  arm12:{ name: 'Manto Rasgado',      slot: 'corpo', rar: 'comum',   atype: 'kariginu', bonus: { def: 1, spd: 1 } },
+  arm13:{ name: 'Do de Bambu',        slot: 'corpo', rar: 'comum',   atype: 'karuta',  bonus: { def: 2 } },
+  arm14:{ name: 'Hakama de Treino',   slot: 'corpo', rar: 'incomum', atype: 'shinobishozoku', bonus: { def: 2, spd: 2 } },
+  arm15:{ name: 'Kesa do Monge',      slot: 'corpo', rar: 'incomum', atype: 'kariginu', bonus: { def: 2, mp: 8 } },
+  arm16:{ name: 'Domaru de Ferro',    slot: 'corpo', rar: 'raro',    atype: 'oyoroi',  bonus: { def: 7, hp: 6 } },
+  arm17:{ name: 'Seda Negra',         slot: 'corpo', rar: 'raro',    atype: 'shinobishozoku', bonus: { def: 4, spd: 3, crit: 0.03 } },
   // waraji / botas
   bot1: { name: 'Waraji Gastas',      slot: 'botas', rar: 'comum',    bonus: { spd: 1 } },
   bot2: { name: 'Tabi de Couro',      slot: 'botas', rar: 'incomum',  bonus: { spd: 2, def: 1 } },
   bot3: { name: 'Suneate de Ferro',   slot: 'botas', rar: 'raro',     bonus: { def: 4, hp: 8 } },
   bot4: { name: 'Tabi do Vento',      slot: 'botas', rar: 'epico',    bonus: { spd: 6, crit: 0.03 } },
   bot5: { name: 'Passos de Fujin',    slot: 'botas', rar: 'lendario', bonus: { spd: 9, atk: 5, crit: 0.05 } },
+  bot6: { name: 'Geta de Madeira',    slot: 'botas', rar: 'comum',    bonus: { def: 1 } },
+  bot7: { name: 'Waraji Novas',       slot: 'botas', rar: 'incomum',  bonus: { spd: 2 } },
+  bot8: { name: 'Tabi do Shinobi',    slot: 'botas', rar: 'raro',     bonus: { spd: 5, crit: 0.02 } },
+  bot9: { name: 'Suneate de Tengu',   slot: 'botas', rar: 'epico',    bonus: { def: 5, spd: 4 } },
   // kabuto / chapéus
   elm1: { name: 'Hachimaki',          slot: 'elmo', rar: 'comum',   bonus: { def: 1 } },
   elm2: { name: 'Kabuto de Ferro',    slot: 'elmo', rar: 'incomum', bonus: { def: 3 } },
@@ -1681,6 +1720,10 @@ const EQUIP = {
   elm6: { name: 'Kasa de Palha',      slot: 'elmo', rar: 'incomum', bonus: { spd: 2, atk: 1 } },
   elm7: { name: 'Menpo de Tengu',     slot: 'elmo', rar: 'epico',   bonus: { def: 6, spd: 3 } },
   elm8: { name: 'Kabuto de Orochi',   slot: 'elmo', rar: 'lendario',bonus: { def: 10, hp: 25, atk: 4 } },
+  elm9: { name: 'Tenugui',            slot: 'elmo', rar: 'comum',   bonus: { spd: 1 } },
+  elm10:{ name: 'Jingasa',            slot: 'elmo', rar: 'incomum', bonus: { def: 2, hp: 4 } },
+  elm11:{ name: 'Mempo de Ferro',     slot: 'elmo', rar: 'raro',    bonus: { def: 4, atk: 2 } },
+  elm12:{ name: 'Kitsune-men',        slot: 'elmo', rar: 'epico',   bonus: { mag: 7, crit: 0.04 } },
   // kote / luvas
   luv1: { name: 'Tekko de Pano',      slot: 'luvas', rar: 'comum',    bonus: { def: 1 } },
   luv2: { name: 'Kote de Couro',      slot: 'luvas', rar: 'incomum',  bonus: { atk: 2, spd: 1 } },
@@ -1688,6 +1731,10 @@ const EQUIP = {
   luv4: { name: 'Tekko do Onmyoji',   slot: 'luvas', rar: 'raro',     bonus: { mag: 6, mp: 6 } },
   luv5: { name: 'Garras de Nekomata', slot: 'luvas', rar: 'epico',    bonus: { atk: 7, crit: 0.07 } },
   luv6: { name: 'Punho de Raijin',    slot: 'luvas', rar: 'lendario', bonus: { atk: 13, def: 6 } },
+  luv7: { name: 'Kote de Bambu',      slot: 'luvas', rar: 'comum',    bonus: { def: 1, spd: 1 } },
+  luv8: { name: 'Tekko de Malha',     slot: 'luvas', rar: 'incomum',  bonus: { def: 2, atk: 1 } },
+  luv9: { name: 'Yugake de Arqueiro', slot: 'luvas', rar: 'raro',     bonus: { atk: 3, crit: 0.05 } },
+  luv10:{ name: 'Kote de Jorogumo',   slot: 'luvas', rar: 'epico',    bonus: { atk: 5, spd: 4, crit: 0.04 } },
   // omamori / magatama (amuletos)
   amu1: { name: 'Omamori de Cobre',   slot: 'amuleto', rar: 'comum',    bonus: { hp: 5 } },
   amu2: { name: 'Magatama de Jade',   slot: 'amuleto', rar: 'incomum',  bonus: { mp: 8 } },
@@ -1696,7 +1743,12 @@ const EQUIP = {
   amu5: { name: 'Coração de Orochi',  slot: 'amuleto', rar: 'lendario', bonus: { hp: 40, mp: 20 } },
   amu6: { name: 'Omamori de Prata',   slot: 'amuleto', rar: 'incomum',  bonus: { def: 2, mag: 2 } },
   amu7: { name: 'Sino da Sorte',      slot: 'amuleto', rar: 'raro',     bonus: { crit: 0.05, hp: 8 } },
-  amu8: { name: 'Selo de Inari',      slot: 'amuleto', rar: 'epico',    bonus: { mag: 9, mp: 16 } }
+  amu8: { name: 'Selo de Inari',      slot: 'amuleto', rar: 'epico',    bonus: { mag: 9, mp: 16 } },
+  amu9: { name: 'Ema de Madeira',     slot: 'amuleto', rar: 'comum',    bonus: { mp: 4 } },
+  amu10:{ name: 'Ofuda Protetor',     slot: 'amuleto', rar: 'incomum',  bonus: { def: 2, hp: 6 } },
+  amu11:{ name: 'Magatama Azul',      slot: 'amuleto', rar: 'raro',     bonus: { mag: 4, mp: 10 } },
+  amu12:{ name: 'Espelho de Yata',    slot: 'amuleto', rar: 'epico',    bonus: { def: 5, mag: 5, hp: 12 } },
+  amu13:{ name: 'Sino do Templo',     slot: 'amuleto', rar: 'incomum',  bonus: { mag: 2, mp: 6 } }
 };
 function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
 
@@ -1736,24 +1788,38 @@ const ALLOC = [
   { key: 'spd',   name: 'VEL', desc: '+1 VEL' }
 ];
 // tier: raridade máxima que o mob costuma dropar (índice em RAR_KEYS)
+// loot: itens temáticos do mob (têm prioridade no sorteio); mat: material que ele deixa
 const ENEMIES = {
-  slime:      { name: 'Konpaku',        hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1 },
-  morcego:    { name: 'Kawahori',       hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1 },
-  lobo:       { name: 'Okuri-inu',      hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2 },
-  esqueleto:  { name: 'Gashadokuro',    hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, skill: { name: 'Hone-uchi', mult: 1.5, chance: 0.25 } },
-  goblin:     { name: 'Kappa',          hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, skill: { name: 'Sumo do Rio', mult: 1.2, chance: 0.25 } },
-  aranha:     { name: 'Jorogumo',       hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
-  zumbi:      { name: 'Jikininki',      hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, skill: { name: 'Mordida Faminta', mult: 1.4, chance: 0.3 } },
-  fantasma:   { name: 'Yurei',          hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, skill: { name: 'Toque do Além', mult: 1.6, chance: 0.35 } },
-  orc:        { name: 'Oni',            hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, skill: { name: 'Kanabo', mult: 1.7, chance: 0.3 } },
-  harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
-  golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
-  elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
+  slime:      { name: 'Konpaku',        hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1, mat: 'seda', loot: ['arm12', 'amu9', 'elm9', 'caj8'] },
+  morcego:    { name: 'Kawahori',       hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1, mat: 'osso', loot: ['bot6', 'elm9', 'ada7', 'amu9'] },
+  lobo:       { name: 'Okuri-inu',      hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2, mat: 'osso', loot: ['luv7', 'bot7', 'ada8', 'arm13'] },
+  esqueleto:  { name: 'Gashadokuro',    hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, mat: 'osso', loot: ['esp8', 'esp9', 'elm10', 'luv8', 'amu10'], skill: { name: 'Hone-uchi', mult: 1.5, chance: 0.25 } },
+  goblin:     { name: 'Kappa',          hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, mat: 'jade', loot: ['arc7', 'arc8', 'bot7', 'arm13', 'amu9'], skill: { name: 'Sumo do Rio', mult: 1.2, chance: 0.25 } },
+  aranha:     { name: 'Jorogumo',       hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, mat: 'seda', loot: ['arm12', 'ada7', 'ada8', 'arm14', 'arm17', 'luv10'], skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
+  zumbi:      { name: 'Jikininki',      hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, mat: 'osso', loot: ['esp8', 'amu9', 'esp9', 'esp10', 'elm10', 'luv8', 'amu10'], skill: { name: 'Mordida Faminta', mult: 1.4, chance: 0.3 } },
+  fantasma:   { name: 'Yurei',          hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, mat: 'seda', loot: ['caj8', 'amu9', 'caj9', 'arm15', 'amu13', 'amu11', 'elm12'], skill: { name: 'Toque do Além', mult: 1.6, chance: 0.35 } },
+  orc:        { name: 'Oni',            hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, mat: 'ferro', loot: ['esp1', 'esp8', 'esp6', 'elm2', 'esp10', 'esp11', 'arm16', 'elm11', 'luv3'], skill: { name: 'Kanabo', mult: 1.7, chance: 0.3 } },
+  harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, mat: 'seda', loot: ['arc7', 'arc8', 'bot7', 'arc9', 'bot8', 'luv9', 'arc10', 'bot9', 'elm7'], skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
+  golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, mat: 'ferro', loot: ['arm13', 'bot6', 'luv7', 'bot3', 'arm16', 'elm11', 'luv3', 'amu12'], skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
+  elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, mat: 'jade', loot: ['caj8', 'caj9', 'caj10', 'ada9', 'amu11', 'caj11', 'ada10', 'elm12'], skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
   // chefes (stats fixos, drop assinatura garantido)
-  reislime:   { name: 'Nurarihyon',     hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, boss: true, sig: 'elm5', skill: { name: 'Ordem dos Youkai', mult: 1.6, chance: 0.3 } },
-  necromante: { name: 'Kagemaru, o Onmyoji Negro', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, boss: true, sig: 'amu4', skill: { name: 'Shikigami Sombrio', mult: 1.8, chance: 0.4 } },
-  dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } }
+  reislime:   { name: 'Nurarihyon',     hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, mat: 'seda', boss: true, sig: 'elm5', skill: { name: 'Ordem dos Youkai', mult: 1.6, chance: 0.3 } },
+  necromante: { name: 'Kagemaru, o Onmyoji Negro', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, mat: 'jade', boss: true, sig: 'amu4', skill: { name: 'Shikigami Sombrio', mult: 1.8, chance: 0.4 } },
+  dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, mat: 'ferro', boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } }
 };
+// ---------- Materiais de forja ----------
+// Vêm dos youkai e de desmontar equipamento; usados nos encantos altos
+const MATS = {
+  ferro:  { name: 'Ferro Velho',   short: 'Ferro',  color: '#9aa0b0' },
+  seda:   { name: 'Seda Youkai',   short: 'Seda',   color: '#e0a0c8' },
+  osso:   { name: 'Osso Antigo',   short: 'Osso',   color: '#d8d0b0' },
+  jade:   { name: 'Jade Bruta',    short: 'Jade',   color: '#4ec065' },
+  escama: { name: 'Escama de Orochi', short: 'Escama', color: '#ffa726' }
+};
+const MAT_KEYS = Object.keys(MATS);
+// material que cada tipo de peça devolve ao ser desmontada
+const MAT_BY_SLOT = { arma: 'ferro', corpo: 'seda', elmo: 'ferro', luvas: 'seda', botas: 'seda', amuleto: 'jade' };
+function emptyMats() { const m = {}; for (const k of MAT_KEYS) m[k] = 0; return m; }
 const ITEMS = {
   pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 25 },
   pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 70 },
@@ -1927,7 +1993,7 @@ const G = {
   entities: [],       // inimigos no mapa
   spawnTimer: 0,
   battle: null,
-  menuIdx: 0, menuTab: 0,
+  menuIdx: 0, menuTab: 0, altarMode: 0, confirm: null,
   shopIdx: 0,
   titleIdx: 0,
   flags: { reislime: false, necromante: false, dragao: false },
@@ -1950,6 +2016,7 @@ function newPlayer() {
     atk: 6, def: 5, mag: 6, spd: 6, crit: 0.05,
     gold: 30,
     frags: 0,
+    mats: emptyMats(),
     items: { pocao: 3, pocaoG: 0, eter: 1, elixir: 0, antidoto: 1, bomba: 0, pergaminho: 0, pao: 2 },
     equip: { arma: 'esp1', corpo: 'arm1', elmo: null, luvas: null, botas: null, amuleto: null },
     equipInv: ['caj1', 'ada1', 'arc1'],
@@ -1979,6 +2046,52 @@ function setActive() {
 const ENCH_MAX = 5;
 function enchLvl(id) { return (P.ench && P.ench[id]) || 0; }
 function enchCost(id) { return (RAR_KEYS.indexOf(EQUIP[id].rar) + 1) * (enchLvl(id) + 1) * 4; }
+// a partir de +3 o encanto também pede material de forja
+function enchMatCost(id) {
+  const l = enchLvl(id);
+  if (l < 2) return null;
+  if (l === 2) return { mat: MAT_BY_SLOT[EQUIP[id].slot] || 'ferro', n: 2 };
+  if (l === 3) return { mat: 'jade', n: 2 };
+  return { mat: 'escama', n: 1 };
+}
+function matQty(k) { return (P.mats && P.mats[k]) || 0; }
+function addMats(m) {
+  if (!P.mats) P.mats = emptyMats();
+  for (const [k, v] of Object.entries(m || {})) P.mats[k] = (P.mats[k] || 0) + v;
+}
+function canEnchant(id) {
+  if (!id || enchLvl(id) >= ENCH_MAX || P.frags < enchCost(id)) return false;
+  const mc = enchMatCost(id);
+  return !mc || matQty(mc.mat) >= mc.n;
+}
+// ---------- Desmontar equipamento ----------
+// devolve fragmentos + materiais; encantos investidos voltam em parte
+function dismantleYield(id) {
+  const eq = EQUIP[id];
+  const ri = RAR_KEYS.indexOf(eq.rar);
+  const l = enchLvl(id);
+  const mats = {};
+  const prim = MAT_BY_SLOT[eq.slot] || 'ferro';
+  mats[prim] = 1 + ri;
+  if (ri >= 2) mats.jade = (mats.jade || 0) + (ri - 1);
+  if (ri >= 4) mats.escama = (mats.escama || 0) + 1;
+  return { frags: [1, 3, 6, 12, 24][ri] + l * 3, mats };
+}
+function dismantleFromInv(idx) {
+  const id = P.equipInv[idx];
+  if (!id) return null;
+  const y = dismantleYield(id);
+  P.equipInv.splice(idx, 1);
+  P.frags += y.frags;
+  addMats(y.mats);
+  // o encanto só some se não sobrar nenhuma outra cópia da peça
+  const resta = P.equipInv.includes(id) || SLOTS.some(s => P.equip[s] === id);
+  if (!resta && P.ench) delete P.ench[id];
+  return y;
+}
+function matsText(m) {
+  return Object.entries(m).filter(([, v]) => v > 0).map(([k, v]) => MATS[k].short + ' x' + v).join(' · ');
+}
 function eqName(id) { const l = enchLvl(id); return EQUIP[id].name + (l ? ' +' + l : ''); }
 // bônus do item multiplicado por 1 + 0.15 por nível de encantamento
 function enchBonus(id) {
@@ -2114,6 +2227,8 @@ function gainXP(amt) {
 }
 
 // ---------- Loot por raridade ----------
+// peças exclusivas de chefe/loja: nunca caem no sorteio comum
+const NO_DROP = ['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'elm8', 'amu4', 'amu5', 'arm8', 'bot5', 'luv6'];
 function rollRarity(maxTier) {
   let total = 0;
   for (let i = 0; i <= maxTier; i++) total += RARITY[RAR_KEYS[i]].w;
@@ -2138,9 +2253,16 @@ function rollLoot(type) {
   // 55% consumível, 45% equipamento
   if (Math.random() < 0.55) return 'c:' + pick(['pocao', 'pocao', 'pocao', 'pao', 'pao', 'eter', 'antidoto', 'bomba']);
   const rar = rollRarity(Math.min(d.tier, RAR_KEYS.length - 1));
-  const NO_DROP = ['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'elm8', 'amu4', 'amu5', 'arm8', 'bot5', 'luv6'];
+  // cada youkai tem sua mesa temática; o resto vem da tabela geral
+  const tema = (d.loot || []).filter(k => EQUIP[k]);
+  const naRar = tema.filter(k => EQUIP[k].rar === rar);
+  if (naRar.length && Math.random() < 0.6) return pick(naRar);
+  // sem peça temática nessa raridade: tenta uma mais barata da mesma mesa
+  const ri = RAR_KEYS.indexOf(rar);
+  const abaixo = tema.filter(k => RAR_KEYS.indexOf(EQUIP[k].rar) <= ri);
+  if (abaixo.length && Math.random() < 0.35) return pick(abaixo);
   const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !NO_DROP.includes(k));
-  return pool.length ? pick(pool) : null;
+  return pool.length ? pick(pool) : (tema.length ? pick(tema) : null);
 }
 // fragmentos arcanos: moeda de encantamento dropada por mobs
 function rollFrags(type, lvl) {
@@ -2148,6 +2270,16 @@ function rollFrags(type, lvl) {
   if (d.boss) return { reislime: 8, necromante: 12, dragao: 20 }[type] || 8;
   if (Math.random() < 0.4) return 1 + Math.floor(lvl / 3);
   return 0;
+}
+// materiais de forja: cada youkai deixa o material do seu tipo
+function rollMats(type, lvl) {
+  const d = ENEMIES[type];
+  const m = d.mat || 'ferro';
+  if (d.boss) return { [m]: 4, escama: 2 };
+  const out = {};
+  if (Math.random() < 0.45) out[m] = 1 + (Math.random() < 0.25 ? 1 : 0);
+  if (d.tier >= 3 && Math.random() < 0.10) out.jade = (out.jade || 0) + 1;
+  return out;
 }
 
 // ---------- Save / Load ----------
@@ -2166,6 +2298,8 @@ function loadGame() {
     P = d.p;
     // compatibilidade com saves antigos
     if (P.frags === undefined) P.frags = 0;
+    if (!P.mats) P.mats = emptyMats();
+    else for (const k of MAT_KEYS) if (P.mats[k] === undefined) P.mats[k] = 0;
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
     if (!P.look) P.look = defaultLook();
@@ -2378,7 +2512,7 @@ function updateWorld(dt) {
       G.shopId = f.tx < 50 ? 'aldeia' : 'rocha';
       G.state = 'shop'; G.shopIdx = 0; AU.sfx('ok');
     } else if (f.t === 21) { // altar de encantamento
-      G.state = 'enchant'; G.menuIdx = 0; AU.sfx('magic');
+      G.state = 'enchant'; G.menuIdx = 0; G.altarMode = 0; AU.sfx('magic');
     } else if (f.t === 15 && SIGNS[key]) {
       showMsg(SIGNS[key]);
     } else if (f.t === 16) { // baú
@@ -2623,6 +2757,9 @@ function endBattleWin(b) {
   }
   const frags = rollFrags(e.type, e.lvl);
   if (frags) P.frags += frags;
+  const mats = rollMats(e.type, e.lvl);
+  addMats(mats);
+  const matTxt = matsText(mats) || null;
   // pets: chefes sempre dão o seu; mobs têm chance pequena de deixar um filhote
   let petTxt = null, petColor = null;
   let newPet = null;
@@ -2635,7 +2772,7 @@ function endBattleWin(b) {
     petTxt = PETS[newPet].name;
     petColor = RARITY[PETS[newPet].rar].color;
   }
-  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, petTxt, petColor, newSkill: ups.newSkill };
+  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, matTxt, petTxt, petColor, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) {
     AU.sfx('level');
@@ -4223,9 +4360,13 @@ function drawBattle() {
       ctx.fillStyle = r.dropColor || '#c8c8d0';
       ctx.fillText('Loot: ' + r.dropTxt, 118, 151);
     }
+    if (r.matTxt) {
+      ctx.fillStyle = '#9aa0b0';
+      ctx.fillText(r.matTxt, 118, 161);
+    }
     if (r.ups.length) {
       ctx.fillStyle = '#6ee86e';
-      ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos de status (C)', 10, 161);
+      ctx.fillText('NÍVEL ' + r.ups[r.ups.length - 1] + '!  +' + (r.ups.length * PTS_PER_LEVEL) + ' pontos (C)', 10, 161);
       if (r.newSkill) { ctx.fillStyle = '#6ea8ff'; ctx.fillText('Nova técnica: ' + r.newSkill, 130, 171); }
     }
     if (r.petTxt) {
@@ -4457,32 +4598,32 @@ function drawPauseMenu() {
       if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(eqName(id), x + 52, oy); }
       else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 52, oy); }
     });
-    // bônus de conjunto + fragmentos
-    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo!', x + 8, y + 82); }
-    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 82); }
-    ctx.fillStyle = '#b06ae8'; ctx.fillText('◆ ' + P.frags, x + 178, y + 82);
+    // bônus de conjunto + fragmentos e materiais
+    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo!', x + 8, y + 80); }
+    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 80); }
+    drawMatBar(x + 8, y + 90);
     // inventário de equipamentos
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila (Z equipa)  ' + P.equipInv.length + '/18', x + 8, y + 94);
-    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 105); }
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila  ' + P.equipInv.length + '/18', x + 8, y + 101);
+    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 112); }
     const maxShow = 5;
     const start = clamp(G.menuIdx - 2, 0, Math.max(0, P.equipInv.length - maxShow));
     P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
       const i = start + j;
-      const oy = y + 105 + j * 9;
+      const oy = y + 112 + j * 9;
       const sel = G.menuIdx === i;
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
       ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
       ctx.fillText(eqName(id) + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
     });
-    if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 166, y + 105); }
-    if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 166, y + 141); }
+    if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 166, y + 112); }
+    if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 166, y + 148); }
     // detalhes do item selecionado (coluna direita)
     const selId = P.equipInv[G.menuIdx];
     if (selId) {
       const eq = EQUIP[selId];
       ctx.fillStyle = RARITY[eq.rar].color;
-      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 94);
-      let dy = y + 105;
+      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 101);
+      let dy = y + 112;
       for (const [k, v] of Object.entries(enchBonus(selId))) {
         ctx.fillStyle = '#a89ac0';
         ctx.fillText(k === 'crit' ? '+' + Math.round(v * 100) + '% crit'
@@ -4545,9 +4686,19 @@ function drawPauseMenu() {
       ctx.fillStyle = it.battleOnly ? '#6a5a80' : '#705a80';
       ctx.fillText(it.battleOnly ? '(só em batalha)' : it.desc, x + 110, oy);
     });
+    // materiais de forja (desmontando peças ou caçando youkai)
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Materiais de forja', x + 8, y + 128);
+    MAT_KEYS.forEach((k, i) => {
+      const oy = y + 138 + Math.floor(i / 3) * 9;
+      const ox = x + 8 + (i % 3) * 78;
+      ctx.fillStyle = matQty(k) > 0 ? MATS[k].color : '#5a4a70';
+      ctx.fillText(MATS[k].name + ' x' + matQty(k), ox, oy);
+    });
   }
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText(G.menuTab === 1 ? 'Z equipar/trocar · ◀▶ aba · X fechar' : '◀ ▶ aba · X fechar', x + 8, y + h - 6);
+  ctx.fillText(G.menuTab === 1 ? 'Z equipar/trocar · ◀▶ aba · X fechar'
+    : G.menuTab === 2 ? 'Z equipar · Q desmontar · ◀ ▶ aba · X fechar'
+    : '◀ ▶ aba · X fechar', x + 8, y + h - 6);
 }
 function updatePauseMenu() {
   const wt = weaponType();
@@ -4559,6 +4710,16 @@ function updatePauseMenu() {
     : Object.keys(ITEMS).length;
   if (tap('left')) { G.menuTab = (G.menuTab + 4) % 5; G.menuIdx = 0; AU.sfx('menu'); }
   if (tap('right')) { G.menuTab = (G.menuTab + 1) % 5; G.menuIdx = 0; AU.sfx('menu'); }
+  // Q desmonta a peça em foco na mochila
+  if (tap('alt')) {
+    if (G.menuTab === 2 && P.equipInv[G.menuIdx]) {
+      const idx = G.menuIdx;
+      askConfirm('Desmontar ' + eqName(P.equipInv[idx]) + '?', dismantleYield(P.equipInv[idx]), () => {
+        desmontar(idx);
+        G.menuIdx = Math.max(0, Math.min(G.menuIdx, P.equipInv.length - 1));
+      });
+    } else AU.sfx('back');
+  }
   if (tap('up')) { G.menuIdx = (G.menuIdx + listLen - 1) % listLen; AU.sfx('menu'); }
   if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % listLen; AU.sfx('menu'); }
   if (tap('ok')) {
@@ -4867,7 +5028,27 @@ function updateLearn() {
   }
 }
 
-// ---------- Altar de encantamento ----------
+// ---------- Altar: encantar e desmontar ----------
+// modo 0 = encantar (equipados + mochila), modo 1 = desmontar (só mochila)
+function altarList() {
+  const out = [];
+  if (G.altarMode === 0) {
+    for (const s of SLOTS) if (P.equip[s]) out.push({ id: P.equip[s], where: SLOT_NAMES[s] });
+  }
+  P.equipInv.forEach((id, i) => out.push({ id, where: 'mochila', idx: i }));
+  return out;
+}
+function drawMatBar(x, y) {
+  ctx.fillStyle = '#b06ae8';
+  ctx.fillText('◆' + P.frags, x, y);
+  let mx = x + 34;
+  for (const k of MAT_KEYS) {
+    ctx.fillStyle = matQty(k) > 0 ? MATS[k].color : '#4a3a5a';
+    const t = MATS[k].short + matQty(k);
+    ctx.fillText(t, mx, y);
+    mx += t.length * 4.4 + 6;
+  }
+}
 function drawEnchant() {
   drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
@@ -4879,51 +5060,147 @@ function drawEnchant() {
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#d8a0ff';
-  ctx.fillText('ALTAR DE ENCANTAMENTO', x + 10, y + 13);
+  ctx.fillText('ALTAR DA FORJA', x + 10, y + 13);
   ctx.font = '7px monospace';
-  ctx.fillStyle = '#b06ae8';
-  ctx.fillText('◆ ' + P.frags + ' fragmentos arcanos', x + 10, y + 25);
+  // modos
+  ['Encantar', 'Desmontar'].forEach((t, i) => {
+    ctx.fillStyle = G.altarMode === i ? '#ffd94e' : '#705a80';
+    ctx.fillText(G.altarMode === i ? '[' + t + ']' : ' ' + t, x + 118 + i * 58, y + 13);
+  });
+  drawMatBar(x + 10, y + 25);
   ctx.fillStyle = '#8a7ab0';
-  ctx.fillText('Cada nível: +15% nos bônus do item (máx +' + ENCH_MAX + ')', x + 10, y + 35);
-  SLOTS.forEach((s, i) => {
-    const oy = y + 48 + i * 11;
+  ctx.fillText(G.altarMode === 0
+    ? 'Cada nível: +15% nos bônus do item (máx +' + ENCH_MAX + ')'
+    : 'Desmonta peças da mochila em fragmentos e materiais', x + 10, y + 36);
+
+  const lista = altarList();
+  const rows = 7;
+  const start = clamp(G.menuIdx - 3, 0, Math.max(0, lista.length - rows));
+  if (!lista.length) {
+    ctx.fillStyle = '#705a80';
+    ctx.fillText(G.altarMode === 0 ? 'Nada equipado nem na mochila.' : 'Mochila vazia.', x + 14, y + 56);
+  }
+  lista.slice(start, start + rows).forEach((it, j) => {
+    const i = start + j;
+    const oy = y + 50 + j * 11;
     const sel = G.menuIdx === i;
-    const id = P.equip[s];
+    const l = enchLvl(it.id);
     if (sel) { ctx.fillStyle = '#d8a0ff'; ctx.fillText('▶', x + 6, oy); }
-    ctx.fillStyle = '#8a7ab0';
-    ctx.fillText(SLOT_NAMES[s], x + 14, oy);
-    if (id) {
-      const l = enchLvl(id);
-      ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
-      ctx.fillText(eqName(id), x + 62, oy);
-      if (l >= ENCH_MAX) { ctx.fillStyle = '#ffd94e'; ctx.fillText('MÁX', x + 186, oy); }
+    ctx.fillStyle = '#705a80';
+    ctx.fillText(it.where, x + 14, oy);
+    ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[it.id].rar].color;
+    ctx.fillText(eqName(it.id), x + 62, oy);
+    if (G.altarMode === 0) {
+      if (l >= ENCH_MAX) { ctx.fillStyle = '#ffd94e'; ctx.fillText('MÁX', x + 182, oy); }
       else {
-        const c = enchCost(id);
-        ctx.fillStyle = P.frags >= c ? '#6ee86e' : '#e07070';
-        ctx.fillText('◆' + c, x + 186, oy);
+        ctx.fillStyle = canEnchant(it.id) ? '#6ee86e' : '#e07070';
+        ctx.fillText('◆' + enchCost(it.id), x + 182, oy);
       }
     } else {
-      ctx.fillStyle = '#4a3a5a'; ctx.fillText('— vazio —', x + 62, oy);
+      ctx.fillStyle = '#9aa0b0';
+      ctx.fillText('◆' + dismantleYield(it.id).frags, x + 182, oy);
     }
   });
+  if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 214, y + 50); }
+  if (start + rows < lista.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 214, y + 116); }
+  // detalhe do item em foco
+  const foco = lista[G.menuIdx];
+  if (foco) {
+    if (G.altarMode === 0) {
+      const mc = enchMatCost(foco.id);
+      if (enchLvl(foco.id) >= ENCH_MAX) { ctx.fillStyle = '#ffd94e'; ctx.fillText('Encanto no máximo', x + 14, y + 128); }
+      else if (mc) {
+        ctx.fillStyle = matQty(mc.mat) >= mc.n ? '#a89ac0' : '#e07070';
+        ctx.fillText('Custa ◆' + enchCost(foco.id) + ' + ' + MATS[mc.mat].name + ' x' + mc.n, x + 14, y + 128);
+      } else { ctx.fillStyle = '#a89ac0'; ctx.fillText('Custa ◆' + enchCost(foco.id), x + 14, y + 128); }
+    } else {
+      const yl = dismantleYield(foco.id);
+      ctx.fillStyle = '#a89ac0';
+      ctx.fillText('Rende ◆' + yl.frags + ' · ' + matsText(yl.mats), x + 14, y + 128);
+    }
+  }
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z encantar · X sair · fragmentos vêm de youkai', x + 10, y + h - 7);
+  ctx.fillText(G.altarMode === 0 ? 'Z encantar · ◀ ▶ modo · X sair' : 'Z desmontar · ◀ ▶ modo · X sair', x + 10, y + h - 7);
+}
+function encantar(id) {
+  P.frags -= enchCost(id);
+  const mc = enchMatCost(id);
+  if (mc) P.mats[mc.mat] -= mc.n;
+  P.ench[id] = enchLvl(id) + 1;
+  AU.sfx('level');
+  addFloater(P.x + 8, P.y - 4, '+' + P.ench[id], '#d8a0ff');
+  burstScreen(VW / 2, VH / 2, 30, { color: ['#b06ae8', '#d8a0ff', '#e0b8ff'], spdMax: 100, lifeMax: 0.9, size: 2, drag: 2.5 });
+  clampVitals();
+  saveGame();
+}
+function desmontar(idx) {
+  const id = P.equipInv[idx];
+  const yl = dismantleFromInv(idx);
+  if (!yl) return;
+  AU.sfx('ok');
+  toast(EQUIP[id].name + ' → ◆' + yl.frags + ' · ' + matsText(yl.mats));
+  burstScreen(VW / 2, VH / 2, 24, { color: ['#9aa0b0', '#d8d0b0', '#e0a0c8'], spdMax: 90, lifeMax: 0.7, size: 2, g: 90 });
+  saveGame();
 }
 function updateEnchant() {
-  if (tap('up')) { G.menuIdx = (G.menuIdx + SLOTS.length - 1) % SLOTS.length; AU.sfx('menu'); }
-  if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % SLOTS.length; AU.sfx('menu'); }
+  const lista = altarList();
+  const n = Math.max(1, lista.length);
+  if (tap('left') || tap('right')) { G.altarMode = G.altarMode ? 0 : 1; G.menuIdx = 0; AU.sfx('menu'); }
+  if (tap('up')) { G.menuIdx = (G.menuIdx + n - 1) % n; AU.sfx('menu'); }
+  if (tap('down')) { G.menuIdx = (G.menuIdx + 1) % n; AU.sfx('menu'); }
   if (tap('ok')) {
-    const id = P.equip[SLOTS[G.menuIdx]];
-    if (id && enchLvl(id) < ENCH_MAX && P.frags >= enchCost(id)) {
-      P.frags -= enchCost(id);
-      P.ench[id] = enchLvl(id) + 1;
-      AU.sfx('level');
-      addFloater(P.x + 8, P.y - 4, '+' + P.ench[id], '#d8a0ff');
-      burstScreen(VW / 2, VH / 2, 30, { color: ['#b06ae8', '#d8a0ff', '#e0b8ff'], spdMax: 100, lifeMax: 0.9, size: 2, drag: 2.5 });
-      saveGame();
-    } else AU.sfx('back');
+    const foco = lista[G.menuIdx];
+    if (!foco) { AU.sfx('back'); }
+    else if (G.altarMode === 0) {
+      if (canEnchant(foco.id)) encantar(foco.id);
+      else AU.sfx('back');
+    } else {
+      askConfirm('Desmontar ' + eqName(foco.id) + '?', dismantleYield(foco.id), () => {
+        desmontar(foco.idx);
+        G.menuIdx = Math.max(0, Math.min(G.menuIdx, altarList().length - 1));
+      });
+    }
   }
   if (tap('back')) { G.state = 'world'; AU.sfx('back'); saveGame(); }
+}
+
+// ---------- Confirmação (ações que destroem a peça) ----------
+function askConfirm(txt, yield_, onYes) {
+  G.confirm = { txt, y: yield_, onYes, from: G.state, sim: false };
+  G.state = 'confirm';
+  AU.sfx('menu');
+}
+function drawConfirm() {
+  if (G.confirm.from === 'menu') drawPauseMenu(); else drawEnchant();
+  coverRect(0, 0, VW, VH, 'rgba(8,6,16,0.72)');
+  const w = 212, h = 74, x = Math.round((VW - w) / 2), y = Math.round((VH - h) / 2);
+  coverRect(x, y, w, h, '#241420');
+  ctx.strokeStyle = '#e07070';
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(G.confirm.txt, x + 8, y + 15);
+  const yl = G.confirm.y;
+  ctx.fillStyle = '#9aa0b0';
+  ctx.fillText('Rende ◆' + yl.frags + ' · ' + matsText(yl.mats), x + 8, y + 28);
+  ctx.fillStyle = '#e07070';
+  ctx.fillText('A peça é destruída para sempre.', x + 8, y + 39);
+  ['Sim', 'Não'].forEach((t, i) => {
+    const sel = G.confirm.sim === (i === 0);
+    ctx.fillStyle = sel ? '#ffd94e' : '#705a80';
+    ctx.fillText((sel ? '▶ ' : '  ') + t, x + 12 + i * 46, y + 54);
+  });
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('◀ ▶ escolher · Z confirmar · X sair', x + 8, y + 67);
+}
+function updateConfirm() {
+  if (tap('left') || tap('right')) { G.confirm.sim = !G.confirm.sim; AU.sfx('menu'); }
+  if (tap('back')) { G.state = G.confirm.from; AU.sfx('back'); return; }
+  if (tap('ok')) {
+    const c = G.confirm;
+    G.state = c.from;
+    if (c.sim) c.onYes(); else AU.sfx('back');
+  }
 }
 
 // ---------- Game over / vitória ----------
@@ -5059,6 +5336,7 @@ function frame(now) {
         case 'menu': updatePauseMenu(); break;
         case 'shop': updateShop(); break;
         case 'enchant': updateEnchant(); break;
+        case 'confirm': updateConfirm(); break;
         case 'learn': updateLearn(); break;
         case 'create': updateCreate(); break;
         case 'gameover': updateGameOver(); break;
@@ -5088,6 +5366,7 @@ function frame(now) {
     case 'menu': drawPauseMenu(); break;
     case 'shop': drawShop(); break;
     case 'enchant': drawEnchant(); break;
+    case 'confirm': drawConfirm(); break;
     case 'learn': drawLearn(); break;
     case 'create': drawCreate(); break;
     case 'gameover': drawGameOver(); break;
@@ -5158,6 +5437,19 @@ window.DBG = {
   },
   addXP(n) { return gainXP(n); },
   addFrags(n) { P.frags += n; },
+  addMats(m) { addMats(m); },
+  mats() { return P.mats; },
+  matCatalog() { return MATS; },
+  dismantleYield(id) { return dismantleYield(id); },
+  dismantle(idx) { return dismantleFromInv(idx); },
+  enchLvl(id) { return enchLvl(id); },
+  enchCost(id) { return enchCost(id); },
+  enchMatCost(id) { return enchMatCost(id); },
+  canEnchant(id) { return canEnchant(id); },
+  altarList() { return altarList(); },
+  setAltarMode(m) { G.altarMode = m; G.menuIdx = 0; },
+  enemies() { return ENEMIES; },
+  rollMats(type, lvl) { return rollMats(type, lvl); },
   givePet(id) { if (!P.pets.includes(id)) P.pets.push(id); },
   setPet(id) { P.activePet = id; clampVitals(); },
   eff() { return eff(); },

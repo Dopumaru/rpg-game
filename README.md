@@ -24,6 +24,7 @@ A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos
 | Z / Enter / Espaço | Confirmar · Interagir · Atacar |
 | X / Esc | Voltar / Cancelar |
 | C | Menu do personagem (status, técnicas, equipamento, itens, pets) |
+| Q | Desmontar a peça em foco na mochila |
 | ◀ ▶ no menu | Trocar de aba |
 | M | Ligar/desligar som |
 
@@ -66,7 +67,9 @@ Monstros podem dropar equipamentos em 5 raridades, com chance pesada pela rarida
 | Épico | roxo | 4 |
 | Lendário | laranja | 1 |
 
-Youkai mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — Orochi dropa a arma lendária do seu caminho atual. Há **64 equipamentos em 6 slots**: katanas e naginatas, shakujo e gohei, tanto e shuriken, yumi e daikyu, além de o-yoroi, kabuto, kote, waraji e omamori — mais os baús escondidos pelo mundo.
+Youkai mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — Orochi dropa a arma lendária do seu caminho atual. Há **103 equipamentos em 6 slots**: katanas, kodachi, naginatas e nodachi; shakujo, gohei e pergaminhos; tanto, kunai, kaiken e kusarigama; yumi, hankyu e daikyu; além de o-yoroi, domaru, hakama, kabuto, mempo, kitsune-men, kote, yugake, waraji, tabi, geta, magatama e omamori — mais os baús escondidos pelo mundo.
+
+**Cada youkai tem sua própria mesa de drops.** O Oni deixa lâminas e elmos de ferro, o Tengu deixa arcos e calçados leves, a Jorogumo deixa sedas e tantos, o Onibi deixa shakujo e magatamas. Dá para caçar o que você quer: se falta um arco, vá atrás dos Tengu. O resto do tempo o sorteio cai na tabela geral, então nenhuma peça fica inalcançável.
 
 ## 🎒 Consumíveis
 
@@ -76,9 +79,27 @@ Oito itens com papéis distintos: **Onigiri** e **Bento** (cura), **Chá Verde**
 
 **12 espíritos companheiros** que seguem você pelo mundo, **atacam junto em batalha** (dano escala com seu nível) e dão bônus passivos enquanto ativos. Youkai raramente deixam crias ao serem derrotados — e **cada chefe sempre dá um companheiro**: Tama-hime 👑, Karasu-tengu e o lendário Ryu-ko. Gerencie na aba Pets do menu (C).
 
-## 🔮 Encantamento
+## 🔮 Altar da Forja: encantar e desmontar
 
-Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve-os ao **Altar de Encantamento** (o cristal em cada vila) para encantar os itens equipados até **+5** — cada nível dá +15% nos bônus do item, e o custo cresce com a raridade e o nível atual.
+O cristal de cada vila abre o **Altar da Forja**, com dois modos (◀ ▶ para alternar).
+
+**Encantar** — Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades) que elevam uma peça até **+5**, cada nível somando +15% nos bônus dela. Encanta **qualquer peça que você já tenha**, equipada ou parada na mochila, e o custo cresce com a raridade e o nível atual. De **+3 em diante o encanto também pede material de forja**: primeiro o material do tipo da peça, depois Jade Bruta e, para o **+5**, uma Escama de Orochi.
+
+**Desmontar** — Peça que não serve mais vira recurso: você a destrói em troca de **fragmentos e materiais**, com rendimento proporcional à raridade — e **o encanto investido volta em parte**, então nada do que você gastou some de vez. O jogo sempre pede confirmação e mostra o que vai render antes de destruir. Dá para desmontar sem ir à vila também: na aba **Equipar** do menu (C), **Q** desmonta a peça em foco — útil quando a mochila de 18 lugares enche no meio da caçada.
+
+## ⛏️ Materiais de forja
+
+Cinco materiais, cada um ligado a um tipo de youkai e a um tipo de peça:
+
+| Material | Vem de | Sai de |
+|---|---|---|
+| **Ferro Velho** | Oni, Doro-ningyo, Orochi | armas e elmos |
+| **Seda Youkai** | Jorogumo, Yurei, Tengu, Konpaku | peitorais, luvas e botas |
+| **Osso Antigo** | Gashadokuro, Jikininki, Okuri-inu, Kawahori | — |
+| **Jade Bruta** | Kappa, Onibi, Kagemaru | amuletos e peças raras |
+| **Escama de Orochi** | só de chefes e de desmontar lendários | — |
+
+Acompanhe o estoque na aba **Itens** do menu e na barra do topo do altar.
 
 ## 🗺️ O mundo (96×64)
 
@@ -97,6 +118,7 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 - **Cinemática de entrada de batalha**: linhas de velocidade radiais, personagens deslizando para a arena e cartão com o nome do youkai
 - **Ataques animados** com efeito próprio por técnica: dash com arco de corte, saque relâmpago que fatia a tela, bola de fogo viajando, cristais de gelo caindo, raio em ziguezague, coluna de luz solar, dreno de vida e flechas em voo
 - Batalhas ambientadas por região (céu, caverna, cemitério ao crepúsculo)
+- **Mesa de drop própria por youkai** — cada monstro deixa o equipamento e o material que combinam com ele
 - **13 youkai do folclore japonês** (Kappa, Oni, Tengu, Yurei, Jorogumo, Gashadokuro, Onibi…) com nível visível, que patrulham e perseguem; alerta "!" ao serem detectados; fuga bloqueada contra chefes
 - Movimento com aceleração e **corrida (Shift)** que levanta poeira
 - Partículas ambientais por região: **pétalas de sakura** nas vilas e campos, vagalumes e folhas no bambuzal, névoa no templo, faíscas na caverna
@@ -111,4 +133,4 @@ Youkai dropam **Fragmentos Arcanos ◆** (chefes dão grandes quantidades). Leve
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 94 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), e persistência da aparência no save — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 124 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, e persistência dos materiais no save — tudo sem erros de JavaScript.
