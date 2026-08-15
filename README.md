@@ -17,7 +17,13 @@ A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos
 
 ## 🧊 Mundo 3D com personagens 2D
 
-O mundo é **geometria 3D**: cada tile do mapa é um bloco cuja face de cima usa exatamente a mesma arte em pixels de sempre, então o cenário continua idêntico — só que com volume, sombras projetadas e perspectiva. Casas, árvores, muros e montanhas têm altura real; o rio fica rebaixado no terreno.
+O chão é **geometria 3D** com a mesma arte em pixels de sempre na face de cima, e tudo que ocupa espaço tem **forma de verdade, não um bloco com a figura colada**:
+
+- **Árvores** com tronco afunilado e copa em camadas, por espécie — matsu em cones empilhados, sakura em massas floridas, bambu em colmos finos. Cada uma gira e muda de tamanho um pouco, então a floresta não vira fileira de clones
+- **Casas** montadas como prédio inteiro (não tile a tile): paredes de taipa, viga do beiral e telhado de quatro águas cobrindo a planta toda, com a porta shoji na fachada
+- **Lanternas de pedra** com base, fuste, câmara de luz acesa, telhadinho e joia no topo
+- **Pedras** facetadas com lascas em volta, **arbustos** em touceira arredondada, **cogumelos** com pé e chapéu, **lápides**, **baús** com tampa abaulada, **torii** com pilares e vigas laqueadas, **chozuya** com bacia e água
+- **Montanhas** com pico e altura variando por tile; **paredes de caverna** em rocha bruta empilhada
 
 Os **personagens continuam sendo sprites 2D**, virados para a câmera (billboards). Todo o sistema de paper doll segue valendo sem mudança nenhuma: pele, cabelo, peitoral, elmo e arma são compostos no mesmo canvas de antes, que vira a textura do billboard. Trocar de equipamento muda o boneco no mundo 3D na hora.
 
