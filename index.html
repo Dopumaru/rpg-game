@@ -4385,77 +4385,260 @@ function drawBattle() {
 }
 
 // ---------- Telas: título, classes, menus ----------
+// ---------- Tela inicial ----------
+// O cenário estático (céu, montanhas, torii, pagode, ramo de sakura) é
+// desenhado uma vez num canvas próprio; só o que se move é redesenhado.
+let titleBgCache = null;
+function titleBg() {
+  if (titleBgCache) return titleBgCache;
+  const c = document.createElement('canvas');
+  c.width = VW; c.height = VH;
+  const g = c.getContext('2d');
+  // céu do crepúsculo: índigo no alto, âmbar no horizonte
+  const sky = g.createLinearGradient(0, 0, 0, VH);
+  sky.addColorStop(0, '#0b0a1c');
+  sky.addColorStop(0.34, '#241a44');
+  sky.addColorStop(0.62, '#5a3358');
+  sky.addColorStop(0.80, '#a85a52');
+  sky.addColorStop(1, '#e09a5a');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, VW, VH);
+
+  // disco solar baixo no céu
+  const cx = 246, cy = 118;
+  const halo = g.createRadialGradient(cx, cy, 6, cx, cy, 62);
+  halo.addColorStop(0, 'rgba(255,190,120,0.55)');
+  halo.addColorStop(1, 'rgba(255,150,90,0)');
+  g.fillStyle = halo;
+  g.fillRect(cx - 62, cy - 62, 124, 124);
+  g.fillStyle = '#ffd8a0';
+  g.beginPath(); g.arc(cx, cy, 24, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffe8c8';
+  g.beginPath(); g.arc(cx, cy - 3, 20, 0, Math.PI * 2); g.fill();
+
+  // faixas de nuvem cruzando o disco, esmaecendo nas pontas
+  const faixa = (fy, fh, a) => {
+    const gr = g.createLinearGradient(0, 0, VW, 0);
+    gr.addColorStop(0, 'rgba(58,28,54,0)');
+    gr.addColorStop(0.22, 'rgba(58,28,54,' + a + ')');
+    gr.addColorStop(0.78, 'rgba(58,28,54,' + a + ')');
+    gr.addColorStop(1, 'rgba(58,28,54,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, fy, VW, fh);
+  };
+  faixa(104, 2, 0.34); faixa(116, 3, 0.30); faixa(129, 2, 0.24);
+
+  // ---- montanhas em três camadas, mais claras ao fundo (perspectiva aérea)
+  const cume = (baseY, alt, xc, cor, neve) => {
+    g.fillStyle = cor;
+    g.beginPath();
+    g.moveTo(xc - alt * 1.9, baseY);
+    g.lineTo(xc - alt * 0.34, baseY - alt * 0.92);
+    g.lineTo(xc - alt * 0.12, baseY - alt);
+    g.lineTo(xc + alt * 0.14, baseY - alt * 0.99);
+    g.lineTo(xc + alt * 0.36, baseY - alt * 0.9);
+    g.lineTo(xc + alt * 1.9, baseY);
+    g.closePath(); g.fill();
+    if (neve) {   // capa de neve do Fuji
+      g.fillStyle = neve;
+      g.beginPath();
+      g.moveTo(xc - alt * 0.34, baseY - alt * 0.92);
+      g.lineTo(xc - alt * 0.12, baseY - alt);
+      g.lineTo(xc + alt * 0.14, baseY - alt * 0.99);
+      g.lineTo(xc + alt * 0.36, baseY - alt * 0.9);
+      g.lineTo(xc + alt * 0.22, baseY - alt * 0.84);
+      g.lineTo(xc + alt * 0.06, baseY - alt * 0.9);
+      g.lineTo(xc - alt * 0.1, baseY - alt * 0.82);
+      g.lineTo(xc - alt * 0.24, baseY - alt * 0.9);
+      g.closePath(); g.fill();
+    }
+  };
+  cume(136, 16, 18, '#6a4468');             // serra distante
+  cume(136, 20, 168, '#6a4468');
+  cume(138, 44, 88, '#4a2e56', '#b498b4');  // Fuji
+  cume(146, 22, 214, '#38224a');
+  cume(148, 17, 292, '#38224a');
+  // colina intermediária
+  g.fillStyle = '#2a1838';
+  g.beginPath();
+  g.moveTo(0, 152);
+  for (let x = 0; x <= VW; x += 8) g.lineTo(x, 150 - Math.sin(x * 0.031) * 7 - Math.sin(x * 0.11) * 2);
+  g.lineTo(VW, VH); g.lineTo(0, VH); g.closePath(); g.fill();
+
+  // pagode de cinco andares na colina
+  const pagode = (px, py, s) => {
+    g.fillStyle = '#160c22';
+    for (let i = 0; i < 5; i++) {
+      const w2 = (16 - i * 2) * s, y2 = py - i * 7 * s;
+      g.fillRect(px - w2 / 2 + 1.5 * s, y2 - 5 * s, w2 - 3 * s, 5 * s);   // corpo
+      g.beginPath();                                                       // beiral
+      g.moveTo(px - w2 / 2 - 2 * s, y2);
+      g.lineTo(px - w2 / 2 + 2 * s, y2 - 3 * s);
+      g.lineTo(px + w2 / 2 - 2 * s, y2 - 3 * s);
+      g.lineTo(px + w2 / 2 + 2 * s, y2);
+      g.closePath(); g.fill();
+    }
+    g.fillRect(px - 0.5 * s, py - 40 * s, s, 7 * s);   // sorin no topo
+  };
+  pagode(272, 150, 1);
+
+  // colina da frente
+  g.fillStyle = '#100a1c';
+  g.beginPath();
+  g.moveTo(0, 166);
+  for (let x = 0; x <= VW; x += 8) g.lineTo(x, 164 - Math.sin(x * 0.045 + 2) * 6);
+  g.lineTo(VW, VH); g.lineTo(0, VH); g.closePath(); g.fill();
+
+  // torii recortado contra o sol
+  const torii = (tx, ty, s) => {
+    g.fillStyle = '#1c0a16';
+    g.fillRect(tx - 21 * s, ty - 46 * s, 42 * s, 4 * s);                 // kasagi
+    g.fillRect(tx - 24 * s, ty - 50 * s, 48 * s, 3 * s);                 // ilharga do kasagi
+    g.fillRect(tx - 17 * s, ty - 36 * s, 34 * s, 3 * s);                 // nuki
+    g.fillRect(tx - 2 * s, ty - 46 * s, 4 * s, 12 * s);                  // gakuzuka
+    g.fillRect(tx - 17 * s, ty - 46 * s, 5 * s, 46 * s);                 // pilares
+    g.fillRect(tx + 12 * s, ty - 46 * s, 5 * s, 46 * s);
+  };
+  torii(58, 168, 1);
+
+  // lanternas de pedra ladeando o caminho
+  const toro = (lx, ly) => {
+    g.fillStyle = '#140c1e';
+    g.fillRect(lx - 1, ly - 6, 3, 6);
+    g.fillRect(lx - 3, ly - 10, 7, 4);
+    g.fillRect(lx - 4, ly - 12, 9, 2);
+  };
+  toro(104, 172); toro(126, 170); toro(146, 169);
+
+  // ramo de sakura emoldurando o topo: as flores nascem sobre os galhos
+  const flores = [];
+  const cacho = (x0, y0, n, r) => {
+    for (let i = 0; i < n; i++) {
+      const a = (i * 2.39996) + x0, d = Math.sqrt((i + 0.5) / n) * r;
+      flores.push([Math.round(x0 + Math.cos(a) * d), Math.round(y0 + Math.sin(a) * d * 0.8)]);
+    }
+  };
+  g.strokeStyle = '#2a1420'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(-4, 5); g.quadraticCurveTo(50, 17, 116, 7); g.stroke();
+  g.lineWidth = 2;
+  const galho = (x0, y0, x1, y1) => {
+    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, y0 + 5, x1, y1); g.stroke();
+    cacho(x1, y1, 9, 6);
+  };
+  galho(20, 11, 26, 27); galho(48, 15, 58, 32); galho(76, 13, 70, 26); galho(96, 10, 104, 25);
+  cacho(6, 7, 11, 8); cacho(36, 14, 10, 7); cacho(64, 15, 10, 7); cacho(88, 12, 10, 7); cacho(114, 8, 9, 7);
+  flores.forEach(([bx, by], i) => {
+    g.fillStyle = ['#e88fa8', '#f7b3c6', '#ffd6e2', '#ffc2d4'][i % 4];
+    g.fillRect(bx, by, 2, 2);
+    if (i % 3 === 0) { g.fillStyle = '#fff0f4'; g.fillRect(bx, by, 1, 1); }
+  });
+  titleBgCache = c;
+  return c;
+}
 function drawTitle() {
-  const grd = ctx.createLinearGradient(0, 0, 0, VH);
-  grd.addColorStop(0, '#141024');
-  grd.addColorStop(0.6, '#2a1c46');
-  grd.addColorStop(1, '#4a2c58');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, VW, VH);
-  // estrelas
-  for (let i = 0; i < 40; i++) {
-    const sx = (i * 97) % VW, sy = (i * 53) % 100;
-    const tw = Math.sin(G.time * 2 + i) * 0.5 + 0.5;
-    ctx.fillStyle = 'rgba(255,255,240,' + (0.2 + tw * 0.5) + ')';
+  ctx.drawImage(titleBg(), 0, 0);
+  // estrelas piscando (somem perto do horizonte)
+  for (let i = 0; i < 54; i++) {
+    const sx = (i * 71) % VW, sy = (i * 37) % 92;
+    const tw = Math.sin(G.time * 1.7 + i * 1.3) * 0.5 + 0.5;
+    ctx.fillStyle = 'rgba(255,250,235,' + (0.12 + tw * 0.5) * (1 - sy / 110) + ')';
     ctx.fillRect(sx, sy, 1, 1);
   }
-  // lua
-  ctx.fillStyle = '#e8e4d0'; ctx.beginPath(); ctx.arc(270, 34, 14, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#d0ccb8'; ctx.fillRect(265, 28, 4, 4); ctx.fillRect(273, 38, 3, 3);
-  // silhueta de montanhas
-  ctx.fillStyle = '#0e0a18';
-  ctx.beginPath();
-  ctx.moveTo(0, 140);
-  for (let x = 0; x <= VW; x += 20) ctx.lineTo(x, 140 - Math.abs(Math.sin(x * 0.05)) * 45 - (x % 40 === 0 ? 10 : 0));
-  ctx.lineTo(VW, VH); ctx.lineTo(0, VH);
-  ctx.fill();
-  // pétalas de sakura caindo
-  for (let i = 0; i < 22; i++) {
-    const sp = 12 + (i % 5) * 5;
-    const px2 = (i * 61 + G.time * sp * 0.6) % (VW + 20) - 10;
+  // névoa passando devagar sobre as montanhas
+  for (let i = 0; i < 4; i++) {
+    const my = 128 + i * 7;
+    const mx = ((G.time * (5 + i * 2)) % (VW + 120)) - 120;
+    ctx.fillStyle = 'rgba(220,180,190,' + (0.10 - i * 0.015) + ')';
+    ctx.fillRect(mx, my, 120, 3);
+    ctx.fillRect(mx - 160, my, 110, 3);
+  }
+  // pétalas caindo, girando
+  for (let i = 0; i < 30; i++) {
+    const sp = 10 + (i % 6) * 4;
+    const px2 = (i * 61 + G.time * sp * 0.5) % (VW + 20) - 10;
     const py2 = (i * 43 + G.time * sp) % (VH + 20) - 10;
-    const sw = Math.sin(G.time * 2 + i) * 2;
+    const gira = Math.sin(G.time * 2.4 + i) ;
+    const larg = 1 + Math.abs(gira) * 1.6;
+    ctx.globalAlpha = 0.5 + (i % 4) * 0.13;
     ctx.fillStyle = ['#f7b3c6', '#ffd6e2', '#e88fa8'][i % 3];
-    ctx.globalAlpha = 0.85;
-    ctx.fillRect(Math.round(px2 + sw), Math.round(py2), 2, 2);
+    ctx.fillRect(Math.round(px2 + gira * 3), Math.round(py2), Math.round(larg), 2);
   }
   ctx.globalAlpha = 1;
-  // sprites decorativos
-  const t = Math.floor(G.time * 2) % 2;
-  ctx.drawImage(heroSprite('samurai', 'down', t), 64, 122, 32, 40);
-  ctx.drawImage(heroSprite('onmyoji', 'down', 1 - t), 120, 126, 32, 40);
-  ctx.drawImage(heroSprite('shinobi', 'down', t), 176, 122, 32, 40);
-  ctx.drawImage(heroSprite('kyudoka', 'down', 1 - t), 232, 126, 32, 40);
+  // vaga-lumes rasteiros
+  for (let i = 0; i < 9; i++) {
+    const fx = 20 + ((i * 53 + G.time * (6 + i)) % 290);
+    const fy = 150 + Math.sin(G.time * 1.4 + i * 2) * 9 + (i % 3) * 6;
+    const br = (Math.sin(G.time * 3 + i * 1.7) * 0.5 + 0.5) ** 2;
+    ctx.fillStyle = 'rgba(255,240,150,' + (0.25 + br * 0.6) + ')';
+    ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1);
+  }
 
-  // título
+  // ---- título
   ctx.textAlign = 'center';
+  const flut = Math.sin(G.time * 1.2) * 0.8;
   ctx.font = 'bold 24px monospace';
-  ctx.fillStyle = '#1a1230';
-  ctx.fillText('FORGED LEGEND', VW / 2 + 2, 62 + 2);
+  // contorno escuro para o texto descolar do céu
+  ctx.fillStyle = '#12081c';
+  for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2], [2, 3], [-2, 2], [2, -2], [-2, -2]])
+    ctx.fillText('FORGED LEGEND', VW / 2 + dx, 54 + flut + dy);
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText('FORGED LEGEND', VW / 2, 62);
-  ctx.font = '9px monospace';
-  ctx.fillStyle = '#f7b3c6';
-  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2, 77);
-  ctx.font = '7px monospace';
-  ctx.fillStyle = '#b8a8d8';
-  ctx.fillText('~ o caminho é a arma que você empunha ~', VW / 2, 88);
-
-  const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
-  for (let i = 0; i < opts.length; i++) {
-    const oy = 103 + i * 12;
-    ctx.font = '9px monospace';
-    if (i === G.titleIdx) {
-      ctx.fillStyle = '#ffd94e';
-      ctx.fillText('▶ ' + opts[i] + ' ◀', VW / 2, oy);
-    } else {
-      ctx.fillStyle = '#9a8ab8';
-      ctx.fillText(opts[i], VW / 2, oy);
+  ctx.fillText('FORGED LEGEND', VW / 2, 54 + flut);
+  // golpe de katana atravessa o título de tempos em tempos e some
+  const ciclo = G.time % 7;
+  if (ciclo < 1.1) {
+    const av = Math.min(1, ciclo / 0.32);
+    const some = Math.max(0, 1 - Math.max(0, ciclo - 0.42) / 0.68);
+    ctx.fillStyle = 'rgba(255,244,214,' + (0.95 * some) + ')';
+    ctx.fillRect(VW / 2 - 82, 47 + flut, Math.round(164 * av), 1);
+    if (av < 1) {   // brilho na ponta do corte
+      ctx.fillStyle = 'rgba(255,255,255,' + some + ')';
+      ctx.fillRect(VW / 2 - 82 + Math.round(164 * av), 45 + flut, 2, 4);
     }
   }
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#0e0818';
+  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2 + 1, 71 + flut + 1);
+  ctx.fillStyle = '#f7b3c6';
+  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2, 71 + flut);
+
+  // selo hanko no canto, como assinatura de gravura
+  ctx.fillStyle = '#8a1e22';
+  ctx.fillRect(VW - 22, 9, 14, 14);
+  ctx.fillStyle = '#c2352e';
+  ctx.fillRect(VW - 21, 10, 12, 12);
+  ctx.fillStyle = '#fff0e8';
+  ctx.font = 'bold 9px monospace';
+  ctx.fillText('伝', VW - 15, 20);
+
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#d8b8e0';
+  ctx.fillText('o caminho é a arma que você empunha', VW / 2, 84);
+
+  // ---- menu num painel laqueado
+  const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
+  const ph = opts.length * 13 + 9, py3 = 122 - (opts.length - 1) * 6, pw = 112, px3 = (VW - pw) / 2;
+  coverRect(px3, py3, pw, ph, 'rgba(18,10,26,0.72)');
+  ctx.strokeStyle = '#8a6a4a';
+  ctx.strokeRect(px3 + 0.5, py3 + 0.5, pw - 1, ph - 1);
+  ctx.fillStyle = '#c89a5a';
+  ctx.fillRect(px3 + 2, py3 + 2, 2, 2); ctx.fillRect(px3 + pw - 4, py3 + 2, 2, 2);
+  ctx.fillRect(px3 + 2, py3 + ph - 4, 2, 2); ctx.fillRect(px3 + pw - 4, py3 + ph - 4, 2, 2);
+  opts.forEach((o, i) => {
+    const oy = py3 + 15 + i * 13;
+    ctx.font = '9px monospace';
+    if (i === G.titleIdx) {
+      const pulso = 0.7 + Math.sin(G.time * 5) * 0.3;
+      ctx.fillStyle = 'rgba(255,217,78,' + pulso + ')';
+      ctx.fillText('❖ ' + o + ' ❖', VW / 2, oy);
+    } else {
+      ctx.fillStyle = '#9a8ab8';
+      ctx.fillText(o, VW / 2, oy);
+    }
+  });
+
   ctx.font = '7px monospace';
   ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('Z/Enter para começar  ·  Shift para correr', VW / 2, 172);
+  ctx.fillText('↑↓ escolher  ·  Z/Enter confirmar  ·  M som', VW / 2, 176);
   ctx.textAlign = 'left';
 }
 function updateTitle() {
