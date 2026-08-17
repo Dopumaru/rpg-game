@@ -1,6 +1,6 @@
 # ⚔️ Forged Legend — 鍛えられた伝説
 
-Um RPG completo em pixel art ambientado no **Japão feudal**, com arte em estilo anime. Roda direto no navegador — um único arquivo HTML, sem dependências.
+Um RPG completo ambientado no **Japão feudal**: mundo aberto **em 3D visto de cima**, com os personagens em **pixel art 2D** (billboards) e o cenário em geometria de verdade. Roda direto no navegador — um único arquivo HTML, sem nada para instalar.
 
 ## 🎮 Como jogar
 
@@ -13,7 +13,23 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos (escala inteira de 320×180).
+A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos. Se o navegador não tiver WebGL, o jogo cai sozinho no renderizador 2D original sem perder nada.
+
+## 🧊 Mundo 3D com personagens 2D
+
+O chão é **geometria 3D** com a mesma arte em pixels de sempre na face de cima, e tudo que ocupa espaço tem **forma de verdade, não um bloco com a figura colada**:
+
+- **Árvores** com tronco afunilado e copa em camadas, por espécie — matsu em cones empilhados, sakura em massas floridas, bambu em colmos finos. Cada uma gira e muda de tamanho um pouco, então a floresta não vira fileira de clones
+- **Casas** montadas como prédio inteiro (não tile a tile): paredes de taipa, viga do beiral e telhado de quatro águas cobrindo a planta toda, com a porta shoji na fachada
+- **Lanternas de pedra** com base, fuste, câmara de luz acesa, telhadinho e joia no topo
+- **Pedras** facetadas com lascas em volta, **arbustos** em touceira arredondada, **cogumelos** com pé e chapéu, **lápides**, **baús** com tampa abaulada, **torii** com pilares e vigas laqueadas, **chozuya** com bacia e água
+- **Montanhas** com pico e altura variando por tile; **paredes de caverna** em rocha bruta empilhada
+
+Os **personagens continuam sendo sprites 2D**, virados para a câmera (billboards). Todo o sistema de paper doll segue valendo sem mudança nenhuma: pele, cabelo, peitoral, elmo e arma são compostos no mesmo canvas de antes, que vira a textura do billboard. Trocar de equipamento muda o boneco no mundo 3D na hora.
+
+A **batalha também é 3D**: arena com profundidade e cenário do bioma, combatentes em billboard, e o herói avança de verdade em direção ao youkai ao atacar — quanto mais perto da câmera, maior ele fica. As posições 3D são obtidas desprojetando as coordenadas de tela do layout original, então barras de vida, números de dano, menus e os efeitos das técnicas continuam encaixando pixel a pixel.
+
+Por dentro: terreno dividido em chunks com a textura assada de uma vez só (1 draw call por pedaço em vez de um por tipo de tile), chunks distantes saem da cena, e o three.js vai embutido no próprio arquivo — nada de CDN.
 
 ## ⌨️ Controles
 
@@ -129,8 +145,8 @@ Acompanhe o estoque na aba **Itens** do menu e na barra do topo do altar.
 - Personagens em **pixel art estilo anime**: no mapa (16×20) e em **sprites de batalha 32×48** com proporção heroica (~4 cabeças), pose de combate com pernas afastadas, arma em punho, cabelo espetado em mechas e rosto com olhos de íris colorida — com troca de pose durante os ataques
 - **Sprites em camadas (paper doll)**: 4 tons de pele, 6 estilos e 7 cores de cabelo, 6 cores de olhos e 2 portes, combinados com o peitoral, elmo e arma equipados
 - Cenários do Japão feudal: sakuras em flor, bambuzais, telhados kawara, paredes de taipa, portas shoji, torii vermelhos, lanternas toro, estátuas jizo e pontes laqueadas — com espécie de árvore predominante por região
-- 60 FPS estáveis no mundo e em batalha; texto nítido em resolução cheia sobre a arte em pixels
+- Texto nítido em resolução cheia por cima da cena 3D, numa camada 2D própria
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 124 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, e persistência dos materiais no save — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 140 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, persistência dos materiais no save, e o renderizador 3D (WebGL ativo, mundo em chunks, culling dos pedaços distantes, billboard do herói seguindo o jogador e refletindo a aparência, sombra no chão, câmera acompanhando, arena de batalha montada, avanço do herói em 3D ao atacar, telas 2D escondendo a cena e a reserva 2D funcionando) — tudo sem erros de JavaScript.
