@@ -5828,7 +5828,7 @@ const G = {
   entities: [],       // inimigos no mapa
   spawnTimer: 0,
   battle: null,
-  menuIdx: 0, menuTab: 0, altarMode: 0, confirm: null,
+  menuIdx: 0, menuTab: 0, altarMode: 0, confirm: null, npcs: [], questOferta: null, questIdx: 0,
   shopIdx: 0,
   titleIdx: 0,
   flags: { reislime: false, necromante: false, dragao: false },
@@ -5857,6 +5857,8 @@ function newPlayer() {
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
     pets: [], activePet: null,
+    quests: { ativas: {}, feitas: [] },
+    mercSeed: {},
     look: defaultLook(),
     // técnicas equipadas por caminho (cada arma tem seu próprio conjunto de 4)
     skillSets: { katana: ['golpe'], shakujo: ['fogo'], tanto: ['duplo'], yumi: ['precisa'] },
@@ -6137,6 +6139,8 @@ function loadGame() {
     else for (const k of MAT_KEYS) if (P.mats[k] === undefined) P.mats[k] = 0;
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
+    if (!P.quests) P.quests = { ativas: {}, feitas: [] };
+    if (!P.mercSeed) P.mercSeed = {};
     if (!P.look) P.look = defaultLook();
     if (!P.skillSets) {
       // save antigo: monta o conjunto de cada caminho pelo nível alcançado
@@ -6190,6 +6194,7 @@ function enterMap(name, px, py) {
     G.region = null;
   }
   AU.setTrack(name === 'cave' ? AU.CAVE : AU.WORLD);
+  spawnNPCs(G.map);
 }
 
 const SPAWN_ZONES = {
@@ -6333,6 +6338,8 @@ function updateWorld(dt) {
   if (tap('ok')) {
     const f = facingTile();
     const key = f.tx + ',' + f.ty;
+    const alvoNPC = npcPerto();
+    if (alvoNPC && !TILES_INTERATIVOS.includes(f.t)) { conversaNPC(alvoNPC); return; }
     if (f.t === 13) { // fonte
       const E0 = eff();
       if (P.hp < E0.maxHp || P.mp < E0.maxMp) {
@@ -6594,6 +6601,8 @@ function endBattleWin(b) {
   if (frags) P.frags += frags;
   const mats = rollMats(e.type, e.lvl);
   addMats(mats);
+  questMatou(e.type);
+  questColetou();
   const matTxt = matsText(mats) || null;
   // pets: chefes sempre dão o seu; mobs têm chance pequena de deixar um filhote
   let petTxt = null, petColor = null;
@@ -7565,6 +7574,556 @@ function drawTile(t, x, y, tx, ty, map) {
   }
 }
 
+// ---------- NPCs: moradores, mascates e mestres de missão ----------
+// Reaproveitam o mesmo desenho do herói (HEADS + BODIES), só que com paleta
+// própria — cada morador tem pele, cabelo e roupa diferentes.
+const NPC_ROUPA = [
+  { A: '#6a8a5a', a: '#8aa878', c: '#4a6a3e', B: '#4a5a3a', L: '#3a4630' }, // camponês
+  { A: '#8a6a4a', a: '#a88a68', c: '#6a4e34', B: '#5a4230', L: '#42301f' }, // lenhador
+  { A: '#4a6a8a', a: '#6a8aa8', c: '#36506a', B: '#38485a', L: '#2a3644' }, // pescador
+  { A: '#8a4a5a', a: '#a86a78', c: '#6a3644', B: '#5a3040', L: '#42222e' }, // tecelã
+  { A: '#7a6a8a', a: '#9a8aa8', c: '#5a4e6a', B: '#4a4058', L: '#362e42' }, // monge
+  { A: '#c8b45a', a: '#e0d078', c: '#a08c3e', B: '#6a5c30', L: '#4e4222' }, // mercador
+  { A: '#5a5a6a', a: '#7a7a8a', c: '#42424e', B: '#3a3a46', L: '#2a2a34' }  // andarilho
+];
+function npcPal(look) {
+  const pele = PELE[look.pele % PELE.length];
+  const cab = COR_CABELO[look.corCabelo % COR_CABELO.length];
+  const olho = COR_OLHOS[look.olhos % COR_OLHOS.length];
+  const r = NPC_ROUPA[look.roupa % NPC_ROUPA.length];
+  return {
+    O: '#1a1420',
+    S: pele.S, s: pele.s, b: pele.b, m: '#c4756a',
+    H: cab.H, h: cab.h, d: cab.d,
+    E: '#1a1420', I: olho.I, W: '#ffffff',
+    A: r.A, a: r.a, c: r.c, B: r.B, L: r.L,
+    M: '#d8dce8', G: '#8a6a42', Y: '#e8c050', R: '#c0392b', P: '#e8e4ee'
+  };
+}
+function npcSprite(npc, dir, frame) {
+  const step = WALK_CYCLE[(frame | 0) % WALK_CYCLE.length];
+  const lk = npc.look;
+  const id = `npc_${lk.cabeca}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${lk.roupa}_${dir}_${step}`;
+  if (spriteCache.has(id)) return spriteCache.get(id);
+  const heads = HEADS[lk.cabeca] || HEADS.samurai;
+  const headDir = (dir === 'left' || dir === 'right') ? 'side' : dir;
+  const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
+  const rows = heads[headDir].concat(BODIES[bodyDir + step]);
+  let spr = makeSprite(rows, npcPal(lk));
+  if (dir === 'left') spr = flipSprite(spr);
+  spriteCache.set(id, spr);
+  return spr;
+}
+
+// Falas por papel e por região: aleatórias, mas sempre coerentes com quem fala
+const FALAS = {
+  vila: [
+    'As cerejeiras floresceram cedo este ano.\nBom presságio, dizem os anciãos.',
+    'Meu avô jurava ter visto um tengu\npousar naquele pinheiro. Eu não duvido.',
+    'Se for para os campos, leve onigiri.\nO caminho cansa mais do que parece.',
+    'Ouvi tambores no templo à noite.\nNinguém toca tambor lá faz anos...',
+    'Cuidado com os Konpaku nos arrozais.\nSão fracos, mas vêm em bando.',
+    'Minha filha diz que quer ser samurai.\nEu digo que ferreiro dá mais dinheiro.'
+  ],
+  campo: [
+    'A colheita vai mal com tanto youkai\npisoteando o arrozal.',
+    'Já perdi três espantalhos esse mês.\nAlguma coisa os come.',
+    'Dizem que a arma decide o caminho.\nEu só sei da minha enxada.',
+    'Se chover, os Kappa sobem do rio.\nFique longe da margem.'
+  ],
+  bambu: [
+    'O bambuzal engole o som.\nGrite aqui e ninguém ouve.',
+    'Corto bambu desde menino.\nNunca vi as Jorogumo tão ousadas.',
+    'Há trilhas velhas aqui dentro.\nSe perder, siga o vento.',
+    'Nurarihyon anda por aí, dizem.\nEle entra na sua casa e toma seu chá.'
+  ],
+  montanha: [
+    'O ar fino no planalto engana.\nDescanse antes de subir mais.',
+    'Os Gashadokuro rondam onde\nhouve batalha. Aqui houve muita.',
+    'Meu irmão subiu e não voltou.\nEu ainda subo, toda estação.'
+  ],
+  templo: [
+    'Reze antes de passar do portal.\nO que dorme lá dentro tem sono leve.',
+    'Kagemaru foi monge, sabia?\nAntes de trocar o sutra pelo shikigami.',
+    'Não olhe nos olhos dos Yurei.\nEles lembram o rosto de quem olha.'
+  ],
+  forja: [
+    'Aço bom pede carvão bom.\nE paciência, que é mais raro.',
+    'Traga-me ferro velho que eu\nfaço dele coisa melhor.',
+    'Encantar peça ruim é desperdiçar\nfragmento. Traga algo digno.',
+    'Iwamura vive do martelo.\nSakuramura vive do arroz.'
+  ],
+  mascate: [
+    'Ando muito e carrego pouco.\nO que sobra, vendo barato.',
+    'Cada estação eu passo com outra carga.\nHoje é isto, amanhã sabe-se lá.',
+    'Comprei essa peça de um ronin sem nome.\nNão pergunte de onde veio.'
+  ]
+};
+// paradas dos mascates: pontos por onde circulam
+const NPC_DEFS = [
+  // --- Vila Sakuramura: mestre de missão, moradores
+  { id: 'anciao',  tipo: 'quest',   nome: 'Ancião Genzo',   x: 23, y: 51, tema: 'vila',
+    look: { cabeca: 'onmyoji', pele: 1, corCabelo: 4, olhos: 4, roupa: 4 },
+    linha: 'Sakuramura resiste, mas mal.\nUm braço firme faria diferença.' },
+  { id: 'ald_kioko', tipo: 'aldeao', nome: 'Kioko',  x: 17, y: 53, raio: 4, tema: 'vila',
+    look: { cabeca: 'samurai', pele: 0, corCabelo: 0, olhos: 0, roupa: 3 } },
+  { id: 'ald_taro',  tipo: 'aldeao', nome: 'Taro',   x: 26, y: 54, raio: 5, tema: 'vila',
+    look: { cabeca: 'samurai', pele: 2, corCabelo: 1, olhos: 3, roupa: 0 } },
+  { id: 'ald_hana',  tipo: 'aldeao', nome: 'Hana',   x: 20, y: 46, raio: 4, tema: 'vila',
+    look: { cabeca: 'kyudoka', pele: 1, corCabelo: 6, olhos: 2, roupa: 3 } },
+  { id: 'ald_goro',  tipo: 'aldeao', nome: 'Goro',   x: 29, y: 49, raio: 6, tema: 'campo',
+    look: { cabeca: 'samurai', pele: 3, corCabelo: 0, olhos: 0, roupa: 1 } },
+  // --- Vila Iwamura: ferreira e moradores
+  { id: 'ferreira', tipo: 'quest',   nome: 'Ferreira Sae',  x: 78, y: 25, tema: 'forja',
+    look: { cabeca: 'shinobi', pele: 2, corCabelo: 2, olhos: 5, roupa: 5 },
+    linha: 'Martelo não bate sozinho.\nSe quiser aço, traga do que se faz aço.' },
+  { id: 'ald_ren',   tipo: 'aldeao', nome: 'Ren',    x: 74, y: 22, raio: 4, tema: 'forja',
+    look: { cabeca: 'samurai', pele: 1, corCabelo: 3, olhos: 1, roupa: 1 } },
+  { id: 'ald_mika',  tipo: 'aldeao', nome: 'Mika',   x: 82, y: 27, raio: 5, tema: 'forja',
+    look: { cabeca: 'kyudoka', pele: 0, corCabelo: 5, olhos: 2, roupa: 2 } },
+  { id: 'ald_sora',  tipo: 'aldeao', nome: 'Sora',   x: 70, y: 28, raio: 6, tema: 'montanha',
+    look: { cabeca: 'shinobi', pele: 2, corCabelo: 0, olhos: 4, roupa: 6 } },
+  // --- monge no caminho do templo
+  { id: 'monge',    tipo: 'quest',   nome: 'Monge Eikan',   x: 60, y: 58, tema: 'templo',
+    look: { cabeca: 'onmyoji', pele: 3, corCabelo: 4, olhos: 5, roupa: 4 },
+    linha: 'O templo chora à noite.\nAlguém precisa calar esse choro.' },
+  { id: 'ald_yuki',  tipo: 'aldeao', nome: 'Yuki',   x: 34, y: 40, raio: 7, tema: 'bambu',
+    look: { cabeca: 'shinobi', pele: 1, corCabelo: 1, olhos: 0, roupa: 0 } },
+  { id: 'ald_ken',   tipo: 'aldeao', nome: 'Ken',    x: 66, y: 44, raio: 7, tema: 'bambu',
+    look: { cabeca: 'samurai', pele: 0, corCabelo: 2, olhos: 3, roupa: 1 } },
+  // --- mascates que circulam por trechos largos
+  { id: 'merc_tobei', tipo: 'viajante', nome: 'Tobei, o mascate', x: 40, y: 50, raio: 12, tema: 'mascate',
+    look: { cabeca: 'kyudoka', pele: 2, corCabelo: 1, olhos: 3, roupa: 5 }, margem: 0.62 },
+  { id: 'merc_orin',  tipo: 'viajante', nome: 'Orin das Estradas', x: 62, y: 30, raio: 12, tema: 'mascate',
+    look: { cabeca: 'onmyoji', pele: 0, corCabelo: 6, olhos: 2, roupa: 6 }, margem: 0.72 },
+  { id: 'merc_sanzo', tipo: 'viajante', nome: 'Sanzo, o raro', x: 50, y: 62, raio: 10, tema: 'mascate',
+    look: { cabeca: 'shinobi', pele: 3, corCabelo: 0, olhos: 5, roupa: 5 }, margem: 0.9 }
+];
+
+// encontra o tile livre mais próximo, para nenhum NPC nascer dentro de parede
+function tileLivrePerto(map, tx, ty) {
+  if (!isSolid(map, tx, ty)) return [tx, ty];
+  for (let r = 1; r <= 6; r++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+      const nx = tx + dx, ny = ty + dy;
+      if (nx > 0 && ny > 0 && nx < map.w - 1 && ny < map.h - 1 && !isSolid(map, nx, ny)) return [nx, ny];
+    }
+  }
+  return [tx, ty];
+}
+function spawnNPCs(map) {
+  G.npcs = [];
+  if (map.name !== 'overworld') return;   // por ora, só o mundo aberto
+  for (const d of NPC_DEFS) {
+    const [tx, ty] = tileLivrePerto(map, d.x, d.y);
+    G.npcs.push({
+      ...d,
+      x: tx * TILE, y: ty * TILE,
+      casaX: tx * TILE, casaY: ty * TILE,
+      dir: 'down', frame: 0, animT: 0, moveT: rnd(0.5, 2), vx: 0, vy: 0,
+      falaIdx: Math.floor(Math.random() * 97)
+    });
+  }
+}
+function updateNPCs(dt) {
+  if (!G.npcs) return;
+  for (const n of G.npcs) {
+    n.animT += dt;
+    if (n.tipo === 'quest') { n.frame = 0; continue; }   // mestres ficam no posto
+    // longe do jogador nem se mexe: não adianta simular o mapa todo
+    if (Math.hypot(n.x - P.x, n.y - P.y) > TILE * 26) continue;
+    n.moveT -= dt;
+    if (n.moveT <= 0) {
+      n.moveT = rnd(1.1, 3.2);
+      const vel = n.tipo === 'viajante' ? 22 : 16;
+      // volta para casa se andou demais
+      const dx = n.casaX - n.x, dy = n.casaY - n.y;
+      const lonje = Math.hypot(dx, dy) > (n.raio || 4) * TILE;
+      if (lonje) {
+        const d = Math.hypot(dx, dy) || 1;
+        n.vx = dx / d * vel; n.vy = dy / d * vel;
+      } else {
+        const d = irnd(0, 5);
+        n.vx = d === 0 ? vel : d === 1 ? -vel : 0;
+        n.vy = d === 2 ? vel : d === 3 ? -vel : 0;
+      }
+    }
+    if (n.vx || n.vy) {
+      const nx = n.x + n.vx * dt, ny = n.y + n.vy * dt;
+      if (!isSolid(G.map, Math.floor((nx + 8) / TILE), Math.floor((n.y + 12) / TILE))) n.x = nx;
+      else n.vx = 0;
+      if (!isSolid(G.map, Math.floor((n.x + 8) / TILE), Math.floor((ny + 12) / TILE))) n.y = ny;
+      else n.vy = 0;
+      if (Math.abs(n.vx) > Math.abs(n.vy)) n.dir = n.vx > 0 ? 'right' : 'left';
+      else if (n.vy) n.dir = n.vy > 0 ? 'down' : 'up';
+      n.frame = Math.floor(n.animT * 6) % WALK_CYCLE.length;
+    } else n.frame = 0;
+  }
+}
+// NPC ao alcance de conversa. Quem está na direção encarada tem preferência,
+// para um morador passando por perto não roubar a conversa de quem está à
+// frente.
+function npcPerto() {
+  if (!G.npcs) return null;
+  const dx = P.dir === 'left' ? -1 : P.dir === 'right' ? 1 : 0;
+  const dy = P.dir === 'up' ? -1 : P.dir === 'down' ? 1 : 0;
+  let melhor = null, melhorNota = -Infinity;
+  for (const n of G.npcs) {
+    const d = Math.hypot(n.x - P.x, n.y - P.y);
+    if (d > TILE * 1.7) continue;
+    // 1 quando está exatamente na direção encarada, 0 quando está atrás
+    const proj = d > 1 ? ((n.x - P.x) * dx + (n.y - P.y) * dy) / d : 1;
+    const nota = proj * 2 + (1 - d / (TILE * 1.7));
+    if (nota > melhorNota) { melhorNota = nota; melhor = n; }
+  }
+  return melhor;
+}
+// tiles que respondem ao Z: quando o jogador encara um deles, ele vem antes do
+// NPC, senão um aldeão parado ao lado do altar impediria de usar o altar
+const TILES_INTERATIVOS = [13, 14, 15, 16, 19, 21];
+function falaAleatoria(n) {
+  const pool = FALAS[n.tema] || FALAS.vila;
+  const t = pool[n.falaIdx % pool.length];
+  n.falaIdx++;
+  return n.nome + ':\n' + t;
+}
+
+// ---------- Missões ----------
+// Cadeias curtas por mestre de missão: cada uma empurra o jogador para a
+// próxima região e paga em ouro e XP o suficiente para justificar o desvio.
+const QUESTS = {
+  q_konpaku: {
+    nome: 'Konpaku no arrozal', npc: 'anciao', nivel: 1,
+    tipo: 'matar', alvo: 'slime', qtd: 6,
+    local: [30, 52], dica: 'Campos de Arroz, a leste da vila',
+    ouro: 70, xp: 60,
+    oferta: 'Ancião Genzo:\nOs Konpaku tomaram o arrozal a leste.\nDerrube seis deles e a vila come.',
+    fim: 'Ancião Genzo:\nO arrozal respira de novo.\nTome, é pouco, mas é de coração.',
+    proxima: 'q_kappa'
+  },
+  q_kappa: {
+    nome: 'Kappa na margem', npc: 'anciao', nivel: 2,
+    tipo: 'matar', alvo: 'goblin', qtd: 5,
+    local: [44, 46], dica: 'a margem do rio, a leste',
+    ouro: 120, xp: 110,
+    oferta: 'Ancião Genzo:\nOs Kappa arrastam quem chega perto\nda água. Cinco a menos já ajuda.',
+    fim: 'Ancião Genzo:\nAs crianças podem voltar ao rio.\nVocê tem o agradecimento da vila.',
+    proxima: 'q_nurarihyon'
+  },
+  q_nurarihyon: {
+    nome: 'O velho do bambuzal', npc: 'anciao', nivel: 4,
+    tipo: 'matar', alvo: 'reislime', qtd: 1,
+    local: [14, 37], dica: 'Bosque de Bambu, a oeste',
+    ouro: 300, xp: 260, item: 'elixir',
+    oferta: 'Ancião Genzo:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono.\nExpulse-o do bambuzal.',
+    fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.'
+  },
+  q_ferro: {
+    nome: 'Ferro para a forja', npc: 'ferreira', nivel: 3,
+    tipo: 'coletar', alvo: 'ferro', qtd: 5,
+    local: [58, 40], dica: 'Oni e Doro-ningyo deixam ferro',
+    ouro: 150, xp: 130,
+    oferta: 'Ferreira Sae:\nMinha bigorna está ociosa.\nTraga cinco Ferro Velho e eu\ntransformo em algo que corta.',
+    fim: 'Ferreira Sae:\nIsso serve. O fole já está quente.\nPegue sua parte.',
+    proxima: 'q_tengu'
+  },
+  q_tengu: {
+    nome: 'Asas sobre o planalto', npc: 'ferreira', nivel: 5,
+    tipo: 'matar', alvo: 'harpia', qtd: 5,
+    local: [58, 18], dica: 'Planalto do Norte',
+    ouro: 240, xp: 220, item: 'pocaoG',
+    oferta: 'Ferreira Sae:\nOs Tengu levam o minério que\nsobe pela trilha. Cinco penas\nmenos no céu resolvem.',
+    fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.'
+  },
+  q_yurei: {
+    nome: 'O choro do templo', npc: 'monge', nivel: 6,
+    tipo: 'matar', alvo: 'fantasma', qtd: 6,
+    local: [64, 62], dica: 'Templo Abandonado, ao sul',
+    ouro: 280, xp: 250,
+    oferta: 'Monge Eikan:\nOs Yurei não descansam porque\nninguém rezou por eles. Se a reza\nnão serve, sirva a lâmina.',
+    fim: 'Monge Eikan:\nO templo silenciou.\nQue eles encontrem o caminho.',
+    proxima: 'q_kagemaru'
+  },
+  q_kagemaru: {
+    nome: 'O onmyoji negro', npc: 'monge', nivel: 8,
+    tipo: 'matar', alvo: 'necromante', qtd: 1,
+    local: [82, 55], dica: 'Templo Abandonado, a leste',
+    ouro: 460, xp: 420, item: 'elixir',
+    oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nO que ele virou já não é irmão\nde ninguém. Termine isso.',
+    fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir.'
+  }
+};
+function questsDoNPC(npcId) { return Object.keys(QUESTS).filter(q => QUESTS[q].npc === npcId); }
+function questAtivas() { return P.quests ? Object.keys(P.quests.ativas) : []; }
+function questFeita(id) { return !!(P.quests && P.quests.feitas.includes(id)); }
+// próxima missão que este NPC tem a oferecer, respeitando cadeia e nível
+function questOferecida(npcId) {
+  for (const id of questsDoNPC(npcId)) {
+    const q = QUESTS[id];
+    if (questFeita(id) || P.quests.ativas[id]) continue;
+    // só oferece se a anterior da cadeia já foi entregue
+    const anterior = Object.keys(QUESTS).find(k => QUESTS[k].proxima === id);
+    if (anterior && !questFeita(anterior)) continue;
+    return id;
+  }
+  return null;
+}
+function aceitaQuest(id) {
+  P.quests.ativas[id] = { prog: 0 };
+  AU.sfx('level');
+  toast('Missão aceita: ' + QUESTS[id].nome);
+  saveGame();
+}
+function questCompleta(id) {
+  const q = QUESTS[id], a = P.quests.ativas[id];
+  return a && a.prog >= q.qtd;
+}
+function entregaQuest(id) {
+  const q = QUESTS[id];
+  delete P.quests.ativas[id];
+  P.quests.feitas.push(id);
+  P.gold += q.ouro;
+  if (q.item) P.items[q.item] = Math.min(9, (P.items[q.item] || 0) + 1);
+  const ups = gainXP(q.xp);
+  AU.sfx('victory');
+  burstScreen(VW / 2, VH / 2, 34, { color: ['#ffd94e', '#fff0a0', '#6ee86e'], spdMax: 110, lifeMax: 1.1, size: 2, drag: 2.4 });
+  let txt = q.fim + '\n\n+' + q.ouro + ' ouro   +' + q.xp + ' XP';
+  if (q.item) txt += '\n+ ' + ITEMS[q.item].name;
+  if (ups.length) txt += '\nNÍVEL ' + ups[ups.length - 1] + '!';
+  showMsg(txt);
+  saveGame();
+}
+// avanço por tipo de objetivo
+function questMatou(tipo) {
+  if (!P.quests) return;
+  for (const id of questAtivas()) {
+    const q = QUESTS[id];
+    if (q.tipo !== 'matar' || q.alvo !== tipo) continue;
+    const a = P.quests.ativas[id];
+    if (a.prog >= q.qtd) continue;
+    a.prog++;
+    if (a.prog >= q.qtd) { toast('Missão pronta: ' + q.nome); AU.sfx('level'); }
+  }
+}
+function questColetou() {
+  if (!P.quests) return;
+  for (const id of questAtivas()) {
+    const q = QUESTS[id];
+    if (q.tipo !== 'coletar') continue;
+    const a = P.quests.ativas[id];
+    const tinha = a.prog;
+    a.prog = Math.min(q.qtd, matQty(q.alvo));
+    if (a.prog > tinha && a.prog >= q.qtd) { toast('Missão pronta: ' + q.nome); AU.sfx('level'); }
+  }
+}
+// missão em foco no HUD: a que está pronta primeiro, senão a mais antiga
+function questFoco() {
+  const ids = questAtivas();
+  if (!ids.length) return null;
+  const pronta = ids.find(id => questCompleta(id));
+  return pronta || ids[0];
+}
+// para onde a seta aponta: o alvo da missão ou o NPC, quando já está pronta
+function alvoDaQuest(id) {
+  const q = QUESTS[id];
+  if (questCompleta(id)) {
+    const n = (G.npcs || []).find(v => v.id === q.npc);
+    if (n) return [n.x / TILE, n.y / TILE];
+  }
+  return q.local;
+}
+
+// ---------- HUD das missões ----------
+function drawQuestHUD() {
+  const id = questFoco();
+  if (!id) return;
+  const q = QUESTS[id], a = P.quests.ativas[id];
+  const pronta = a.prog >= q.qtd;
+  const w = 104, x = VW - w - 4, y = 4;
+  ctx.fillStyle = 'rgba(12,10,20,0.82)';
+  ctx.fillRect(x, y, w, 30);
+  ctx.strokeStyle = pronta ? '#ffd94e' : '#5a4a8a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 29);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = pronta ? '#ffd94e' : '#a89ac0';
+  ctx.fillText('◈ ' + q.nome, x + 5, y + 10);
+  ctx.fillStyle = '#8a7ab0';
+  const alvoNome = q.tipo === 'coletar' ? MATS[q.alvo].name : (ENEMIES[q.alvo] ? ENEMIES[q.alvo].name : q.alvo);
+  ctx.fillText(pronta ? 'Volte ao ' + (QUESTS[id].npc === 'anciao' ? 'ancião' : QUESTS[id].npc === 'ferreira' ? 'ferreira' : 'monge')
+    : alvoNome + '  ' + a.prog + '/' + q.qtd, x + 5, y + 20);
+  // barra de progresso
+  const bw = w - 10;
+  ctx.fillStyle = '#2a2438';
+  ctx.fillRect(x + 5, y + 23, bw, 3);
+  ctx.fillStyle = pronta ? '#ffd94e' : '#6ee86e';
+  ctx.fillRect(x + 5, y + 23, Math.round(bw * clamp(a.prog / q.qtd, 0, 1)), 3);
+  if (questAtivas().length > 1) {
+    ctx.fillStyle = '#6a5a8a';
+    ctx.fillText('+' + (questAtivas().length - 1), x + w - 12, y + 10);
+  }
+}
+// seta apontando para o objetivo, girando em volta do jogador
+function drawSetaGuia() {
+  const id = questFoco();
+  if (!id || G.state !== 'world') return;
+  const alvo = alvoDaQuest(id);
+  if (!alvo) return;
+  const px = P.x / TILE, pz = P.y / TILE;
+  const dx = alvo[0] - px, dz = alvo[1] - pz;
+  const dist = Math.hypot(dx, dz);
+  if (dist < 2.5) return;                 // já chegou: some
+  const ang = Math.atan2(dz, dx);
+  // o jogador fica no centro da tela nos dois renderizadores
+  const cx = VW / 2 + 8, cy = VH / 2 + 4;
+  const raio = 30 + Math.sin(G.time * 3) * 2;
+  const ax = cx + Math.cos(ang) * raio, ay = cy + Math.sin(ang) * raio * 0.82;
+  const pronta = questCompleta(id);
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(ang);
+  ctx.fillStyle = pronta ? '#ffd94e' : '#6ee8c0';
+  ctx.beginPath();
+  ctx.moveTo(7, 0); ctx.lineTo(-4, -4.5); ctx.lineTo(-1.5, 0); ctx.lineTo(-4, 4.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(10,8,18,0.85)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+  ctx.font = '7px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = pronta ? '#ffd94e' : '#6ee8c0';
+  ctx.fillText(Math.round(dist) + 'm', ax, ay + (Math.sin(ang) > 0 ? 12 : -7));
+  ctx.textAlign = 'left';
+  ctx.lineWidth = 1;
+}
+
+// ---------- Conversa com NPC ----------
+// Mestre de missão: oferece, cobra progresso ou entrega. Mascate: abre a loja
+// dele. Morador: solta uma fala da região, diferente a cada vez.
+function conversaNPC(n) {
+  P.dir = n.y < P.y - 4 ? 'up' : n.y > P.y + 4 ? 'down' : (n.x < P.x ? 'left' : 'right');
+  AU.sfx('menu');
+  if (n.tipo === 'quest') {
+    // 1) alguma missão dele já está pronta para entregar?
+    const pronta = questAtivas().find(id => QUESTS[id].npc === n.id && questCompleta(id));
+    if (pronta) { entregaQuest(pronta); return; }
+    // 2) alguma em andamento?
+    const andando = questAtivas().find(id => QUESTS[id].npc === n.id);
+    if (andando) {
+      const q = QUESTS[andando], a = P.quests.ativas[andando];
+      const alvoNome = q.tipo === 'coletar' ? MATS[q.alvo].name : ENEMIES[q.alvo].name;
+      showMsg(n.nome + ':\n' + q.nome + ' — ' + a.prog + '/' + q.qtd + ' ' + alvoNome + '.\n' + q.dica + '.');
+      return;
+    }
+    // 3) tem missão nova para oferecer?
+    const nova = questOferecida(n.id);
+    if (nova) {
+      const q = QUESTS[nova];
+      if (P.lvl < q.nivel) {
+        showMsg(n.nome + ':\nVocê ainda é verde para o que preciso.\nVolte com nível ' + q.nivel + '.');
+        return;
+      }
+      G.questOferta = nova;
+      G.state = 'quest';
+      return;
+    }
+    showMsg((n.linha ? n.linha : n.nome + ':\nNada por ora.') + '\n\n(Nenhuma missão no momento.)');
+    return;
+  }
+  if (n.tipo === 'viajante') { abreMascate(n); return; }
+  showMsg(falaAleatoria(n));
+}
+
+// ---------- Mascates ----------
+// Estoque sorteado por semente guardada no save: comum sai mais barato que na
+// loja fixa, raro sai bem mais caro. A carga troca a cada punhado de batalhas.
+function sementeMascate(n) {
+  if (!P.mercSeed) P.mercSeed = {};
+  const rodada = Math.floor((G.stats.battles || 0) / 12);
+  const chave = n.id;
+  if (!P.mercSeed[chave] || P.mercSeed[chave].rodada !== rodada) {
+    P.mercSeed[chave] = { rodada, s: (Math.random() * 1e9) | 0 };
+  }
+  return P.mercSeed[chave].s;
+}
+function estoqueMascate(n) {
+  const r = seeded(sementeMascate(n) >>> 0);
+  const esc = arr => arr[Math.floor(r() * arr.length)];
+  const out = [];
+  const nItens = 6 + Math.floor(r() * 4);
+  const consumiveis = Object.keys(ITEMS);
+  for (let i = 0; i < nItens; i++) {
+    if (r() < 0.34) { out.push('i:' + esc(consumiveis)); continue; }
+    // quanto maior a margem do mascate, mais ele mexe com coisa rara
+    const sorte = r();
+    const rar = sorte < 0.3 + n.margem * 0.2 ? esc(['comum', 'incomum'])
+      : sorte < 0.85 ? 'raro' : esc(['epico', 'lendario']);
+    const pool = Object.keys(EQUIP).filter(k => EQUIP[k].rar === rar && !NO_DROP.includes(k));
+    if (pool.length) out.push(esc(pool));
+  }
+  return [...new Set(out)];
+}
+// preço do mascate: barganha no comum, ágio no raro
+function precoMascate(entrada, margem) {
+  const base = entrada.price;
+  const raro = entrada.kind === 'equip' && ['raro', 'epico', 'lendario'].includes(EQUIP[entrada.id].rar);
+  const f = raro ? 1.45 + (1 - margem) * 0.6 : 0.55 + margem * 0.2;
+  return Math.max(2, Math.round(base * f));
+}
+function abreMascate(n) {
+  G.shopId = 'mascate';
+  G.shopNPC = n;
+  G.shopStock = estoqueMascate(n);
+  G.shopIdx = 0;
+  G.state = 'shop';
+  AU.sfx('ok');
+  toast(n.nome);
+}
+
+// ---------- Tela de oferta de missão ----------
+function drawQuestOferta() {
+  drawWorld(true);
+  ctx.fillStyle = 'rgba(8,6,16,0.86)';
+  ctx.fillRect(0, 0, VW, VH);
+  const q = QUESTS[G.questOferta];
+  const x = 30, y = 26, w = VW - 60, h = VH - 60;
+  ctx.fillStyle = 'rgba(26,20,42,0.98)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#ffd94e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('◈ ' + q.nome, x + 10, y + 14);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#d8cce8';
+  q.oferta.split('\n').forEach((l, i) => ctx.fillText(l, x + 10, y + 28 + i * 9));
+  const base = y + 28 + q.oferta.split('\n').length * 9 + 6;
+  ctx.fillStyle = '#8a7ab0';
+  const alvoNome = q.tipo === 'coletar' ? MATS[q.alvo].name : ENEMIES[q.alvo].name;
+  ctx.fillText('Objetivo: ' + (q.tipo === 'coletar' ? 'reunir ' : 'derrotar ') + q.qtd + ' ' + alvoNome, x + 10, base);
+  ctx.fillText('Onde: ' + q.dica, x + 10, base + 9);
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('Paga: ' + q.ouro + ' ouro · ' + q.xp + ' XP' + (q.item ? ' · ' + ITEMS[q.item].name : ''), x + 10, base + 21);
+  ['Aceitar', 'Agora não'].forEach((t, i) => {
+    const sel = G.questIdx === i;
+    ctx.fillStyle = sel ? '#ffd94e' : '#705a80';
+    ctx.fillText((sel ? '▶ ' : '  ') + t, x + 10 + i * 66, y + h - 10);
+  });
+}
+function updateQuestOferta() {
+  if (tap('left') || tap('right')) { G.questIdx = G.questIdx ? 0 : 1; AU.sfx('menu'); }
+  if (tap('ok')) {
+    if (G.questIdx === 0) aceitaQuest(G.questOferta);
+    else AU.sfx('back');
+    G.state = 'world'; G.questIdx = 0;
+  }
+  if (tap('back')) { G.state = 'world'; G.questIdx = 0; AU.sfx('back'); }
+}
+
 // ---------- Ampliação do pixel art (EPX / Scale2x) ----------
 // Dobra a resolução de um sprite preservando as bordas: cada pixel vira quatro,
 // e as diagonais deixam de ser degraus grosseiros. A arte muda um pouco (os
@@ -8291,6 +8850,14 @@ function desenhaPersonagens2D(sx, sy) {
     ctx.drawImage(spr, pex, pey - pbob);
   }
 
+  for (const n of (G.npcs || [])) {
+    const nx = Math.round(n.x) - sx, ny = Math.round(n.y) - sy;
+    if (nx < -24 || ny < -24 || nx > VW + 24 || ny > VH + 24) continue;
+    shadow(nx + 8, ny + 15, 5.5, 0.26);
+    ctx.drawImage(npcSprite(n, n.dir, n.frame), nx, ny - 4);
+    const d = Math.hypot(n.x - P.x, n.y - P.y);
+    if (d < TILE * 7) desenhaMarcaNPC(n, nx + 8, ny - 8, d);
+  }
   // entidades ordenadas por y (profundidade)
   const ents = [...G.entities, P].sort((a, b) => a.y - b.y);
   for (const e of ents) {
@@ -8516,7 +9083,33 @@ Object.assign(R3, {
 
 // telas que aparecem por cima do mundo 3D; as demais (título, criação,
 // game over) são puramente 2D e escondem a cena
-const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'battle']);
+const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'quest', 'battle']);
+// marcador flutuante do NPC: ◈ missão nova, ✓ pronta para entregar, $ mascate
+function desenhaMarcaNPC(n, sx, sy, dist) {
+  let marca = null, cor = '#a89ac0';
+  if (n.tipo === 'quest') {
+    const pronta = questAtivas().some(id => QUESTS[id].npc === n.id && questCompleta(id));
+    const nova = questOferecida(n.id);
+    if (pronta) { marca = '✓'; cor = '#ffd94e'; }
+    else if (nova && P.lvl >= QUESTS[nova].nivel) { marca = '◈'; cor = '#6ee86e'; }
+    else marca = '·';
+  } else if (n.tipo === 'viajante') { marca = '$'; cor = '#ffd94e'; }
+  const flut = Math.round(Math.sin(G.time * 3 + n.x) * 1.5);
+  ctx.textAlign = 'center';
+  if (marca && marca !== '·') {
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = cor;
+    ctx.fillText(marca, Math.round(sx), Math.round(sy) + flut);
+  }
+  if (dist < TILE * 1.6) {
+    ctx.font = '7px monospace';
+    ctx.fillStyle = '#e8e0f0';
+    ctx.fillText(n.nome, Math.round(sx), Math.round(sy) + 12);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText('Z falar', Math.round(sx), Math.round(sy) + 20);
+  }
+  ctx.textAlign = 'left';
+}
 let _bidSeq = 0;
 // Desenha o mundo pela cena 3D. A camada 2D fica transparente e só recebe
 // HUD, rótulos e partículas — que são projetados pela câmera 3D.
@@ -8533,6 +9126,10 @@ function desenhaMundo3D(m) {
     R3.por('pet', petSprite(P.activePet), G.petX / TILE, G.petY / TILE + 0.2, 0,
       -Math.abs(Math.sin(G.time * 4)) * 0.06);
   }
+  for (const n of (G.npcs || [])) {
+    if (Math.hypot(n.x - P.x, n.y - P.y) > TILE * 24) continue;
+    R3.por('n_' + n.id, npcSprite(n, n.dir, n.frame), n.x / TILE, n.y / TILE + 0.2, 0, 0);
+  }
   for (const e of G.entities) {
     if (e._bid === undefined) e._bid = 'e' + (++_bidSeq);
     if (Math.hypot(e.x - P.x, e.y - P.y) > TILE * 24) continue;
@@ -8545,6 +9142,14 @@ function desenhaMundo3D(m) {
   R3.camPara(hx, hz + 0.2);
   R3.desenha();
 
+  // marcador acima dos NPCs: missão nova, missão pronta, mascate
+  for (const n of (G.npcs || [])) {
+    const d = Math.hypot(n.x - P.x, n.y - P.y);
+    if (d > TILE * 7) continue;
+    const q = R3.projeta(n.x / TILE, 1.95, n.y / TILE + 0.2);
+    if (q.atras) continue;
+    desenhaMarcaNPC(n, q.x, q.y, d);
+  }
   // rótulos de nível e alerta, projetados por cima dos youkai
   for (const e of G.entities) {
     const dist = Math.hypot(e.x - P.x, e.y - P.y);
@@ -8610,7 +9215,7 @@ function drawWorld(noHud) {
     grd.addColorStop(1, 'rgba(6,24,10,0.35)');
     ctx.fillStyle = grd; ctx.fillRect(0, 0, VW, VH);
   }
-  if (!noHud) drawWorldHUD();
+  if (!noHud) { drawWorldHUD(); drawQuestHUD(); drawSetaGuia(); }
 }
 
 function barRect(x, y, w, h, pct, fg, bg) {
@@ -9922,7 +10527,14 @@ const SHOP_STOCK = {
   rocha:  ['i:pocaoG', 'i:eter', 'i:elixir', 'i:bomba', 'i:pergaminho', 'esp3', 'caj3', 'ada3', 'arc3',
            'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3', 'luv3', 'luv4', 'amu3', 'amu6', 'amu7']
 };
+// estoque em exibição: fixo da vila ou a carga do mascate
+function estoqueLoja() { return G.shopId === 'mascate' ? G.shopStock : SHOP_STOCK[G.shopId]; }
 function shopEntry(s) {
+  const e = shopEntryBase(s);
+  if (G.shopId === 'mascate' && G.shopNPC) e.price = precoMascate(e, G.shopNPC.margem);
+  return e;
+}
+function shopEntryBase(s) {
   if (s.startsWith('i:')) {
     const id = s.slice(2);
     return { kind: 'item', id, name: ITEMS[id].name, desc: ITEMS[id].desc, price: ITEMS[id].price, color: '#c8c8d0' };
@@ -9941,11 +10553,12 @@ function drawShop() {
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText(G.shopId === 'aldeia' ? 'MERCADO DE SAKURAMURA' : 'FORJA DE IWAMURA', x + 10, y + 13);
+  ctx.fillText(G.shopId === 'mascate' ? G.shopNPC.nome.toUpperCase()
+    : G.shopId === 'aldeia' ? 'MERCADO DE SAKURAMURA' : 'FORJA DE IWAMURA', x + 10, y + 13);
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
-  const stock = SHOP_STOCK[G.shopId];
+  const stock = estoqueLoja();
   const maxShow = 9;
   const first = clamp(G.shopIdx - 4, 0, Math.max(0, stock.length - maxShow));
   stock.slice(first, first + maxShow).forEach((s, j) => {
@@ -9972,7 +10585,7 @@ function drawShop() {
   ctx.fillText('Z comprar · X sair', x + 10, y + h - 7);
 }
 function updateShop() {
-  const stock = SHOP_STOCK[G.shopId];
+  const stock = estoqueLoja();
   if (tap('up')) { G.shopIdx = (G.shopIdx + stock.length - 1) % stock.length; AU.sfx('menu'); }
   if (tap('down')) { G.shopIdx = (G.shopIdx + 1) % stock.length; AU.sfx('menu'); }
   if (tap('ok')) {
@@ -10359,6 +10972,7 @@ function frame(now) {
         case 'shop': updateShop(); break;
         case 'enchant': updateEnchant(); break;
         case 'confirm': updateConfirm(); break;
+        case 'quest': updateQuestOferta(); break;
         case 'learn': updateLearn(); break;
         case 'create': updateCreate(); break;
         case 'gameover': updateGameOver(); break;
@@ -10369,7 +10983,7 @@ function frame(now) {
   if (G.battleFlash > 0) G.battleFlash = Math.max(0, G.battleFlash - dt * 3.2);
   // partículas e ambiente
   updateParticles(dt);
-  if (G.state === 'world' && G.map) updateAmbient(dt);
+  if (G.state === 'world' && G.map) { updateAmbient(dt); updateNPCs(dt); }
 
   // floaters
   for (const f of G.floaters) f.t += dt;
@@ -10390,6 +11004,7 @@ function frame(now) {
     case 'shop': drawShop(); break;
     case 'enchant': drawEnchant(); break;
     case 'confirm': drawConfirm(); break;
+    case 'quest': drawQuestOferta(); break;
     case 'learn': drawLearn(); break;
     case 'create': drawCreate(); break;
     case 'gameover': drawGameOver(); break;
@@ -10505,7 +11120,21 @@ window.DBG = {
   r3Zoom(f) { R3.zoom = f; R3.aplicaZoom(f); },
   r3Inc(v) { R3.inc = v; },
   r3Force2D(v) { R3.forcado2D = v; if (v) R3.mostra(false); },
-  filaVazia() { return filaToques.length === 0; }
+  filaVazia() { return filaToques.length === 0; },
+  npcs() { return G.npcs; },
+  npcPerto() { return npcPerto(); },
+  quests() { return QUESTS; },
+  questAtivas() { return P.quests.ativas; },
+  questFeitas() { return P.quests.feitas; },
+  questOferecida(id) { return questOferecida(id); },
+  aceitaQuest(id) { aceitaQuest(id); },
+  questMatou(t) { questMatou(t); },
+  questFoco() { return questFoco(); },
+  alvoDaQuest(id) { return alvoDaQuest(id); },
+  estoqueMascate(id) { const n = G.npcs.find(v => v.id === id); return n ? estoqueMascate(n) : null; },
+  precoMascate(s2, m) { return precoMascate(shopEntryBase(s2), m); },
+  shopEntry(s2) { return shopEntry(s2); },
+  irPara(id) { const n = G.npcs.find(v => v.id === id); if (n) { P.x = n.x; P.y = n.y + TILE; P.dir = 'up'; } return !!n; }
 };
 </script>
 </body>

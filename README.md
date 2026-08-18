@@ -46,7 +46,7 @@ Por dentro: terreno dividido em chunks com a textura assada de uma vez só (1 dr
 |---|---|
 | Setas / WASD | Mover |
 | Shift | Correr |
-| Z / Enter / Espaço | Confirmar · Interagir · Atacar |
+| Z / Enter / Espaço | Confirmar · Falar com NPC · Interagir · Atacar |
 | X / Esc | Voltar / Cancelar |
 | C | Menu do personagem (status, técnicas, equipamento, itens, pets) |
 | Q | Desmontar a peça em foco na mochila |
@@ -95,6 +95,24 @@ Monstros podem dropar equipamentos em 5 raridades, com chance pesada pela rarida
 Youkai mais fortes destravam raridades maiores. **Chefes têm drop assinatura garantido** — Orochi dropa a arma lendária do seu caminho atual. Há **103 equipamentos em 6 slots**: katanas, kodachi, naginatas e nodachi; shakujo, gohei e pergaminhos; tanto, kunai, kaiken e kusarigama; yumi, hankyu e daikyu; além de o-yoroi, domaru, hakama, kabuto, mempo, kitsune-men, kote, yugake, waraji, tabi, geta, magatama e omamori — mais os baús escondidos pelo mundo.
 
 **Cada youkai tem sua própria mesa de drops.** O Oni deixa lâminas e elmos de ferro, o Tengu deixa arcos e calçados leves, a Jorogumo deixa sedas e tantos, o Onibi deixa shakujo e magatamas. Dá para caçar o que você quer: se falta um arco, vá atrás dos Tengu. O resto do tempo o sorteio cai na tabela geral, então nenhuma peça fica inalcançável.
+
+## 🧑‍🌾 Gente no mundo
+
+O mapa deixou de ser só você e os youkai. **15 NPCs** povoam as vilas e as estradas, cada um com nome, aparência própria e um papel:
+
+**Moradores** perambulam pelos arredores de casa e conversam quando você chega perto (Z). As falas são sorteadas de um repertório ligado ao tema de onde ele vive — o camponês fala da colheita e dos Kappa no rio, o lenhador do bambuzal, o monge do que dorme no templo. Cada conversa traz uma fala diferente.
+
+**Mascates** andam por trechos largos do mundo e abrem a própria loja. O estoque é **sorteado**: item comum sai **mais barato que a loja fixa**, item raro sai **com ágio**. A carga muda a cada punhado de batalhas, então vale conferir de novo quando reencontrar um deles. São três, cada um com sua margem — o Sanzo mexe mais com coisa rara.
+
+Um marcador flutua sobre a cabeça de quem tem algo a oferecer: **◈** missão nova, **✓** missão pronta para entregar, **$** mascate.
+
+## ◈ Missões
+
+Três mestres de missão dão **cadeias curtas** que empurram a progressão: o Ancião Genzo em Sakuramura, a Ferreira Sae em Iwamura e o Monge Eikan no caminho do templo. Cada cadeia abre a próxima quando você entrega a anterior, e respeita um nível mínimo.
+
+São de três feitios: **caçar** N youkai de um tipo, **reunir** material de forja, ou **derrotar um chefe**. Pagam ouro e XP — e às vezes um consumível.
+
+Enquanto uma missão está ativa, um **painel no canto superior direito** mostra o alvo e o progresso, e uma **seta flutua em volta do personagem apontando para onde ir**, com a distância. Quando o objetivo está cumprido, a seta muda de cor e passa a apontar de volta para quem deu a missão.
 
 ## 🎒 Consumíveis
 
@@ -158,4 +176,4 @@ Acompanhe o estoque na aba **Itens** do menu e na barra do topo do altar.
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 140 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, persistência dos materiais no save, e o renderizador 3D (WebGL ativo, mundo em chunks, culling dos pedaços distantes, billboard do herói seguindo o jogador e refletindo a aparência, sombra no chão, câmera acompanhando, arena de batalha montada, avanço do herói em 3D ao atacar, telas 2D escondendo a cena e a reserva 2D funcionando) — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 169 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, persistência dos materiais no save, e o renderizador 3D (WebGL ativo, mundo em chunks, culling dos pedaços distantes, billboard do herói seguindo o jogador e refletindo a aparência, sombra no chão, câmera acompanhando, arena de batalha montada, avanço do herói em 3D ao atacar, telas 2D escondendo a cena a reserva 2D funcionando), e os NPCs e missões (três papéis de NPC, nenhum nascendo dentro de parede, moradores perambulando enquanto mestres ficam no posto, falas próprias e alternadas, cadeia de missões com nível mínimo, progresso contando só o alvo certo, seta apontando para o alvo e depois para o NPC, pagamento em ouro e XP na entrega, missão de coleta lendo o inventário, estoque do mascate sorteado e renovando, desconto no comum e ágio no raro, e persistência das missões no save) — tudo sem erros de JavaScript.
