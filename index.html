@@ -5460,11 +5460,11 @@ const BASIC_ATTACK = { id: 'basic', name: 'Atacar', mp: 0, anim: 'slash', desc: 
 
 // ---------- Raridade e equipamentos ----------
 const RARITY = {
-  comum:    { name: 'Comum',    color: '#c8c8d0', w: 58, price: 15 },
-  incomum:  { name: 'Incomum',  color: '#4ec065', w: 26, price: 55 },
-  raro:     { name: 'Raro',     color: '#4ea8e8', w: 11, price: 140 },
-  epico:    { name: 'Épico',    color: '#b06ae8', w: 4,  price: 380 },
-  lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 999 }
+  comum:    { name: 'Comum',    color: '#c8c8d0', w: 58, price: 8 },
+  incomum:  { name: 'Incomum',  color: '#4ec065', w: 26, price: 28 },
+  raro:     { name: 'Raro',     color: '#4ea8e8', w: 11, price: 72 },
+  epico:    { name: 'Épico',    color: '#b06ae8', w: 4,  price: 190 },
+  lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 480 }
 };
 const RAR_KEYS = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
 const SLOTS = ['arma', 'corpo', 'elmo', 'luvas', 'botas', 'amuleto'];
@@ -5656,14 +5656,14 @@ const MAT_KEYS = Object.keys(MATS);
 const MAT_BY_SLOT = { arma: 'ferro', corpo: 'seda', elmo: 'ferro', luvas: 'seda', botas: 'seda', amuleto: 'jade' };
 function emptyMats() { const m = {}; for (const k of MAT_KEYS) m[k] = 0; return m; }
 const ITEMS = {
-  pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 25 },
-  pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 70 },
-  eter:     { name: 'Chá Verde',   desc: 'Recupera 40% do MP',         price: 40 },
-  elixir:   { name: 'Sake Divino', desc: 'Recupera HP e MP totais',    price: 150 },
-  antidoto: { name: 'Ervas Kanpo', desc: 'Cura veneno e status',       price: 20, battleOnly: true },
-  bomba:    { name: 'Bomba Ninja', desc: 'Dano fixo de 35 no inimigo', price: 60, battleOnly: true },
-  pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 90, battleOnly: true },
-  pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 18 }
+  pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 12 },
+  pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 34 },
+  eter:     { name: 'Chá Verde',   desc: 'Recupera 40% do MP',         price: 20 },
+  elixir:   { name: 'Sake Divino', desc: 'Recupera HP e MP totais',    price: 78 },
+  antidoto: { name: 'Ervas Kanpo', desc: 'Cura veneno e status',       price: 10, battleOnly: true },
+  bomba:    { name: 'Bomba Ninja', desc: 'Dano fixo de 35 no inimigo', price: 30, battleOnly: true },
+  pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 45, battleOnly: true },
+  pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 9 }
 };
 const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 
@@ -8043,39 +8043,93 @@ const R3 = {
     this.cena.add(grupo);
     this.ambiente(map);
   },
-  // Uma construção: paredes de taipa, viga do beiral e telhado de quatro
-  // águas cobrindo todos os tiles dela de uma vez.
+  // Uma construção japonesa: embasamento de pedra, parede de shikkui com
+  // travamento de madeira aparente, engawa na frente e telhado de kawara com
+  // beiral saliente e cumeeira. A loja se distingue de longe: telhado
+  // vermelho, noren na porta, lanternas acesas e placa.
   constroiCasa(c) {
     const g = new THREE.Group();
     const larg = c.x1 - c.x0 + 1, prof = c.y1 - c.y0 + 1;
     const mx = (c.x0 + c.x1) / 2, mz = (c.y0 + c.y1) / 2;
-    const hPar = 1.5;
-    const parede = new THREE.Mesh(
-      new THREE.BoxGeometry(larg, hPar, prof),
-      new THREE.MeshLambertMaterial({ color: 0xd8ccb0 })
-    );
-    parede.position.set(mx, 0.5 + hPar / 2, mz);
-    parede.castShadow = true; parede.receiveShadow = true;
-    g.add(parede);
-    // viga escura sob o beiral
-    const viga = new THREE.Mesh(
-      new THREE.BoxGeometry(larg + 0.34, 0.16, prof + 0.34),
-      new THREE.MeshLambertMaterial({ color: c.loja ? 0x5a241e : 0x3a4050 })
-    );
-    viga.position.set(mx, 0.5 + hPar + 0.08, mz);
-    viga.castShadow = true;
-    g.add(viga);
-    // telhado: pirâmide de quatro águas esticada sobre a planta toda
-    const alt = 0.5 + Math.min(larg, prof) * 0.26;
-    const teto = new THREE.Mesh(
-      new THREE.ConeGeometry(0.5, 1, 4),
-      new THREE.MeshLambertMaterial({ color: c.loja ? 0x8a3a32 : 0x5a6478 })
-    );
+    const frente = c.y1 + 0.5;                 // fachada voltada para o sul
+    const cai = (geo, cor, x, y, z, sx, sy, sz, ry) => {
+      const m = new THREE.Mesh(geo, cor);
+      m.position.set(x, y, z);
+      m.scale.set(sx, sy, sz);
+      if (ry) m.rotation.y = ry;
+      m.castShadow = true; m.receiveShadow = true;
+      g.add(m);
+      return m;
+    };
+    const CX = geo3('caixa'), CIL = geo3('cil');
+    const matPedra  = new THREE.MeshLambertMaterial({ color: 0x6f6a72 });
+    const matParede = new THREE.MeshLambertMaterial({ color: 0xe6dfcd });
+    const matMad    = new THREE.MeshLambertMaterial({ color: 0x4a3524 });
+    const matMadC   = new THREE.MeshLambertMaterial({ color: 0x6b5136 });
+    const matTelha  = new THREE.MeshLambertMaterial({ color: c.loja ? 0x9c3a30 : 0x4e5768 });
+    const matCume   = new THREE.MeshLambertMaterial({ color: c.loja ? 0x6d241d : 0x333a49 });
+    const matPapel  = new THREE.MeshLambertMaterial({ color: 0xf2ead2 });
+
+    const hEmb = 0.22, hPar = 1.35;
+    const yEmb = 0.5 + hEmb / 2, yPar = 0.5 + hEmb + hPar / 2;
+    // embasamento de pedra
+    cai(CX, matPedra, mx, yEmb, mz, larg + 0.16, hEmb, prof + 0.16);
+    // corpo em shikkui
+    cai(CX, matParede, mx, yPar, mz, larg, hPar, prof);
+    // travamento de madeira: pilares nos cantos e viga de amarração
+    const topoPar = 0.5 + hEmb + hPar;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      cai(CX, matMad, mx + sx * (larg / 2 - 0.06), yPar, mz + sz * (prof / 2 - 0.06), 0.13, hPar, 0.13);
+    // pilares intermediários a cada tile na fachada
+    for (let k = 1; k < larg; k++)
+      cai(CX, matMad, c.x0 - 0.5 + k, yPar, frente - 0.04, 0.1, hPar, 0.1);
+    cai(CX, matMad, mx, topoPar - 0.07, mz, larg + 0.04, 0.13, prof + 0.04);
+    cai(CX, matMadC, mx, 0.5 + hEmb + hPar * 0.42, mz, larg + 0.03, 0.08, prof + 0.03);
+
+    // engawa: tábua corrida na frente, com degrau
+    cai(CX, matMadC, mx, 0.5 + hEmb * 0.9, frente + 0.28, larg - 0.2, 0.12, 0.58);
+    cai(CX, matPedra, mx, 0.5 + hEmb * 0.35, frente + 0.6, 0.9, 0.14, 0.2);
+
+    // telhado: beiral saliente, duas águas de kawara e cumeeira
+    const yBeiral = topoPar + 0.06;
+    cai(CX, matCume, mx, yBeiral, mz, larg + 0.5, 0.12, prof + 0.5);
+    const altT = 0.5 + Math.min(larg, prof) * 0.24;
+    const teto = new THREE.Mesh(geo3('cone4'), matTelha);
+    teto.geometry = teto.geometry.clone();
     teto.geometry.rotateY(Math.PI / 4);
-    teto.scale.set((larg + 0.7) / 0.7071, alt, (prof + 0.7) / 0.7071);
-    teto.position.set(mx, 0.5 + hPar + 0.16 + alt / 2, mz);
+    teto.scale.set((larg + 0.44) / 0.7071, altT, (prof + 0.44) / 0.7071);
+    teto.position.set(mx, yBeiral + 0.06 + altT / 2, mz);
     teto.castShadow = true; teto.receiveShadow = true;
     g.add(teto);
+    // cumeeira no topo, no sentido mais longo
+    const deitado = larg >= prof;
+    cai(CX, matCume, mx, yBeiral + 0.04 + altT * 0.97, mz,
+        deitado ? larg * 0.55 : 0.22, 0.14, deitado ? 0.22 : prof * 0.55);
+
+    if (c.loja) {
+      // noren na porta, lanternas e placa: dá para saber o que é de longe
+      const matNoren = new THREE.MeshLambertMaterial({ color: 0xd8483a });
+      cai(CX, matNoren, mx, 0.5 + hEmb + hPar * 0.78, frente + 0.03, larg * 0.62, hPar * 0.42, 0.05);
+      cai(CX, new THREE.MeshLambertMaterial({ color: 0xf4e7cf }),
+          mx, 0.5 + hEmb + hPar * 0.86, frente + 0.06, larg * 0.24, hPar * 0.16, 0.02);
+      const matLant = new THREE.MeshLambertMaterial({ color: 0xffd06a });
+      for (const sx of [-1, 1]) {
+        cai(CIL, matLant, mx + sx * (larg / 2 - 0.18), yBeiral - 0.24, frente + 0.22, 0.28, 0.34, 0.28);
+        cai(CX, matMad, mx + sx * (larg / 2 - 0.18), yBeiral - 0.05, frente + 0.22, 0.05, 0.22, 0.05);
+      }
+      // nobori: bandeira alta na frente da loja, o marco mais visível de cima
+      for (const sx of [-1, 1]) {
+        const bx = mx + sx * (larg / 2 + 0.35);
+        cai(CX, matMad, bx, 0.5 + 1.15, frente + 0.5, 0.07, 2.3, 0.07);
+        cai(CX, matMad, bx + sx * 0.16, 0.5 + 2.24, frente + 0.5, 0.32, 0.07, 0.07);
+        cai(CX, matNoren, bx + sx * 0.2, 0.5 + 1.62, frente + 0.5, 0.04, 1.2, 0.34);
+        cai(CX, matPapel, bx + sx * 0.23, 0.5 + 1.62, frente + 0.5, 0.02, 0.86, 0.16);
+      }
+    } else {
+      // janela de papel na fachada
+      cai(CX, matMad, mx - larg * 0.28, 0.5 + hEmb + hPar * 0.66, frente + 0.02, larg * 0.3, hPar * 0.42, 0.05);
+      cai(CX, matPapel, mx - larg * 0.28, 0.5 + hEmb + hPar * 0.66, frente + 0.04, larg * 0.26, hPar * 0.36, 0.02);
+    }
     return g;
   },
   // desenha um tile num contexto qualquer, reaproveitando a arte 2D do jogo
@@ -8130,29 +8184,6 @@ const R3 = {
     this.hemi.color.set(hemiC); this.hemi.intensity = hemiF;
   },
 
-  // Contorno escuro em volta do sprite: sem isso o pixel art se mistura com o
-  // cenário 3D. O paper doll original não é tocado — o contorno é aplicado
-  // numa cópia, só para virar textura.
-  comContorno(spr) {
-    let c = this._cont.get(spr);
-    if (c) return c;
-    const gr = escala2x(spr);          // dobra a resolução antes de contornar
-    c = document.createElement('canvas');
-    c.width = gr.width + 4; c.height = gr.height + 4;
-    const g = c.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    for (const [dx, dy] of [[0, 2], [4, 2], [2, 0], [2, 4], [0, 0], [4, 0], [0, 4], [4, 4]])
-      g.drawImage(gr, dx, dy);
-    g.globalCompositeOperation = 'source-in';
-    g.fillStyle = '#160f22';
-    g.fillRect(0, 0, c.width, c.height);
-    g.globalCompositeOperation = 'source-over';
-    g.drawImage(gr, 2, 2);
-    this._cont.set(spr, c);
-    if (this._cont.size > 240) this._cont.clear();
-    return c;
-  },
-  _cont: new Map(),
   // billboard: o canvas do sprite 2D vira textura, sem alterar o paper doll
   sprite(canvasSpr, chave) {
     let sp = this.bill.get(chave);
@@ -8186,7 +8217,7 @@ const R3 = {
     return sp;
   },
   por(chave, spr0, wx, wz, alturaTiles, sub) {
-    const canvasSpr = this.comContorno(spr0);
+    const canvasSpr = escala2x(spr0);
     const sp = this.sprite(canvasSpr, chave);
     const larg = canvasSpr.width / (TILE * 2), altu = canvasSpr.height / (TILE * 2);
     sp.scale.set(larg, altu, 1);
@@ -8379,29 +8410,59 @@ Object.assign(R3, {
     cena.add(chao);
     const m4 = new THREE.Matrix4();
 
-    // cenário ao fundo: mata, lápides ou cristais conforme a região
-    const decoT = cave ? 10 : mata ? 1 : dusk ? 20 : 1;
-    const decoAlt = cave ? 3.4 : mata ? 2.8 : dusk ? 1.0 : 2.6;
-    const dtex = this.tex(decoT, 2, 3, mapaFake);
-    const deco = new THREE.InstancedMesh(geo,
-      [new THREE.MeshLambertMaterial({ map: dtex, color: 0xb0b0bc }), null,
-       new THREE.MeshLambertMaterial({ map: dtex }),
-       new THREE.MeshLambertMaterial({ color: 0x1a1626 }), null, null], 96);
-    deco.material[1] = deco.material[4] = deco.material[5] = deco.material[0];
-    deco.castShadow = true; deco.receiveShadow = true;
-    let d = 0;
+    // cenário ao fundo com os MESMOS modelos do mundo: mata de matsu ou bambu,
+    // lápides no templo, rocha bruta na caverna. Nada de bloco com PNG colado.
+    const tDeco = cave ? 10 : dusk ? 20 : (regiao === 'Bosque de Bambu' ? 1 : 1);
+    const vDeco = cave ? 1 : dusk ? 0 : (regiao === 'Bosque de Bambu' ? 1 : 2);
+    const partes = MODELOS3[tDeco] ? MODELOS3[tDeco](vDeco) : null;
+    const N = 110;
     const rr = (a2, b3) => { const h = Math.sin(a2 * 127.1 + b3 * 311.7) * 43758.5; return h - Math.floor(h); };
-    for (let k = 0; k < 96; k++) {
+    // posições sorteadas nas laterais e ao fundo, longe da faixa de combate
+    const pontos = [];
+    for (let k = 0; k < N; k++) {
       const lado = k % 2 ? 1 : -1;
-      const zz = -nz / 2 + 1 + rr(k, 3) * (nz - 3);
-      const xx = lado * (7.5 + rr(k, 9) * (nx / 2 - 8));
-      const esc = decoAlt * (0.8 + rr(k, 5) * 0.5);
-      m4.makeScale(1, esc, 1);
-      m4.setPosition(Math.round(xx), 0.5 + esc / 2 - 0.1, Math.round(zz) - 5);
-      deco.setMatrixAt(d++, m4);
+      const fundo = k % 5 === 0;
+      const zz = fundo ? -nz / 2 + 1 + rr(k, 11) * 4 : -nz / 2 + 2 + rr(k, 3) * (nz - 4);
+      const xx = fundo ? (rr(k, 7) - 0.5) * nx * 0.9 : lado * (7.2 + rr(k, 9) * (nx / 2 - 8));
+      pontos.push([xx, zz - 4.5, 0.8 + rr(k, 5) * 0.7, rr(k, 13) * Math.PI * 2]);
     }
-    deco.instanceMatrix.needsUpdate = true;
-    cena.add(deco);
+    if (partes) {
+      const _q2 = new THREE.Quaternion(), _e2 = new THREE.Euler();
+      const _p2 = new THREE.Vector3(), _s2 = new THREE.Vector3();
+      for (const parte of partes) {
+        const mesh = new THREE.InstancedMesh(geo3(parte.k),
+          new THREE.MeshLambertMaterial({ color: parte.c, flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
+          pontos.length);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        pontos.forEach(([px2, pz2, esc, giro], k) => {
+          _e2.set(parte.r ? parte.r[0] : 0, (parte.r ? parte.r[1] : 0) + giro, parte.r ? parte.r[2] : 0);
+          _q2.setFromEuler(_e2);
+          _p2.set(px2 + parte.p[0] * esc, 0.5 + parte.p[1] * esc, pz2 + parte.p[2] * esc);
+          _s2.set(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
+          m4.compose(_p2, _q2, _s2);
+          mesh.setMatrixAt(k, m4);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        cena.add(mesh);
+      }
+    }
+    // pedras soltas espalhando o chão da arena
+    const pedras = MODELOS3[23](1);
+    for (const parte of pedras) {
+      const mesh = new THREE.InstancedMesh(geo3(parte.k),
+        new THREE.MeshLambertMaterial({ color: parte.c, flatShading: true }), 26);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      for (let k = 0; k < 26; k++) {
+        const px2 = (rr(k, 21) - 0.5) * nx * 0.85;
+        const pz2 = -nz / 2 + 3 + rr(k, 23) * (nz - 6) - 4.5;
+        const esc = 0.6 + rr(k, 27) * 0.7;
+        m4.makeScale(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
+        m4.setPosition(px2 + parte.p[0] * esc, 0.5 + parte.p[1] * esc, pz2 + parte.p[2] * esc);
+        mesh.setMatrixAt(k, m4);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      cena.add(mesh);
+    }
 
     this.cenaBat = cena;
     // câmera baixa, quase à altura dos lutadores, para a arena ter profundidade

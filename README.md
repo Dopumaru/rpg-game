@@ -19,7 +19,7 @@ A tela escala automaticamente para o tamanho da janela. Se o navegador não tive
 
 Tudo é desenhado na **resolução real da tela**, não num buffer pequeno ampliado depois: a cena 3D, os painéis, as barras, os degradês e o texto. As coordenadas continuam sendo as de sempre (320×180), aplicadas por transform — então o layout não mudou, só a nitidez.
 
-O pixel art dos personagens e dos tiles passa por um **ampliador que preserva bordas (EPX/Scale2x)**: cada sprite dobra ou quadruplica de resolução com as diagonais suavizadas em vez de viradas em degraus. A arte muda um pouco — os cantos arredondam — e em troca aguenta ocupar meia tela sem virar bloco. Os billboards do mundo ainda ganham um contorno escuro, para o personagem descolar do cenário 3D.
+O pixel art dos personagens e dos tiles passa por um **ampliador que preserva bordas (EPX/Scale2x)**: cada sprite dobra ou quadruplica de resolução com as diagonais suavizadas em vez de viradas em degraus. A arte muda um pouco — os cantos arredondam — e em troca aguenta ocupar meia tela sem virar bloco.
 
 O chão tem a textura assada em 2× com uma passada de grão fino por cima (fiapos de grama, grão de terra, cascalho), senão em resolução cheia ele viraria um xadrez de quadrados chapados.
 
@@ -28,14 +28,15 @@ O chão tem a textura assada em 2× com uma passada de grão fino por cima (fiap
 O chão é **geometria 3D** com a mesma arte em pixels de sempre na face de cima, e tudo que ocupa espaço tem **forma de verdade, não um bloco com a figura colada**:
 
 - **Árvores** com tronco afunilado e copa em camadas, por espécie — matsu em cones empilhados, sakura em massas floridas, bambu em colmos finos. Cada uma gira e muda de tamanho um pouco, então a floresta não vira fileira de clones
-- **Casas** montadas como prédio inteiro (não tile a tile): paredes de taipa, viga do beiral e telhado de quatro águas cobrindo a planta toda, com a porta shoji na fachada
+- **Casas** montadas como prédio inteiro (não tile a tile), no feitio de uma machiya: embasamento de pedra, parede de shikkui com travamento de madeira aparente, pilar a cada vão da fachada, janela de papel, engawa com degrau na frente e telhado de kawara com beiral saliente e cumeeira
+- **A loja se reconhece de longe**: telhado vermelho, noren na porta, lanternas acesas sob o beiral e duas bandeiras nobori ladeando a entrada
 - **Lanternas de pedra** com base, fuste, câmara de luz acesa, telhadinho e joia no topo
 - **Pedras** facetadas com lascas em volta, **arbustos** em touceira arredondada, **cogumelos** com pé e chapéu, **lápides**, **baús** com tampa abaulada, **torii** com pilares e vigas laqueadas, **chozuya** com bacia e água
 - **Montanhas** com pico e altura variando por tile; **paredes de caverna** em rocha bruta empilhada
 
 Os **personagens continuam sendo sprites 2D**, virados para a câmera (billboards). Todo o sistema de paper doll segue valendo sem mudança nenhuma: pele, cabelo, peitoral, elmo e arma são compostos no mesmo canvas de antes, que vira a textura do billboard. Trocar de equipamento muda o boneco no mundo 3D na hora.
 
-A **batalha também é 3D**: arena com profundidade e cenário do bioma, combatentes em billboard, e o herói avança de verdade em direção ao youkai ao atacar — quanto mais perto da câmera, maior ele fica. As posições 3D são obtidas desprojetando as coordenadas de tela do layout original, então barras de vida, números de dano, menus e os efeitos das técnicas continuam encaixando pixel a pixel.
+A **batalha também é 3D**: arena com profundidade e cenário do bioma montado com os mesmos modelos do mundo (matsu, bambu, lápides ou rocha bruta conforme a região, e pedras espalhadas pelo chão), combatentes em billboard, e o herói avança de verdade em direção ao youkai ao atacar — quanto mais perto da câmera, maior ele fica. As posições 3D são obtidas desprojetando as coordenadas de tela do layout original, então barras de vida, números de dano, menus e os efeitos das técnicas continuam encaixando pixel a pixel.
 
 Por dentro: terreno dividido em chunks com a textura assada de uma vez só (1 draw call por pedaço em vez de um por tipo de tile), chunks distantes saem da cena, e o three.js vai embutido no próprio arquivo — nada de CDN.
 
