@@ -3885,17 +3885,24 @@ const VW = 320, VH = 180, TILE = 16;
 const cv = document.getElementById('screen');
 const mainCtx = cv.getContext('2d');
 // camada de texto em resolução cheia (texto nítido sobre a arte em pixels)
-const overlay = document.createElement('canvas');
-const octx = overlay.getContext('2d');
-// escala inteira dinâmica para a arte + esticada via CSS para preencher a janela
+// Tudo é desenhado num único buffer em RESOLUÇÃO CHEIA, com as coordenadas
+// lógicas de sempre (320×180) aplicadas por transform. Assim painéis, barras,
+// degradês e texto saem nítidos no tamanho real da tela, enquanto os sprites
+// em pixel art continuam ampliados por vizinho mais próximo — o visual híbrido
+// 2D/3D em que o pixel é escolha, não limitação.
 let SCALE = 3;
+const buf = document.createElement('canvas');
+const ctx = buf.getContext('2d');
 function resizeScreen() {
   const availW = window.innerWidth, availH = window.innerHeight - 30;
-  SCALE = Math.max(1, Math.floor(Math.min(availW / VW, availH / VH)));
+  // escala inteira para a arte em pixels continuar alinhada
+  SCALE = Math.max(2, Math.min(6, Math.floor(Math.min(availW / VW, availH / VH))));
   cv.width = VW * SCALE;
   cv.height = VH * SCALE;
-  overlay.width = cv.width;
-  overlay.height = cv.height;
+  buf.width = cv.width;
+  buf.height = cv.height;
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.imageSmoothingEnabled = false;
   const fit = Math.max(1, Math.min(availW / VW, availH / VH));
   cv.style.width = Math.round(VW * fit) + 'px';
   cv.style.height = Math.round(VH * fit) + 'px';
@@ -3905,45 +3912,16 @@ function resizeScreen() {
     cvGl.style.height = cv.style.height;
   }
   mainCtx.imageSmoothingEnabled = false;
+  // R3 é declarado bem depois; na primeira chamada ainda não existe
+  try { if (R3.ok) R3.redimensiona(); } catch (e) {}
 }
 window.addEventListener('resize', resizeScreen);
 resizeScreen();
-const buf = document.createElement('canvas');
-buf.width = VW; buf.height = VH;
-const ctx = buf.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-
-// Redireciona todo fillText do buffer para a camada de alta resolução:
-// o transform atual (câmera/tremor) é espelhado multiplicado pela escala e o
-// canvas rasteriza o texto vetorialmente depois do transform — sai nítido,
-// no mesmo tamanho e posição lógicos.
-ctx.fillText = function (text, x, y) {
-  const m = ctx.getTransform();
-  octx.save();
-  octx.setTransform(m.a * SCALE, m.b * SCALE, m.c * SCALE, m.d * SCALE, m.e * SCALE, m.f * SCALE);
-  octx.font = ctx.font;
-  octx.textAlign = ctx.textAlign;
-  octx.textBaseline = ctx.textBaseline;
-  octx.fillStyle = ctx.fillStyle;
-  octx.globalAlpha = ctx.globalAlpha;
-  octx.fillText(text, x, y);
-  octx.restore();
-};
-ctx.measureText = function (text) {
-  octx.font = ctx.font;
-  return { width: octx.measureText(text).width };
-};
-// Preenche nos dois canvas: caixas que aparecem por cima de outra tela
-// precisam cobrir também o texto, que vive na camada de alta resolução.
+// caixas que cobrem outra tela: agora é um fillRect comum, porque não há mais
+// duas camadas para sincronizar
 function coverRect(x, y, w, h, fill) {
   ctx.fillStyle = fill;
   ctx.fillRect(x, y, w, h);
-  const m = ctx.getTransform();
-  octx.save();
-  octx.setTransform(m.a * SCALE, m.b * SCALE, m.c * SCALE, m.d * SCALE, m.e * SCALE, m.f * SCALE);
-  octx.fillStyle = fill;
-  octx.fillRect(x, y, w, h);
-  octx.restore();
 }
 
 // ---------- Utilidades ----------
@@ -3961,7 +3939,7 @@ function hash2(x, y) {
 }
 
 // ---------- Entrada ----------
-const keys = {}, pressed = {};
+const keys = {};
 const KEYMAP = {
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   w: 'up', s: 'down', a: 'left', d: 'right',
@@ -3976,20 +3954,25 @@ window.addEventListener('keydown', e => {
   const k = KEYMAP[e.key];
   if (k) {
     e.preventDefault();
-    // fila de toques: se dois toques caem no mesmo quadro (máquina lenta ou
-    // quadro pesado), nenhum se perde
-    if (!keys[k]) pressed[k] = Math.min(4, (pressed[k] || 0) + 1);
+    // Fila ordenada de toques: nada se perde quando vários caem no mesmo
+    // quadro, e a ORDEM é respeitada — apertar ↓↓↓ e Z depressa não faz o Z
+    // valer antes das setas.
+    if (!keys[k] && filaToques.length < 10) filaToques.push({ k, idade: 0 });
     keys[k] = true;
     AU.init();
     if (k === 'mute') { AU.muted = !AU.muted; toast(AU.muted ? 'Som desligado' : 'Som ligado'); }
   }
 });
 window.addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+// só consome se for o toque mais antigo pendente, para manter a ordem
 function tap(k) {
-  if (!pressed[k]) return false;
-  pressed[k]--;
+  if (!filaToques.length || filaToques[0].k !== k) return false;
+  filaToques.shift();
   return true;
 }
+// espia o próximo toque sem consumir
+function proxToque() { return filaToques.length ? filaToques[0].k : null; }
+let filaToques = [];
 // consulta sem consumir (para distinguir esquerda/direita no mesmo quadro)
 let ultimaDir = null;
 function tap2(k) { return ultimaDir === k; }
@@ -5477,11 +5460,11 @@ const BASIC_ATTACK = { id: 'basic', name: 'Atacar', mp: 0, anim: 'slash', desc: 
 
 // ---------- Raridade e equipamentos ----------
 const RARITY = {
-  comum:    { name: 'Comum',    color: '#c8c8d0', w: 58, price: 15 },
-  incomum:  { name: 'Incomum',  color: '#4ec065', w: 26, price: 55 },
-  raro:     { name: 'Raro',     color: '#4ea8e8', w: 11, price: 140 },
-  epico:    { name: 'Épico',    color: '#b06ae8', w: 4,  price: 380 },
-  lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 999 }
+  comum:    { name: 'Comum',    color: '#c8c8d0', w: 58, price: 8 },
+  incomum:  { name: 'Incomum',  color: '#4ec065', w: 26, price: 28 },
+  raro:     { name: 'Raro',     color: '#4ea8e8', w: 11, price: 72 },
+  epico:    { name: 'Épico',    color: '#b06ae8', w: 4,  price: 190 },
+  lendario: { name: 'Lendário', color: '#ffa726', w: 1,  price: 480 }
 };
 const RAR_KEYS = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
 const SLOTS = ['arma', 'corpo', 'elmo', 'luvas', 'botas', 'amuleto'];
@@ -5673,14 +5656,14 @@ const MAT_KEYS = Object.keys(MATS);
 const MAT_BY_SLOT = { arma: 'ferro', corpo: 'seda', elmo: 'ferro', luvas: 'seda', botas: 'seda', amuleto: 'jade' };
 function emptyMats() { const m = {}; for (const k of MAT_KEYS) m[k] = 0; return m; }
 const ITEMS = {
-  pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 25 },
-  pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 70 },
-  eter:     { name: 'Chá Verde',   desc: 'Recupera 40% do MP',         price: 40 },
-  elixir:   { name: 'Sake Divino', desc: 'Recupera HP e MP totais',    price: 150 },
-  antidoto: { name: 'Ervas Kanpo', desc: 'Cura veneno e status',       price: 20, battleOnly: true },
-  bomba:    { name: 'Bomba Ninja', desc: 'Dano fixo de 35 no inimigo', price: 60, battleOnly: true },
-  pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 90, battleOnly: true },
-  pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 18 }
+  pocao:    { name: 'Onigiri',     desc: 'Recupera 45% do HP',         price: 12 },
+  pocaoG:   { name: 'Bento',       desc: 'Recupera 80% do HP',         price: 34 },
+  eter:     { name: 'Chá Verde',   desc: 'Recupera 40% do MP',         price: 20 },
+  elixir:   { name: 'Sake Divino', desc: 'Recupera HP e MP totais',    price: 78 },
+  antidoto: { name: 'Ervas Kanpo', desc: 'Cura veneno e status',       price: 10, battleOnly: true },
+  bomba:    { name: 'Bomba Ninja', desc: 'Dano fixo de 35 no inimigo', price: 30, battleOnly: true },
+  pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 45, battleOnly: true },
+  pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 9 }
 };
 const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 
@@ -7582,6 +7565,50 @@ function drawTile(t, x, y, tx, ty, map) {
   }
 }
 
+// ---------- Ampliação do pixel art (EPX / Scale2x) ----------
+// Dobra a resolução de um sprite preservando as bordas: cada pixel vira quatro,
+// e as diagonais deixam de ser degraus grosseiros. A arte muda um pouco (os
+// cantos arredondam), em troca de aguentar ser ampliada na tela sem virar
+// bloco. É a mesma ideia dos filtros de emulador.
+const _epxCache = new Map();
+function escala2x(spr) {
+  let c = _epxCache.get(spr);
+  if (c) return c;
+  const w = spr.width, h = spr.height;
+  const gi = spr.getContext('2d').getImageData(0, 0, w, h).data;
+  c = document.createElement('canvas');
+  c.width = w * 2; c.height = h * 2;
+  const g = c.getContext('2d');
+  const saida = g.createImageData(w * 2, h * 2);
+  const px = (x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return -1;
+    const i = (y * w + x) * 4;
+    return (gi[i] << 24 | gi[i + 1] << 16 | gi[i + 2] << 8 | gi[i + 3]) >>> 0;
+  };
+  const poe = (x, y, cor) => {
+    const i = (y * w * 2 + x) * 4;
+    saida.data[i] = (cor >>> 24) & 255;
+    saida.data[i + 1] = (cor >>> 16) & 255;
+    saida.data[i + 2] = (cor >>> 8) & 255;
+    saida.data[i + 3] = cor & 255;
+  };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const P = px(x, y), A = px(x, y - 1), B = px(x + 1, y), C = px(x - 1, y), D = px(x, y + 1);
+    let p1 = P, p2 = P, p3 = P, p4 = P;
+    if (C === A && C !== D && A !== B) p1 = A;
+    if (A === B && A !== C && B !== D) p2 = B;
+    if (D === C && D !== B && C !== A) p3 = C;
+    if (B === D && B !== A && D !== C) p4 = D;
+    poe(x * 2, y * 2, p1); poe(x * 2 + 1, y * 2, p2);
+    poe(x * 2, y * 2 + 1, p3); poe(x * 2 + 1, y * 2 + 1, p4);
+  }
+  g.putImageData(saida, 0, 0);
+  if (_epxCache.size > 400) _epxCache.clear();
+  _epxCache.set(spr, c);
+  return c;
+}
+function escala4x(spr) { return escala2x(escala2x(spr)); }
+
 // ---------- Peças do cenário em geometria de verdade ----------
 // Nada de cubo com a arte colada: cada coisa que ocupa espaço tem forma
 // própria (tronco, copa, telhado inclinado, pedra facetada, poste, viga).
@@ -7621,17 +7648,19 @@ const MODELOS3 = {
       M3('tronco', 0x4a3020, [0, .55, 0], [.2, 1.1, .2]),
       M3('tronco', 0x4a3020, [-.22, .95, .05], [.09, .5, .09], [0, 0, .7]),
       M3('tronco', 0x4a3020, [.24, 1.0, -.05], [.09, .5, .09], [0, 0, -.6]),
-      M3('esf', 0xb8536e, [0, 1.35, 0], [1.15, .62, 1.15]),
-      M3('esf', 0xe88fa8, [-.24, 1.6, .18], [.78, .58, .78]),
-      M3('esf', 0xf7b3c6, [.26, 1.68, -.14], [.68, .52, .68]),
-      M3('esf', 0xffd6e2, [0, 1.86, 0], [.5, .4, .5])
-    ] : v === 1 ? [                                     // bambu: colmos e folhas
-      M3('cil6', 0x2f6b30, [-.24, 1.2, .1], [.12, 2.4, .12]),
-      M3('cil6', 0x3f8a3c, [.06, 1.35, -.16], [.11, 2.7, .11]),
-      M3('cil6', 0x2f6b30, [.28, 1.05, .18], [.1, 2.1, .1]),
-      M3('esf', 0x4f9a4a, [-.2, 2.3, .1], [.5, .3, .5]),
-      M3('esf', 0x3f8a3c, [.12, 2.66, -.14], [.46, .28, .46]),
-      M3('esf', 0x4f9a4a, [.3, 2.0, .18], [.4, .24, .4])
+      M3('esf', 0xb8536e, [-.1, 1.32, .06], [1.05, .5, .95]),
+      M3('esf', 0xc9647f, [.3, 1.44, -.2], [.72, .44, .68]),
+      M3('esf', 0xe88fa8, [-.3, 1.62, .2], [.7, .5, .66]),
+      M3('esf', 0xf7b3c6, [.22, 1.72, .1], [.62, .46, .6]),
+      M3('esf', 0xffd6e2, [-.04, 1.9, -.08], [.46, .38, .44])
+    ] : v === 1 ? [                                     // bambu: colmos e folhagem
+      M3('cil6', 0x2f6b30, [-.24, 1.2, .1], [.11, 2.4, .11]),
+      M3('cil6', 0x3f8a3c, [.06, 1.35, -.16], [.1, 2.7, .1]),
+      M3('cil6', 0x2f6b30, [.28, 1.05, .18], [.09, 2.1, .09]),
+      M3('cone', 0x4f9a4a, [-.2, 2.42, .1], [.62, .5, .62]),
+      M3('cone', 0x3f8a3c, [.12, 2.8, -.14], [.56, .46, .56]),
+      M3('cone', 0x5aa851, [.3, 2.16, .18], [.5, .42, .5]),
+      M3('cone', 0x2f6b30, [-.05, 1.75, .02], [.7, .4, .7])
     ] : [                                               // matsu: pinheiro em cones
       M3('tronco', 0x54381f, [0, .5, 0], [.22, 1.0, .22]),
       M3('cone', 0x17421f, [0, 1.15, 0], [1.25, .8, 1.25]),
@@ -7762,7 +7791,7 @@ const MODELOS3 = {
 // arte em pixels do jogo 2D, então o cenário continua idêntico, só que com
 // volume. Personagens seguem sendo sprites 2D (billboards) virados para a
 // câmera — é o paper doll de sempre, agora dentro de uma cena 3D.
-const GL3 = { W: 640, H: 360 };          // resolução interna; sobe ampliada
+const GL3 = { W: 640, H: 360 };          // atualizado no redimensionamento
 // altura de cada tipo de tile, em tiles. Tudo que se anda tem 0.5 para o
 // personagem apoiar sempre na mesma cota.
 const ALT3 = {
@@ -7780,6 +7809,18 @@ const LADO3 = {                            // cor das laterais do bloco
   11: 0x2a2438, 13: 0x4a6a8a, 16: 0x8a6a2a, 17: 0x8a6a2a, 24: 0x6a3a3a,
   25: 0x8a2420, 26: 0x8a2420, 12: 0x3a3448, 15: 0x6a5238
 };
+// grão de cada tipo de chão: quantidade, cores e se são fiapos verticais
+const GRAO3 = {
+  0:  { n: 150, a: .5, alto: true,  cores: ['#4d8f46', '#376b32', '#5aa04f', '#2f5f2b'] },
+  4:  { n: 130, a: .45, alto: true, cores: ['#4d8f46', '#5aa04f', '#c8d060', '#e0a8c0'] },
+  3:  { n: 130, a: .38, alto: false, cores: ['#7a5c3e', '#9a7a56', '#6a4e34', '#a89070'] },
+  6:  { n: 130, a: .38, alto: false, cores: ['#7a5c3e', '#9a7a56', '#6a4e34'] },
+  28: { n: 120, a: .32, alto: false, cores: ['#8a7a5c', '#a89a78', '#786a50'] },
+  9:  { n: 140, a: .42, alto: false, cores: ['#3f3a52', '#4e4862', '#2f2a40'] },
+  2:  { n: 70,  a: .22, alto: false, cores: ['#5a9ad0', '#3f7ab0', '#7ab6e0'] },
+  7:  { n: 90,  a: .34, alto: false, cores: ['#6a4a2a', '#8a6a48', '#5a3a20'] },
+  12: { n: 120, a: .4,  alto: false, cores: ['#3f3a52', '#4e4862'] }
+};
 const R3 = {
   ok: false, ligado: false, forcado2D: false, rend: null, cena: null, cam: null, sol: null,
   mapaNome: null, grupoMapa: null, texTile: new Map(), texSpr: new Map(),
@@ -7790,10 +7831,11 @@ const R3 = {
     if (this.ok) return true;
     const cvGl = document.getElementById('gl');
     try {
-      this.rend = new THREE.WebGLRenderer({ canvas: cvGl, antialias: false, alpha: false });
+      this.rend = new THREE.WebGLRenderer({ canvas: cvGl, antialias: true, alpha: false });
     } catch (e) { return false; }
     if (!this.rend) return false;
     this.rend.setPixelRatio(1);
+    GL3.W = cv.width; GL3.H = cv.height;
     this.rend.setSize(GL3.W, GL3.H, false);
     this.rend.shadowMap.enabled = true;
     this.rend.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -7807,7 +7849,7 @@ const R3 = {
     this.alvo = new THREE.Vector3(0, 0, 0);
     this.sol = new THREE.DirectionalLight('#ffe6c0', 1.85);
     this.sol.castShadow = true;
-    this.sol.shadow.mapSize.set(1024, 1024);
+    this.sol.shadow.mapSize.set(2048, 2048);
     const s = this.sol.shadow.camera;
     s.left = -20; s.right = 20; s.top = 20; s.bottom = -20; s.near = 1; s.far = 70;
     this.sol.shadow.bias = -0.0015;
@@ -7904,11 +7946,13 @@ const R3 = {
       casas.push({ x0, x1, y0, y1, loja });
     }
     this.casas = casas;
+    const SS = 2;   // supersample da textura do chão
     const cvT = document.createElement('canvas');
-    cvT.width = CH * TILE; cvT.height = CH * TILE;
+    cvT.width = CH * TILE * SS; cvT.height = CH * TILE * SS;
     for (let cz = 0; cz * CH < map.h; cz++) {
       for (let cx = 0; cx * CH < map.w; cx++) {
         const g2 = cvT.getContext('2d');
+        g2.imageSmoothingEnabled = false;
         g2.clearRect(0, 0, cvT.width, cvT.height);
         const altos = new Map();
         for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) {
@@ -7916,7 +7960,7 @@ const R3 = {
           if (tx >= map.w || ty >= map.h) continue;
           const t = map.tiles[ty][tx];
           // sob uma peça alta vai o chão da região, não a arte dela
-          this.pinta(g2, (alto(t) || dono.has(tx + ',' + ty)) ? base : t, tx, ty, map, x * TILE, y * TILE);
+          this.pinta(g2, (alto(t) || dono.has(tx + ',' + ty)) ? base : t, tx, ty, map, x * TILE * SS, y * TILE * SS, SS);
           if (dono.has(tx + ',' + ty)) continue;
           if (alto(t)) {
             const vv = varTile3(t, tx, ty);
@@ -7999,49 +8043,124 @@ const R3 = {
     this.cena.add(grupo);
     this.ambiente(map);
   },
-  // Uma construção: paredes de taipa, viga do beiral e telhado de quatro
-  // águas cobrindo todos os tiles dela de uma vez.
+  // Uma construção japonesa: embasamento de pedra, parede de shikkui com
+  // travamento de madeira aparente, engawa na frente e telhado de kawara com
+  // beiral saliente e cumeeira. A loja se distingue de longe: telhado
+  // vermelho, noren na porta, lanternas acesas e placa.
   constroiCasa(c) {
     const g = new THREE.Group();
     const larg = c.x1 - c.x0 + 1, prof = c.y1 - c.y0 + 1;
     const mx = (c.x0 + c.x1) / 2, mz = (c.y0 + c.y1) / 2;
-    const hPar = 1.5;
-    const parede = new THREE.Mesh(
-      new THREE.BoxGeometry(larg, hPar, prof),
-      new THREE.MeshLambertMaterial({ color: 0xd8ccb0 })
-    );
-    parede.position.set(mx, 0.5 + hPar / 2, mz);
-    parede.castShadow = true; parede.receiveShadow = true;
-    g.add(parede);
-    // viga escura sob o beiral
-    const viga = new THREE.Mesh(
-      new THREE.BoxGeometry(larg + 0.34, 0.16, prof + 0.34),
-      new THREE.MeshLambertMaterial({ color: c.loja ? 0x5a241e : 0x3a4050 })
-    );
-    viga.position.set(mx, 0.5 + hPar + 0.08, mz);
-    viga.castShadow = true;
-    g.add(viga);
-    // telhado: pirâmide de quatro águas esticada sobre a planta toda
-    const alt = 0.5 + Math.min(larg, prof) * 0.26;
-    const teto = new THREE.Mesh(
-      new THREE.ConeGeometry(0.5, 1, 4),
-      new THREE.MeshLambertMaterial({ color: c.loja ? 0x8a3a32 : 0x5a6478 })
-    );
+    const frente = c.y1 + 0.5;                 // fachada voltada para o sul
+    const cai = (geo, cor, x, y, z, sx, sy, sz, ry) => {
+      const m = new THREE.Mesh(geo, cor);
+      m.position.set(x, y, z);
+      m.scale.set(sx, sy, sz);
+      if (ry) m.rotation.y = ry;
+      m.castShadow = true; m.receiveShadow = true;
+      g.add(m);
+      return m;
+    };
+    const CX = geo3('caixa'), CIL = geo3('cil');
+    const matPedra  = new THREE.MeshLambertMaterial({ color: 0x6f6a72 });
+    const matParede = new THREE.MeshLambertMaterial({ color: 0xe6dfcd });
+    const matMad    = new THREE.MeshLambertMaterial({ color: 0x4a3524 });
+    const matMadC   = new THREE.MeshLambertMaterial({ color: 0x6b5136 });
+    const matTelha  = new THREE.MeshLambertMaterial({ color: c.loja ? 0x9c3a30 : 0x4e5768 });
+    const matCume   = new THREE.MeshLambertMaterial({ color: c.loja ? 0x6d241d : 0x333a49 });
+    const matPapel  = new THREE.MeshLambertMaterial({ color: 0xf2ead2 });
+
+    const hEmb = 0.22, hPar = 1.35;
+    const yEmb = 0.5 + hEmb / 2, yPar = 0.5 + hEmb + hPar / 2;
+    // embasamento de pedra
+    cai(CX, matPedra, mx, yEmb, mz, larg + 0.16, hEmb, prof + 0.16);
+    // corpo em shikkui
+    cai(CX, matParede, mx, yPar, mz, larg, hPar, prof);
+    // travamento de madeira: pilares nos cantos e viga de amarração
+    const topoPar = 0.5 + hEmb + hPar;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      cai(CX, matMad, mx + sx * (larg / 2 - 0.06), yPar, mz + sz * (prof / 2 - 0.06), 0.13, hPar, 0.13);
+    // pilares intermediários a cada tile na fachada
+    for (let k = 1; k < larg; k++)
+      cai(CX, matMad, c.x0 - 0.5 + k, yPar, frente - 0.04, 0.1, hPar, 0.1);
+    cai(CX, matMad, mx, topoPar - 0.07, mz, larg + 0.04, 0.13, prof + 0.04);
+    cai(CX, matMadC, mx, 0.5 + hEmb + hPar * 0.42, mz, larg + 0.03, 0.08, prof + 0.03);
+
+    // engawa: tábua corrida na frente, com degrau
+    cai(CX, matMadC, mx, 0.5 + hEmb * 0.9, frente + 0.28, larg - 0.2, 0.12, 0.58);
+    cai(CX, matPedra, mx, 0.5 + hEmb * 0.35, frente + 0.6, 0.9, 0.14, 0.2);
+
+    // telhado: beiral saliente, duas águas de kawara e cumeeira
+    const yBeiral = topoPar + 0.06;
+    cai(CX, matCume, mx, yBeiral, mz, larg + 0.5, 0.12, prof + 0.5);
+    const altT = 0.5 + Math.min(larg, prof) * 0.24;
+    const teto = new THREE.Mesh(geo3('cone4'), matTelha);
+    teto.geometry = teto.geometry.clone();
     teto.geometry.rotateY(Math.PI / 4);
-    teto.scale.set((larg + 0.7) / 0.7071, alt, (prof + 0.7) / 0.7071);
-    teto.position.set(mx, 0.5 + hPar + 0.16 + alt / 2, mz);
+    teto.scale.set((larg + 0.44) / 0.7071, altT, (prof + 0.44) / 0.7071);
+    teto.position.set(mx, yBeiral + 0.06 + altT / 2, mz);
     teto.castShadow = true; teto.receiveShadow = true;
     g.add(teto);
+    // cumeeira no topo, no sentido mais longo
+    const deitado = larg >= prof;
+    cai(CX, matCume, mx, yBeiral + 0.04 + altT * 0.97, mz,
+        deitado ? larg * 0.55 : 0.22, 0.14, deitado ? 0.22 : prof * 0.55);
+
+    if (c.loja) {
+      // noren na porta, lanternas e placa: dá para saber o que é de longe
+      const matNoren = new THREE.MeshLambertMaterial({ color: 0xd8483a });
+      cai(CX, matNoren, mx, 0.5 + hEmb + hPar * 0.78, frente + 0.03, larg * 0.62, hPar * 0.42, 0.05);
+      cai(CX, new THREE.MeshLambertMaterial({ color: 0xf4e7cf }),
+          mx, 0.5 + hEmb + hPar * 0.86, frente + 0.06, larg * 0.24, hPar * 0.16, 0.02);
+      const matLant = new THREE.MeshLambertMaterial({ color: 0xffd06a });
+      for (const sx of [-1, 1]) {
+        cai(CIL, matLant, mx + sx * (larg / 2 - 0.18), yBeiral - 0.24, frente + 0.22, 0.28, 0.34, 0.28);
+        cai(CX, matMad, mx + sx * (larg / 2 - 0.18), yBeiral - 0.05, frente + 0.22, 0.05, 0.22, 0.05);
+      }
+      // nobori: bandeira alta na frente da loja, o marco mais visível de cima
+      for (const sx of [-1, 1]) {
+        const bx = mx + sx * (larg / 2 + 0.35);
+        cai(CX, matMad, bx, 0.5 + 1.15, frente + 0.5, 0.07, 2.3, 0.07);
+        cai(CX, matMad, bx + sx * 0.16, 0.5 + 2.24, frente + 0.5, 0.32, 0.07, 0.07);
+        cai(CX, matNoren, bx + sx * 0.2, 0.5 + 1.62, frente + 0.5, 0.04, 1.2, 0.34);
+        cai(CX, matPapel, bx + sx * 0.23, 0.5 + 1.62, frente + 0.5, 0.02, 0.86, 0.16);
+      }
+    } else {
+      // janela de papel na fachada
+      cai(CX, matMad, mx - larg * 0.28, 0.5 + hEmb + hPar * 0.66, frente + 0.02, larg * 0.3, hPar * 0.42, 0.05);
+      cai(CX, matPapel, mx - larg * 0.28, 0.5 + hEmb + hPar * 0.66, frente + 0.04, larg * 0.26, hPar * 0.36, 0.02);
+    }
     return g;
   },
   // desenha um tile num contexto qualquer, reaproveitando a arte 2D do jogo
-  pinta(g2, t, tx, ty, map, dx, dy) {
+  pinta(g2, t, tx, ty, map, dx, dy, ss) {
+    const k = ss || 1;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, TILE, TILE);
     try { drawTile(t, 0, 0, tx, ty, map); } catch (e) {}
     ctx.restore();
-    g2.drawImage(buf, 0, 0, TILE, TILE, dx, dy, TILE, TILE);
+    g2.drawImage(buf, 0, 0, TILE, TILE, dx, dy, TILE * k, TILE * k);
+    if (k > 1) this.detalhe(g2, t, tx, ty, dx, dy, TILE * k);
+  },
+  // Grão fino por cima da arte: em resolução cheia o chão em pixel puro vira
+  // um xadrez de quadrados chapados. Este ruído sutil devolve textura sem
+  // apagar o desenho original.
+  detalhe(g2, t, tx, ty, dx, dy, lado) {
+    const grao = GRAO3[t];
+    if (!grao) return;
+    const rnd = seeded(((tx * 73856093) ^ (ty * 19349663)) >>> 0);
+    const n = grao.n;
+    g2.globalAlpha = grao.a;
+    for (let i = 0; i < n; i++) {
+      const px2 = Math.floor(rnd() * lado), py2 = Math.floor(rnd() * lado);
+      const c = grao.cores[Math.floor(rnd() * grao.cores.length)];
+      const w2 = grao.alto ? 1 : 1 + Math.floor(rnd() * 2);
+      const h2 = grao.alto ? 2 + Math.floor(rnd() * 2) : 1;
+      g2.fillStyle = c;
+      g2.fillRect(dx + px2, dy + py2, w2, h2);
+    }
+    g2.globalAlpha = 1;
   },
   // só os chunks por perto ficam na cena
   culling(wx, wz) {
@@ -8097,9 +8216,10 @@ const R3 = {
     this.usados.add(chave);
     return sp;
   },
-  por(chave, canvasSpr, wx, wz, alturaTiles, sub) {
+  por(chave, spr0, wx, wz, alturaTiles, sub) {
+    const canvasSpr = escala2x(spr0);
     const sp = this.sprite(canvasSpr, chave);
-    const larg = canvasSpr.width / TILE, altu = canvasSpr.height / TILE;
+    const larg = canvasSpr.width / (TILE * 2), altu = canvasSpr.height / (TILE * 2);
     sp.scale.set(larg, altu, 1);
     sp.position.set(wx, 0.5 + altu / 2 - (sub || 0), wz);
     sp.visible = true;
@@ -8132,6 +8252,14 @@ const R3 = {
     this.ligado = v;
   },
   desenha() { if (this.ok) this.rend.render(this.cena, this.cam); },
+  // acompanha o tamanho da janela: a cena 3D roda na resolução real da tela
+  redimensiona() {
+    GL3.W = cv.width; GL3.H = cv.height;
+    this.rend.setSize(GL3.W, GL3.H, false);
+    const asp = GL3.W / GL3.H;
+    if (this.cam) { this.cam.aspect = asp; this.cam.updateProjectionMatrix(); }
+    if (this.camBat) { this.camBat.aspect = asp; this.camBat.updateProjectionMatrix(); }
+  },
   // leva um ponto do mundo para a tela 2D, para partículas e rótulos
   // continuarem alinhados com a cena 3D
   projeta(wx, wy, wz) {
@@ -8250,7 +8378,7 @@ Object.assign(R3, {
     const luz = new THREE.DirectionalLight(cave ? '#a488e8' : dusk ? '#e0b0d0' : '#fff0d0', cave ? 1.0 : 2.0);
     luz.position.set(7, 11, 9);
     luz.castShadow = true;
-    luz.shadow.mapSize.set(1024, 1024);
+    luz.shadow.mapSize.set(2048, 2048);
     const sc = luz.shadow.camera;
     sc.left = -14; sc.right = 14; sc.top = 14; sc.bottom = -14; sc.near = 1; sc.far = 40;
     sc.updateProjectionMatrix();
@@ -8258,53 +8386,83 @@ Object.assign(R3, {
     cena.add(luz, luz.target);
     cena.add(new THREE.HemisphereLight(cave ? '#7a6ab0' : '#cfe0ff', '#3a4a2a', cave ? 0.6 : 1.25));
 
-    // chão da arena com a arte do bioma
+    // chão da arena: um plano só, com a arte do bioma assada de uma vez.
+    // Blocos lado a lado deixavam uma grade de emendas bem visível.
     const mapaFake = { name: cave ? 'cave' : 'overworld' };
-    const tChao = cave ? 9 : mata ? 0 : dusk ? 0 : 0;
+    const tChao = cave ? 9 : 0;
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    const nx = 30, nz = 22;
-    const chaoTex = this.tex(tChao, 1, 1, mapaFake);
-    const chaoMat = [
-      new THREE.MeshLambertMaterial({ color: cave ? 0x3a3448 : 0x5a4a30 }), null,
-      new THREE.MeshLambertMaterial({ map: chaoTex }),
-      new THREE.MeshLambertMaterial({ color: 0x1a1626 }), null, null
-    ];
-    chaoMat[1] = chaoMat[4] = chaoMat[5] = chaoMat[0];
-    const chao = new THREE.InstancedMesh(geo, chaoMat, nx * nz);
+    const nx = 30, nz = 22, SSA = 2;
+    const cvA = document.createElement('canvas');
+    cvA.width = nx * TILE * SSA; cvA.height = nz * TILE * SSA;
+    const gA = cvA.getContext('2d');
+    gA.imageSmoothingEnabled = false;
+    for (let z = 0; z < nz; z++) for (let x = 0; x < nx; x++)
+      this.pinta(gA, tChao, x, z, mapaFake, x * TILE * SSA, z * TILE * SSA, SSA);
+    const texA = new THREE.CanvasTexture(cvA);
+    texA.magFilter = THREE.NearestFilter; texA.minFilter = THREE.LinearFilter;
+    const chao = new THREE.Mesh(
+      new THREE.PlaneGeometry(nx, nz),
+      new THREE.MeshLambertMaterial({ map: texA })
+    );
+    chao.rotation.x = -Math.PI / 2;
+    chao.position.set(-0.5, 0.5, -0.5);
     chao.receiveShadow = true;
-    const m4 = new THREE.Matrix4();
-    let i = 0;
-    for (let z = 0; z < nz; z++) for (let x = 0; x < nx; x++) {
-      m4.makeScale(1, 0.5, 1);
-      m4.setPosition(x - nx / 2, 0.25, z - nz / 2);
-      chao.setMatrixAt(i++, m4);
-    }
-    chao.instanceMatrix.needsUpdate = true;
     cena.add(chao);
+    const m4 = new THREE.Matrix4();
 
-    // cenário ao fundo: mata, lápides ou cristais conforme a região
-    const decoT = cave ? 10 : mata ? 1 : dusk ? 20 : 1;
-    const decoAlt = cave ? 3.4 : mata ? 2.8 : dusk ? 1.0 : 2.6;
-    const dtex = this.tex(decoT, 2, 3, mapaFake);
-    const deco = new THREE.InstancedMesh(geo,
-      [new THREE.MeshLambertMaterial({ map: dtex, color: 0xb0b0bc }), null,
-       new THREE.MeshLambertMaterial({ map: dtex }),
-       new THREE.MeshLambertMaterial({ color: 0x1a1626 }), null, null], 96);
-    deco.material[1] = deco.material[4] = deco.material[5] = deco.material[0];
-    deco.castShadow = true; deco.receiveShadow = true;
-    let d = 0;
+    // cenário ao fundo com os MESMOS modelos do mundo: mata de matsu ou bambu,
+    // lápides no templo, rocha bruta na caverna. Nada de bloco com PNG colado.
+    const tDeco = cave ? 10 : dusk ? 20 : (regiao === 'Bosque de Bambu' ? 1 : 1);
+    const vDeco = cave ? 1 : dusk ? 0 : (regiao === 'Bosque de Bambu' ? 1 : 2);
+    const partes = MODELOS3[tDeco] ? MODELOS3[tDeco](vDeco) : null;
+    const N = 110;
     const rr = (a2, b3) => { const h = Math.sin(a2 * 127.1 + b3 * 311.7) * 43758.5; return h - Math.floor(h); };
-    for (let k = 0; k < 96; k++) {
+    // posições sorteadas nas laterais e ao fundo, longe da faixa de combate
+    const pontos = [];
+    for (let k = 0; k < N; k++) {
       const lado = k % 2 ? 1 : -1;
-      const zz = -nz / 2 + 1 + rr(k, 3) * (nz - 3);
-      const xx = lado * (7.5 + rr(k, 9) * (nx / 2 - 8));
-      const esc = decoAlt * (0.8 + rr(k, 5) * 0.5);
-      m4.makeScale(1, esc, 1);
-      m4.setPosition(Math.round(xx), 0.5 + esc / 2 - 0.1, Math.round(zz) - 5);
-      deco.setMatrixAt(d++, m4);
+      const fundo = k % 5 === 0;
+      const zz = fundo ? -nz / 2 + 1 + rr(k, 11) * 4 : -nz / 2 + 2 + rr(k, 3) * (nz - 4);
+      const xx = fundo ? (rr(k, 7) - 0.5) * nx * 0.9 : lado * (7.2 + rr(k, 9) * (nx / 2 - 8));
+      pontos.push([xx, zz - 4.5, 0.8 + rr(k, 5) * 0.7, rr(k, 13) * Math.PI * 2]);
     }
-    deco.instanceMatrix.needsUpdate = true;
-    cena.add(deco);
+    if (partes) {
+      const _q2 = new THREE.Quaternion(), _e2 = new THREE.Euler();
+      const _p2 = new THREE.Vector3(), _s2 = new THREE.Vector3();
+      for (const parte of partes) {
+        const mesh = new THREE.InstancedMesh(geo3(parte.k),
+          new THREE.MeshLambertMaterial({ color: parte.c, flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
+          pontos.length);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        pontos.forEach(([px2, pz2, esc, giro], k) => {
+          _e2.set(parte.r ? parte.r[0] : 0, (parte.r ? parte.r[1] : 0) + giro, parte.r ? parte.r[2] : 0);
+          _q2.setFromEuler(_e2);
+          _p2.set(px2 + parte.p[0] * esc, 0.5 + parte.p[1] * esc, pz2 + parte.p[2] * esc);
+          _s2.set(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
+          m4.compose(_p2, _q2, _s2);
+          mesh.setMatrixAt(k, m4);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        cena.add(mesh);
+      }
+    }
+    // pedras soltas espalhando o chão da arena
+    const pedras = MODELOS3[23](1);
+    for (const parte of pedras) {
+      const mesh = new THREE.InstancedMesh(geo3(parte.k),
+        new THREE.MeshLambertMaterial({ color: parte.c, flatShading: true }), 26);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      for (let k = 0; k < 26; k++) {
+        const px2 = (rr(k, 21) - 0.5) * nx * 0.85;
+        const pz2 = -nz / 2 + 3 + rr(k, 23) * (nz - 6) - 4.5;
+        const esc = 0.6 + rr(k, 27) * 0.7;
+        m4.makeScale(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
+        m4.setPosition(px2 + parte.p[0] * esc, 0.5 + parte.p[1] * esc, pz2 + parte.p[2] * esc);
+        mesh.setMatrixAt(k, m4);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      cena.add(mesh);
+    }
 
     this.cenaBat = cena;
     // câmera baixa, quase à altura dos lutadores, para a arena ter profundidade
@@ -8336,7 +8494,8 @@ Object.assign(R3, {
   },
 
   // posiciona um combatente pela coordenada de tela que o layout 2D usa
-  poeCombatente(chave, canvasSpr, telaX, telaBaseY, alturaPx, opacidade) {
+  poeCombatente(chave, spr0, telaX, telaBaseY, alturaPx, opacidade) {
+    const canvasSpr = escala4x(spr0);   // o sprite ocupa muita tela na batalha
     const cam = this.camBat;
     const chao = this.pontoNoChao(telaX, telaBaseY, cam);
     const upp = this.unidadesPorPixel(chao, cam);
@@ -9022,15 +9181,68 @@ function drawBattle() {
 
 // ---------- Telas: título, classes, menus ----------
 // ---------- Tela inicial ----------
-// O cenário estático (céu, montanhas, torii, pagode, ramo de sakura) é
-// desenhado uma vez num canvas próprio; só o que se move é redesenhado.
-let titleBgCache = null;
-function titleBg() {
-  if (titleBgCache) return titleBgCache;
-  const c = document.createElement('canvas');
-  c.width = VW; c.height = VH;
-  const g = c.getContext('2d');
-  // céu do crepúsculo: índigo no alto, âmbar no horizonte
+// Desenhada ao vivo em resolução cheia: as curvas das serras, o disco solar e
+// as flores saem suaves, e não ampliados a partir de um buffer pequeno.
+const HORIZ = 138;                     // linha do horizonte
+function serra(g, base, alt, xc, cor, comNeve) {
+  g.fillStyle = cor;
+  g.beginPath();
+  g.moveTo(xc - alt * 2.0, base);
+  g.bezierCurveTo(xc - alt * 0.9, base - alt * 0.5, xc - alt * 0.34, base - alt * 0.92, xc, base - alt);
+  g.bezierCurveTo(xc + alt * 0.34, base - alt * 0.92, xc + alt * 0.9, base - alt * 0.5, xc + alt * 2.0, base);
+  g.closePath();
+  g.fill();
+  if (!comNeve) return;
+  // a neve é recortada DENTRO do contorno da montanha, então nunca descola
+  g.save();
+  g.clip();
+  g.fillStyle = comNeve;
+  g.beginPath();
+  g.moveTo(xc - alt, base - alt * 0.83);
+  const dentes = [[-.42, .855], [-.33, .825], [-.24, .875], [-.15, .84], [-.05, .885],
+                  [.05, .845], [.15, .88], [.25, .835], [.34, .87], [.43, .84]];
+  for (const [dx, dy] of dentes) g.lineTo(xc + alt * dx, base - alt * dy);
+  g.lineTo(xc + alt, base - alt * 0.83);
+  g.lineTo(xc + alt, base - alt * 1.2);
+  g.lineTo(xc - alt, base - alt * 1.2);
+  g.closePath();
+  g.fill();
+  g.restore();
+}
+function flor(g, x, y, r, cor, miolo) {
+  g.fillStyle = cor;
+  for (let i = 0; i < 5; i++) {
+    const a = i * Math.PI * 0.4 - 0.4;
+    g.beginPath();
+    g.ellipse(x + Math.cos(a) * r * 0.62, y + Math.sin(a) * r * 0.62, r * 0.52, r * 0.46, a, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = miolo;
+  g.beginPath(); g.arc(x, y, r * 0.28, 0, Math.PI * 2); g.fill();
+}
+// posições das flores do ramo, sorteadas uma vez só
+let ramoFlores = null;
+function montaRamo() {
+  if (ramoFlores) return ramoFlores;
+  const r = seeded(20240815);
+  const out = [];
+  const cachos = [[6, 8], [22, 13], [38, 16], [54, 17], [70, 15], [86, 12], [102, 9], [26, 27], [58, 31], [72, 25], [104, 24]];
+  for (const [cx, cy] of cachos) {
+    const n = 5 + Math.floor(r() * 4);
+    for (let i = 0; i < n; i++) {
+      out.push({
+        x: cx + (r() - 0.5) * 13, y: cy + (r() - 0.5) * 11,
+        r: 1.5 + r() * 1.4, t: r() * 6.28,
+        c: ['#f7b3c6', '#ffd6e2', '#e88fa8', '#ffc2d4'][Math.floor(r() * 4)]
+      });
+    }
+  }
+  ramoFlores = out;
+  return out;
+}
+function drawTitle() {
+  const g = ctx;
+  // ---- céu
   const sky = g.createLinearGradient(0, 0, 0, VH);
   sky.addColorStop(0, '#0b0a1c');
   sky.addColorStop(0.34, '#241a44');
@@ -9040,243 +9252,237 @@ function titleBg() {
   g.fillStyle = sky;
   g.fillRect(0, 0, VW, VH);
 
-  // disco solar baixo no céu
+  // ---- estrelas: só no céu, sumindo perto do horizonte
+  for (let i = 0; i < 70; i++) {
+    const sx = (i * 71.3) % VW, sy = (i * 37.7) % (HORIZ - 26);
+    const cintila = Math.sin(G.time * 1.7 + i * 1.3) * 0.5 + 0.5;
+    const perto = 1 - sy / (HORIZ - 20);
+    g.globalAlpha = (0.14 + cintila * 0.5) * perto;
+    g.fillStyle = i % 7 === 0 ? '#ffe8c0' : '#fffaf0';
+    const t2 = 0.5 + (i % 3) * 0.25;
+    g.fillRect(sx, sy, t2, t2);
+  }
+  g.globalAlpha = 1;
+
+  // ---- disco solar com halo
   const cx = 246, cy = 118;
-  const halo = g.createRadialGradient(cx, cy, 6, cx, cy, 62);
-  halo.addColorStop(0, 'rgba(255,190,120,0.55)');
+  const halo = g.createRadialGradient(cx, cy, 6, cx, cy, 66);
+  halo.addColorStop(0, 'rgba(255,190,120,0.5)');
+  halo.addColorStop(0.5, 'rgba(255,160,100,0.18)');
   halo.addColorStop(1, 'rgba(255,150,90,0)');
   g.fillStyle = halo;
-  g.fillRect(cx - 62, cy - 62, 124, 124);
-  g.fillStyle = '#ffd8a0';
+  g.fillRect(cx - 66, cy - 66, 132, 132);
+  const disco = g.createRadialGradient(cx, cy - 6, 2, cx, cy, 24);
+  disco.addColorStop(0, '#fff2d8');
+  disco.addColorStop(0.7, '#ffd8a0');
+  disco.addColorStop(1, '#ffbe80');
+  g.fillStyle = disco;
   g.beginPath(); g.arc(cx, cy, 24, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffe8c8';
-  g.beginPath(); g.arc(cx, cy - 3, 20, 0, Math.PI * 2); g.fill();
 
-  // faixas de nuvem cruzando o disco, esmaecendo nas pontas
-  const faixa = (fy, fh, a) => {
-    const gr = g.createLinearGradient(0, 0, VW, 0);
+  // ---- faixas de nuvem: bordas suaves, deslizando devagar
+  for (let i = 0; i < 3; i++) {
+    const fy = 100 + i * 13 + Math.sin(G.time * 0.2 + i) * 1.5;
+    const desl = ((G.time * (2.5 + i)) % (VW * 2)) - VW * 0.5;
+    const gr = g.createLinearGradient(desl - 90, 0, desl + 90, 0);
     gr.addColorStop(0, 'rgba(58,28,54,0)');
-    gr.addColorStop(0.22, 'rgba(58,28,54,' + a + ')');
-    gr.addColorStop(0.78, 'rgba(58,28,54,' + a + ')');
+    gr.addColorStop(0.5, 'rgba(58,28,54,' + (0.34 - i * 0.07) + ')');
     gr.addColorStop(1, 'rgba(58,28,54,0)');
     g.fillStyle = gr;
-    g.fillRect(0, fy, VW, fh);
-  };
-  faixa(104, 2, 0.34); faixa(116, 3, 0.30); faixa(129, 2, 0.24);
+    g.fillRect(desl - 90, fy, 180, 2.5 + i * 0.6);
+  }
 
-  // ---- montanhas em três camadas, mais claras ao fundo (perspectiva aérea)
-  const cume = (baseY, alt, xc, cor, neve) => {
-    g.fillStyle = cor;
-    g.beginPath();
-    g.moveTo(xc - alt * 1.9, baseY);
-    g.lineTo(xc - alt * 0.34, baseY - alt * 0.92);
-    g.lineTo(xc - alt * 0.12, baseY - alt);
-    g.lineTo(xc + alt * 0.14, baseY - alt * 0.99);
-    g.lineTo(xc + alt * 0.36, baseY - alt * 0.9);
-    g.lineTo(xc + alt * 1.9, baseY);
-    g.closePath(); g.fill();
-    if (neve) {   // capa de neve do Fuji
-      g.fillStyle = neve;
-      g.beginPath();
-      g.moveTo(xc - alt * 0.34, baseY - alt * 0.92);
-      g.lineTo(xc - alt * 0.12, baseY - alt);
-      g.lineTo(xc + alt * 0.14, baseY - alt * 0.99);
-      g.lineTo(xc + alt * 0.36, baseY - alt * 0.9);
-      g.lineTo(xc + alt * 0.22, baseY - alt * 0.84);
-      g.lineTo(xc + alt * 0.06, baseY - alt * 0.9);
-      g.lineTo(xc - alt * 0.1, baseY - alt * 0.82);
-      g.lineTo(xc - alt * 0.24, baseY - alt * 0.9);
-      g.closePath(); g.fill();
-    }
-  };
-  cume(136, 16, 18, '#6a4468');             // serra distante
-  cume(136, 20, 168, '#6a4468');
-  cume(138, 44, 88, '#4a2e56', '#b498b4');  // Fuji
-  cume(146, 22, 214, '#38224a');
-  cume(148, 17, 292, '#38224a');
-  // colina intermediária
+  // ---- serras: três planos, mais claros ao fundo
+  serra(g, 136, 15, 16, '#6a4468');
+  serra(g, 136, 19, 172, '#6a4468');
+  serra(g, 138, 43, 88, '#4a2e56', '#cdbcd6');     // Fuji
+  serra(g, 146, 21, 216, '#38224a');
+  serra(g, 148, 16, 292, '#38224a');
+
+  // colina do meio
   g.fillStyle = '#2a1838';
   g.beginPath();
   g.moveTo(0, 152);
-  for (let x = 0; x <= VW; x += 8) g.lineTo(x, 150 - Math.sin(x * 0.031) * 7 - Math.sin(x * 0.11) * 2);
+  for (let x = 0; x <= VW; x += 4) g.lineTo(x, 150 - Math.sin(x * 0.031) * 7 - Math.sin(x * 0.11) * 2);
   g.lineTo(VW, VH); g.lineTo(0, VH); g.closePath(); g.fill();
 
-  // pagode de cinco andares na colina
-  const pagode = (px, py, s) => {
-    g.fillStyle = '#160c22';
-    for (let i = 0; i < 5; i++) {
-      const w2 = (16 - i * 2) * s, y2 = py - i * 7 * s;
-      g.fillRect(px - w2 / 2 + 1.5 * s, y2 - 5 * s, w2 - 3 * s, 5 * s);   // corpo
-      g.beginPath();                                                       // beiral
-      g.moveTo(px - w2 / 2 - 2 * s, y2);
-      g.lineTo(px - w2 / 2 + 2 * s, y2 - 3 * s);
-      g.lineTo(px + w2 / 2 - 2 * s, y2 - 3 * s);
-      g.lineTo(px + w2 / 2 + 2 * s, y2);
-      g.closePath(); g.fill();
-    }
-    g.fillRect(px - 0.5 * s, py - 40 * s, s, 7 * s);   // sorin no topo
-  };
-  pagode(272, 150, 1);
+  // pagode
+  g.fillStyle = '#160c22';
+  for (let i = 0; i < 5; i++) {
+    const w2 = 16 - i * 2, y2 = 150 - i * 7;
+    g.fillRect(272 - w2 / 2 + 1.5, y2 - 5, w2 - 3, 5);
+    g.beginPath();
+    g.moveTo(272 - w2 / 2 - 2, y2);
+    g.quadraticCurveTo(272 - w2 / 2 + 1, y2 - 3.4, 272 - w2 / 2 + 2, y2 - 3);
+    g.lineTo(272 + w2 / 2 - 2, y2 - 3);
+    g.quadraticCurveTo(272 + w2 / 2 - 1, y2 - 3.4, 272 + w2 / 2 + 2, y2);
+    g.closePath(); g.fill();
+  }
+  g.fillRect(271.5, 110, 1, 7);
 
   // colina da frente
   g.fillStyle = '#100a1c';
   g.beginPath();
   g.moveTo(0, 166);
-  for (let x = 0; x <= VW; x += 8) g.lineTo(x, 164 - Math.sin(x * 0.045 + 2) * 6);
+  for (let x = 0; x <= VW; x += 4) g.lineTo(x, 164 - Math.sin(x * 0.045 + 2) * 6);
   g.lineTo(VW, VH); g.lineTo(0, VH); g.closePath(); g.fill();
 
-  // torii recortado contra o sol
-  const torii = (tx, ty, s) => {
-    g.fillStyle = '#1c0a16';
-    g.fillRect(tx - 21 * s, ty - 46 * s, 42 * s, 4 * s);                 // kasagi
-    g.fillRect(tx - 24 * s, ty - 50 * s, 48 * s, 3 * s);                 // ilharga do kasagi
-    g.fillRect(tx - 17 * s, ty - 36 * s, 34 * s, 3 * s);                 // nuki
-    g.fillRect(tx - 2 * s, ty - 46 * s, 4 * s, 12 * s);                  // gakuzuka
-    g.fillRect(tx - 17 * s, ty - 46 * s, 5 * s, 46 * s);                 // pilares
-    g.fillRect(tx + 12 * s, ty - 46 * s, 5 * s, 46 * s);
-  };
-  torii(58, 168, 1);
+  // torii
+  g.fillStyle = '#1c0a16';
+  g.fillRect(37, 122, 5, 46);
+  g.fillRect(70, 122, 5, 46);
+  g.fillRect(41, 132, 30, 3);
+  g.fillRect(56, 122, 4, 12);
+  g.beginPath();
+  g.moveTo(32, 122); g.quadraticCurveTo(56, 116, 80, 122);
+  g.lineTo(80, 126); g.quadraticCurveTo(56, 120.5, 32, 126);
+  g.closePath(); g.fill();
+  g.fillRect(35, 126, 42, 3.4);
 
-  // lanternas de pedra ladeando o caminho
-  const toro = (lx, ly) => {
+  // lanternas de pedra
+  for (const [lx, ly] of [[104, 172], [126, 170], [146, 169]]) {
     g.fillStyle = '#140c1e';
     g.fillRect(lx - 1, ly - 6, 3, 6);
-    g.fillRect(lx - 3, ly - 10, 7, 4);
-    g.fillRect(lx - 4, ly - 12, 9, 2);
-  };
-  toro(104, 172); toro(126, 170); toro(146, 169);
+    g.fillRect(lx - 3.5, ly - 10.5, 8, 4.5);
+    g.beginPath();
+    g.moveTo(lx - 5, ly - 10.5); g.lineTo(lx - 1, ly - 13.5);
+    g.lineTo(lx + 2.5, ly - 13.5); g.lineTo(lx + 6, ly - 10.5);
+    g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,220,140,' + (0.5 + Math.sin(G.time * 2 + lx) * 0.18) + ')';
+    g.fillRect(lx - 2.5, ly - 10, 6, 3.4);
+  }
 
-  // ramo de sakura emoldurando o topo: as flores nascem sobre os galhos
-  const flores = [];
-  const cacho = (x0, y0, n, r) => {
-    for (let i = 0; i < n; i++) {
-      const a = (i * 2.39996) + x0, d = Math.sqrt((i + 0.5) / n) * r;
-      flores.push([Math.round(x0 + Math.cos(a) * d), Math.round(y0 + Math.sin(a) * d * 0.8)]);
-    }
-  };
-  g.strokeStyle = '#2a1420'; g.lineWidth = 3;
-  g.beginPath(); g.moveTo(-4, 5); g.quadraticCurveTo(50, 17, 116, 7); g.stroke();
-  g.lineWidth = 2;
-  const galho = (x0, y0, x1, y1) => {
-    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, y0 + 5, x1, y1); g.stroke();
-    cacho(x1, y1, 9, 6);
-  };
-  galho(20, 11, 26, 27); galho(48, 15, 58, 32); galho(76, 13, 70, 26); galho(96, 10, 104, 25);
-  cacho(6, 7, 11, 8); cacho(36, 14, 10, 7); cacho(64, 15, 10, 7); cacho(88, 12, 10, 7); cacho(114, 8, 9, 7);
-  flores.forEach(([bx, by], i) => {
-    g.fillStyle = ['#e88fa8', '#f7b3c6', '#ffd6e2', '#ffc2d4'][i % 4];
-    g.fillRect(bx, by, 2, 2);
-    if (i % 3 === 0) { g.fillStyle = '#fff0f4'; g.fillRect(bx, by, 1, 1); }
-  });
-  titleBgCache = c;
-  return c;
-}
-function drawTitle() {
-  ctx.drawImage(titleBg(), 0, 0);
-  // estrelas piscando (somem perto do horizonte)
-  for (let i = 0; i < 54; i++) {
-    const sx = (i * 71) % VW, sy = (i * 37) % 92;
-    const tw = Math.sin(G.time * 1.7 + i * 1.3) * 0.5 + 0.5;
-    ctx.fillStyle = 'rgba(255,250,235,' + (0.12 + tw * 0.5) * (1 - sy / 110) + ')';
-    ctx.fillRect(sx, sy, 1, 1);
-  }
-  // névoa passando devagar sobre as montanhas
+  // ---- névoa rasteira sobre as serras
   for (let i = 0; i < 4; i++) {
-    const my = 128 + i * 7;
-    const mx = ((G.time * (5 + i * 2)) % (VW + 120)) - 120;
-    ctx.fillStyle = 'rgba(220,180,190,' + (0.10 - i * 0.015) + ')';
-    ctx.fillRect(mx, my, 120, 3);
-    ctx.fillRect(mx - 160, my, 110, 3);
+    const my = 130 + i * 8;
+    const mx = ((G.time * (4 + i * 2)) % (VW + 160)) - 160;
+    const gr = g.createLinearGradient(mx, 0, mx + 150, 0);
+    gr.addColorStop(0, 'rgba(226,190,200,0)');
+    gr.addColorStop(0.5, 'rgba(226,190,200,' + (0.11 - i * 0.02) + ')');
+    gr.addColorStop(1, 'rgba(226,190,200,0)');
+    g.fillStyle = gr;
+    g.fillRect(mx, my, 150, 3.5);
   }
-  // pétalas caindo, girando
-  for (let i = 0; i < 30; i++) {
+
+  // ---- vaga-lumes rasteiros
+  for (let i = 0; i < 10; i++) {
+    const fx = 16 + ((i * 53 + G.time * (6 + i)) % 292);
+    const fy = 152 + Math.sin(G.time * 1.4 + i * 2) * 8 + (i % 3) * 5;
+    const br = (Math.sin(G.time * 3 + i * 1.7) * 0.5 + 0.5) ** 2;
+    g.fillStyle = 'rgba(255,240,150,' + (0.2 + br * 0.7) + ')';
+    g.beginPath(); g.arc(fx, fy, 0.5 + br * 0.5, 0, Math.PI * 2); g.fill();
+  }
+
+  // ---- ramo de sakura emoldurando o topo
+  g.strokeStyle = '#2e1622';
+  g.lineCap = 'round';
+  g.lineWidth = 3.4;
+  g.beginPath(); g.moveTo(-4, 4); g.quadraticCurveTo(50, 17, 118, 6); g.stroke();
+  g.lineWidth = 1.8;
+  for (const [x0, y0, x1, y1] of [[20, 11, 26, 27], [48, 15, 58, 32], [76, 13, 70, 26], [96, 10, 104, 25]]) {
+    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, y0 + 5, x1, y1); g.stroke();
+  }
+  for (const f of montaRamo()) {
+    const balanca = Math.sin(G.time * 1.1 + f.t) * 0.5;
+    flor(g, f.x + balanca, f.y, f.r, f.c, '#fff4dc');
+  }
+
+  // ---- pétalas caindo: somem ao chegar no chão
+  for (let i = 0; i < 34; i++) {
     const sp = 10 + (i % 6) * 4;
     const px2 = (i * 61 + G.time * sp * 0.5) % (VW + 20) - 10;
-    const py2 = (i * 43 + G.time * sp) % (VH + 20) - 10;
-    const gira = Math.sin(G.time * 2.4 + i) ;
-    const larg = 1 + Math.abs(gira) * 1.6;
-    ctx.globalAlpha = 0.5 + (i % 4) * 0.13;
-    ctx.fillStyle = ['#f7b3c6', '#ffd6e2', '#e88fa8'][i % 3];
-    ctx.fillRect(Math.round(px2 + gira * 3), Math.round(py2), Math.round(larg), 2);
+    const py2 = (i * 43 + G.time * sp) % (HORIZ + 30) - 10;
+    if (py2 > HORIZ + 8) continue;
+    const gira = Math.sin(G.time * 2.4 + i);
+    const some = py2 > HORIZ - 14 ? Math.max(0, 1 - (py2 - (HORIZ - 14)) / 22) : 1;
+    g.globalAlpha = (0.45 + (i % 4) * 0.14) * some;
+    g.fillStyle = ['#f7b3c6', '#ffd6e2', '#e88fa8'][i % 3];
+    g.save();
+    g.translate(px2 + gira * 3, py2);
+    g.rotate(gira * 1.4);
+    g.beginPath();
+    g.ellipse(0, 0, 1.5, 0.8, 0, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
   }
-  ctx.globalAlpha = 1;
-  // vaga-lumes rasteiros
-  for (let i = 0; i < 9; i++) {
-    const fx = 20 + ((i * 53 + G.time * (6 + i)) % 290);
-    const fy = 150 + Math.sin(G.time * 1.4 + i * 2) * 9 + (i % 3) * 6;
-    const br = (Math.sin(G.time * 3 + i * 1.7) * 0.5 + 0.5) ** 2;
-    ctx.fillStyle = 'rgba(255,240,150,' + (0.25 + br * 0.6) + ')';
-    ctx.fillRect(Math.round(fx), Math.round(fy), 1, 1);
-  }
+  g.globalAlpha = 1;
 
   // ---- título
-  ctx.textAlign = 'center';
+  g.textAlign = 'center';
   const flut = Math.sin(G.time * 1.2) * 0.8;
-  ctx.font = 'bold 24px monospace';
-  // contorno escuro para o texto descolar do céu
-  ctx.fillStyle = '#12081c';
-  for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2], [2, 3], [-2, 2], [2, -2], [-2, -2]])
-    ctx.fillText('FORGED LEGEND', VW / 2 + dx, 54 + flut + dy);
-  ctx.fillStyle = '#ffd94e';
-  ctx.fillText('FORGED LEGEND', VW / 2, 54 + flut);
-  // golpe de katana atravessa o título de tempos em tempos e some
+  g.font = 'bold 24px monospace';
+  g.fillStyle = '#12081c';
+  for (const [dx, dy] of [[-1.6, 0], [1.6, 0], [0, -1.6], [0, 1.6], [1.6, 2.4], [-1.6, 1.6], [1.6, -1.6], [-1.6, -1.6]])
+    g.fillText('FORGED LEGEND', VW / 2 + dx, 54 + flut + dy);
+  const ouro = g.createLinearGradient(0, 40 + flut, 0, 60 + flut);
+  ouro.addColorStop(0, '#fff0b0');
+  ouro.addColorStop(0.5, '#ffd94e');
+  ouro.addColorStop(1, '#e0a028');
+  g.fillStyle = ouro;
+  g.fillText('FORGED LEGEND', VW / 2, 54 + flut);
+
   const ciclo = G.time % 7;
   if (ciclo < 1.1) {
     const av = Math.min(1, ciclo / 0.32);
     const some = Math.max(0, 1 - Math.max(0, ciclo - 0.42) / 0.68);
-    ctx.fillStyle = 'rgba(255,244,214,' + (0.95 * some) + ')';
-    ctx.fillRect(VW / 2 - 82, 47 + flut, Math.round(164 * av), 1);
-    if (av < 1) {   // brilho na ponta do corte
-      ctx.fillStyle = 'rgba(255,255,255,' + some + ')';
-      ctx.fillRect(VW / 2 - 82 + Math.round(164 * av), 45 + flut, 2, 4);
+    g.fillStyle = 'rgba(255,244,214,' + (0.95 * some) + ')';
+    g.fillRect(VW / 2 - 82, 47 + flut, 164 * av, 0.8);
+    if (av < 1) {
+      g.fillStyle = 'rgba(255,255,255,' + some + ')';
+      g.fillRect(VW / 2 - 82 + 164 * av, 45 + flut, 1.6, 4);
     }
   }
-  ctx.font = '9px monospace';
-  ctx.fillStyle = '#0e0818';
-  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2 + 1, 71 + flut + 1);
-  ctx.fillStyle = '#f7b3c6';
-  ctx.fillText('鍛 え ら れ た 伝 説', VW / 2, 71 + flut);
+  g.font = '9px monospace';
+  g.fillStyle = '#0e0818';
+  g.fillText('鍛 え ら れ た 伝 説', VW / 2 + 0.8, 71 + flut + 0.8);
+  g.fillStyle = '#f7b3c6';
+  g.fillText('鍛 え ら れ た 伝 説', VW / 2, 71 + flut);
 
-  // selo hanko no canto, como assinatura de gravura
-  ctx.fillStyle = '#8a1e22';
-  ctx.fillRect(VW - 22, 9, 14, 14);
-  ctx.fillStyle = '#c2352e';
-  ctx.fillRect(VW - 21, 10, 12, 12);
-  ctx.fillStyle = '#fff0e8';
-  ctx.font = 'bold 9px monospace';
-  ctx.fillText('伝', VW - 15, 20);
+  // selo hanko
+  g.fillStyle = '#8a1e22';
+  g.fillRect(VW - 22, 9, 14, 14);
+  g.fillStyle = '#c2352e';
+  g.fillRect(VW - 21, 10, 12, 12);
+  g.fillStyle = '#fff0e8';
+  g.font = 'bold 9px monospace';
+  g.fillText('伝', VW - 15, 20);
 
-  ctx.font = '7px monospace';
-  ctx.fillStyle = '#d8b8e0';
-  ctx.fillText('o caminho é a arma que você empunha', VW / 2, 84);
+  g.font = '7px monospace';
+  g.fillStyle = '#d8b8e0';
+  g.fillText('o caminho é a arma que você empunha', VW / 2, 84);
 
   // ---- menu num painel laqueado
   const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
   const ph = opts.length * 13 + 9, py3 = 122 - (opts.length - 1) * 6, pw = 112, px3 = (VW - pw) / 2;
-  coverRect(px3, py3, pw, ph, 'rgba(18,10,26,0.72)');
-  ctx.strokeStyle = '#8a6a4a';
-  ctx.strokeRect(px3 + 0.5, py3 + 0.5, pw - 1, ph - 1);
-  ctx.fillStyle = '#c89a5a';
-  ctx.fillRect(px3 + 2, py3 + 2, 2, 2); ctx.fillRect(px3 + pw - 4, py3 + 2, 2, 2);
-  ctx.fillRect(px3 + 2, py3 + ph - 4, 2, 2); ctx.fillRect(px3 + pw - 4, py3 + ph - 4, 2, 2);
+  const lac = g.createLinearGradient(0, py3, 0, py3 + ph);
+  lac.addColorStop(0, 'rgba(30,16,38,0.9)');
+  lac.addColorStop(1, 'rgba(14,8,20,0.9)');
+  g.fillStyle = lac;
+  g.fillRect(px3, py3, pw, ph);
+  g.strokeStyle = '#8a6a4a';
+  g.lineWidth = 0.8;
+  g.strokeRect(px3 + 0.4, py3 + 0.4, pw - 0.8, ph - 0.8);
+  g.fillStyle = '#c89a5a';
+  for (const [ox, oy] of [[2, 2], [pw - 4, 2], [2, ph - 4], [pw - 4, ph - 4]]) g.fillRect(px3 + ox, py3 + oy, 2, 2);
   opts.forEach((o, i) => {
     const oy = py3 + 15 + i * 13;
-    ctx.font = '9px monospace';
+    g.font = '9px monospace';
     if (i === G.titleIdx) {
-      const pulso = 0.7 + Math.sin(G.time * 5) * 0.3;
-      ctx.fillStyle = 'rgba(255,217,78,' + pulso + ')';
-      ctx.fillText('❖ ' + o + ' ❖', VW / 2, oy);
+      const pulso = 0.75 + Math.sin(G.time * 5) * 0.25;
+      g.fillStyle = 'rgba(255,217,78,' + pulso + ')';
+      g.fillText('❖ ' + o + ' ❖', VW / 2, oy);
     } else {
-      ctx.fillStyle = '#9a8ab8';
-      ctx.fillText(o, VW / 2, oy);
+      g.fillStyle = '#9a8ab8';
+      g.fillText(o, VW / 2, oy);
     }
   });
 
-  ctx.font = '7px monospace';
-  ctx.fillStyle = '#6a5a8a';
-  ctx.fillText('↑↓ escolher  ·  Z/Enter confirmar  ·  M som', VW / 2, 176);
-  ctx.textAlign = 'left';
+  g.font = '7px monospace';
+  g.fillStyle = '#8a7aa8';
+  g.fillText('↑↓ escolher  ·  Z/Enter confirmar  ·  M som', VW / 2, 176);
+  g.textAlign = 'left';
+  g.lineWidth = 1;
 }
+
 function updateTitle() {
   const n = hasSave() ? 2 : 1;
   if (tap('up')) { G.titleIdx = (G.titleIdx + n - 1) % n; AU.sfx('menu'); }
@@ -9685,7 +9891,7 @@ function updateCreate() {
   const n = CRIA_OPCOES.length;
   if (tap('up')) { G.criaIdx = (G.criaIdx + n - 1) % n; AU.sfx('menu'); }
   if (tap('down')) { G.criaIdx = (G.criaIdx + 1) % n; AU.sfx('menu'); }
-  const foiEsq = pressed['left'];
+  const foiEsq = proxToque() === 'left';
   if (tap('left') || tap('right')) {
     const lista = op.lista();
     P.look[op.key] = (P.look[op.key] + (foiEsq ? -1 : 1) + lista.length) % lista.length;
@@ -10137,9 +10343,6 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000 || 0.016);
   lastT = now;
   G.time += dt;
-  octx.setTransform(1, 0, 0, 1, 0, 0);
-  octx.clearRect(0, 0, overlay.width, overlay.height);
-
   AU.update(dt);
   updateFade(dt);
 
@@ -10218,24 +10421,20 @@ function frame(now) {
   });
   ctx.restore();
 
-  // fade (também sobre a camada de texto)
   if (G.fade > 0) {
     ctx.fillStyle = 'rgba(6,4,12,' + G.fade + ')';
     ctx.fillRect(0, 0, VW, VH);
-    octx.setTransform(1, 0, 0, 1, 0, 0);
-    octx.fillStyle = 'rgba(6,4,12,' + G.fade + ')';
-    octx.fillRect(0, 0, overlay.width, overlay.height);
   }
 
   // blit para tela
   mainCtx.imageSmoothingEnabled = false;
   mainCtx.clearRect(0, 0, cv.width, cv.height);
-  mainCtx.clearRect(0, 0, cv.width, cv.height);
-  mainCtx.drawImage(buf, 0, 0, cv.width, cv.height);
-  mainCtx.drawImage(overlay, 0, 0);
+  mainCtx.drawImage(buf, 0, 0);
 
-  // limpa taps não consumidos
-  for (const k in pressed) pressed[k] = false;
+  // toques que ninguém consumiu envelhecem e caem fora, para uma tecla que a
+  // tela atual ignora não travar a fila
+  for (const e of filaToques) e.idade++;
+  filaToques = filaToques.filter(e => e.idade < 8);
   requestAnimationFrame(frame);
 }
 // Liga a cena 3D. Se o navegador não tiver WebGL, o jogo segue no
@@ -10305,7 +10504,8 @@ window.DBG = {
     cam: R3.cam ? [+R3.cam.position.x.toFixed(2), +R3.cam.position.y.toFixed(2), +R3.cam.position.z.toFixed(2)] : null }; },
   r3Zoom(f) { R3.zoom = f; R3.aplicaZoom(f); },
   r3Inc(v) { R3.inc = v; },
-  r3Force2D(v) { R3.forcado2D = v; if (v) R3.mostra(false); }
+  r3Force2D(v) { R3.forcado2D = v; if (v) R3.mostra(false); },
+  filaVazia() { return filaToques.length === 0; }
 };
 </script>
 </body>
