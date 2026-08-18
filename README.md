@@ -13,7 +13,15 @@ python3 -m http.server 8000
 # abra http://localhost:8000
 ```
 
-A tela escala automaticamente para o tamanho da janela mantendo pixels perfeitos. Se o navegador não tiver WebGL, o jogo cai sozinho no renderizador 2D original sem perder nada.
+A tela escala automaticamente para o tamanho da janela. Se o navegador não tiver WebGL, o jogo cai sozinho no renderizador 2D original sem perder nada.
+
+## 🖼️ Resolução
+
+Tudo é desenhado na **resolução real da tela**, não num buffer pequeno ampliado depois: a cena 3D, os painéis, as barras, os degradês e o texto. As coordenadas continuam sendo as de sempre (320×180), aplicadas por transform — então o layout não mudou, só a nitidez.
+
+O pixel art dos personagens e dos tiles passa por um **ampliador que preserva bordas (EPX/Scale2x)**: cada sprite dobra ou quadruplica de resolução com as diagonais suavizadas em vez de viradas em degraus. A arte muda um pouco — os cantos arredondam — e em troca aguenta ocupar meia tela sem virar bloco. Os billboards do mundo ainda ganham um contorno escuro, para o personagem descolar do cenário 3D.
+
+O chão tem a textura assada em 2× com uma passada de grão fino por cima (fiapos de grama, grão de terra, cascalho), senão em resolução cheia ele viraria um xadrez de quadrados chapados.
 
 ## 🧊 Mundo 3D com personagens 2D
 
