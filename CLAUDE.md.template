@@ -1,0 +1,309 @@
+# CLAUDE.md — template universal (metodologia de trabalho com Claude Code)
+
+Este arquivo **não é específico de nenhum projeto**. É um ponto de
+partida para o `CLAUDE.md` de qualquer repositório novo — contém só
+princípios e protocolos que fazem sentido independentemente de
+linguagem, framework, arquitetura ou tipo de aplicação.
+
+Ao começar um projeto novo: copie este arquivo para `CLAUDE.md` na raiz
+do repositório e preencha as seções marcadas `[PREENCHER]` com as
+informações concretas daquele projeto. As seções 1 e 2 normalmente não
+precisam de edição — são o núcleo reutilizável.
+
+---
+
+## 0. Como usar este arquivo
+
+- Seções 1 e 2: princípios e protocolo universais. Mantenha como estão;
+  se um projeto específico exigir uma exceção, documente a exceção na
+  seção 7 daquele projeto, não edite o princípio aqui.
+- Seções 3–8: esqueleto universal, **conteúdo específico do projeto**.
+  Preencha cada uma ao adotar este template num repositório novo.
+- Se este arquivo for copiado para dentro de um projeto e depois
+  editado localmente lá, ele deixa de ser "o template" — o template
+  original deve continuar guardado num lugar independente de qualquer
+  projeto específico (ver nota de manutenção no fim do arquivo).
+
+---
+
+## 1. Princípios universais de engenharia
+
+### 1.1 Fluxo de mudança
+
+- Entender a arquitetura afetada e o impacto da mudança antes de
+  editar — nunca editar às cegas.
+- Fazer alterações pequenas e verificáveis, uma de cada vez.
+- Evitar refatorações não solicitadas. Se uma refatoração parecer
+  necessária para cumprir o pedido, explicar o motivo antes de fazê-la.
+- Não alterar comportamento existente sem explicar o motivo — nem "de
+  passagem" numa mudança que pediu outra coisa.
+- Revisar o diff antes de considerar qualquer alteração concluída, e
+  confirmar que ele contém *só* o que foi pedido.
+
+### 1.2 Investigação e causa raiz
+
+- Diagnosticar antes de corrigir: ler o código relevante, formular
+  hipótese explícita, só então agir.
+- Ao investigar algo intermitente, definir um número máximo de
+  tentativas de reprodução **antes** de começar. Não reproduzir dentro
+  do limite é, em si, um resultado válido a reportar — não é motivo
+  para estender o limite sem mais critério.
+- Separar três categorias explicitamente ao encontrar uma falha:
+  - **bug de produto** — lógica incorreta, reproduzível de forma
+    determinística;
+  - **bug de teste** — a asserção ou a sincronização do teste está
+    errada, o produto está correto;
+  - **problema de ambiente** — timing, recursos, infraestrutura;
+    reproduz de forma intermitente e não muda com o código.
+- Antes de tratar uma falha como nova, comparar com histórico/evidência
+  já registrada (ver seção 8 de cada projeto) — não reinvestigar do
+  zero algo já documentado.
+- Nunca mascarar uma falha intermitente apenas aumentando timeout sem
+  entender a causa.
+
+### 1.3 Testes
+
+- Usar execução seletiva por escopo sempre que o harness do projeto
+  oferecer isso — mas um teste seletivo nunca é equivalente à suíte
+  completa; a suíte completa continua sendo o gate oficial antes de
+  PR/merge.
+- Nunca criar scripts temporários que recortam manualmente pedaços de
+  um arquivo de teste real para rodar isolado. Usar o mecanismo de
+  seleção que já existe no harness — ou propor a criação de um,
+  formalmente, nunca improvisar um substituto divergente do arquivo
+  real.
+- Se o teste tiver unidades com dependência de estado sequencial,
+  tratá-las como indivisíveis; não simular estado parcial via atalhos
+  de debug sem justificar por escrito a técnica e as consequências.
+- Nunca remover ou enfraquecer uma verificação para fazer a suíte
+  passar; nunca alterar timeout/condição/asserção só para reduzir
+  duração sem antes explicar o impacto e obter concordância.
+- Qualquer mudança estrutural no harness de testes (ex.: introduzir
+  seleção granular) deve ser aditiva — o comportamento padrão da suíte
+  completa continua idêntico ao que era antes da mudança.
+
+### 1.4 Performance e otimização
+
+- Medir antes de otimizar — nunca otimizar por intuição de onde "parece"
+  estar lento.
+- Instrumentação usada para medir deve ser sempre **aditiva** (nunca
+  remove ou altera lógica testada) e auditável por diff. Preferir
+  aplicá-la numa cópia temporária quando o arquivo real não pode ser
+  tocado nessa etapa, e removê-la ao final.
+- A própria instrumentação não pode introduzir a variável que se quer
+  medir (ex.: ao investigar timing, não adicionar esperas/polling extra
+  só para instrumentar — isso distorce a própria medição).
+- Priorizar por impacto real medido (percentual do tempo/recurso total,
+  ranking por gargalo absoluto) — nunca pela primeira coisa que parece
+  lenta.
+- Depois de qualquer otimização, medir de novo com o **mesmo método**
+  usado na medição "antes", e comparar explicitamente antes/depois.
+- Preservar cobertura ao otimizar testes — otimizar velocidade nunca é
+  justificativa para reduzir o que é verificado.
+
+### 1.5 Processos longos / background
+
+- Antes de iniciar algo potencialmente longo, checar se já existe uma
+  execução equivalente em andamento — não duplicar.
+- Nunca reiniciar um serviço (servidor local, banco, worker, etc.) do
+  qual uma execução ativa depende.
+- O rótulo "parado"/timeout da interface de tarefas não prova que o
+  processo morreu — verificar o estado real (PID vivo, mtime/conteúdo
+  do arquivo de saída) antes de decidir o próximo passo.
+- Não ficar consultando um processo em loop apertado sem necessidade;
+  se for esperar, preferir uma checagem única agendada mais adiante.
+- Se o ambiente de execução reiniciar sozinho no meio de uma tarefa
+  (processos/serviços caem sem que nada estivesse ativamente rodando),
+  verificar a saúde do ambiente antes de simplesmente repetir o comando
+  que "falhou" — o comando pode estar correto e o ambiente é que mudou.
+
+### 1.6 Git / commit / push / PR
+
+- Nunca commitar, dar push ou abrir PR sem pedido explícito para
+  aquela ação específica.
+- Ao commitar, checar `git status` antes e depois; incluir só os
+  arquivos pedidos, nunca `git add -A`/`.` às cegas.
+- Suíte completa verde é pré-requisito para PR, salvo pedido explícito
+  em contrário.
+- Ao reestruturar um arquivo sem mudar sua lógica, usar um diff
+  insensível a formatação (ex.: ignorando espaços) para provar que
+  nada funcional mudou, além do diff bruto.
+
+### 1.7 Comunicação em tarefas longas
+
+- Explicar o que está sendo executado e por quê.
+- Distinguir claramente "processo verificado como ativo no SO" de
+  "tarefa marcada como parada pela interface".
+- Não criar trabalho redundante enquanto se espera algo terminar.
+- Ao finalizar: métricas concretas (contagens, duração aproximada,
+  código de saída, resultado exato) — nunca uma estimativa disfarçada
+  de resultado medido.
+- Ser explícito quando algo não foi confirmado/reproduzido, em vez de
+  apresentar uma hipótese como fato.
+
+---
+
+## 2. Protocolo universal de investigação e otimização
+
+Fluxo com pontos de decisão explícitos — o valor não está em seguir os
+passos em linha reta, está em parar nos pontos certos e decidir (quantas
+tentativas? preciso instrumentar? já tenho evidência suficiente?) em vez
+de agir por reflexo.
+
+```
+0. ESCOPO E TRAVAS
+   ↓
+1. ENTENDER (ler código + qualquer CLAUDE.md/doc do projeto)
+   ↓
+2. INSPECIONAR EVIDÊNCIA JÁ EXISTENTE ── suficiente? ──sim──→ pular para 6
+   ↓ não
+3. FORMULAR HIPÓTESE(S) explícita(s), ranqueadas por plausibilidade
+   ↓
+4. DECIDIR SE PRECISA INSTRUMENTAR ── não precisa ──→ pular para 5
+   ↓ precisa
+4b. INSTRUMENTAR (aditivo, auditável por diff, cópia temporária se o
+    arquivo real não pode ser tocado)
+   ↓
+5. MEDIR / REPRODUZIR (limite de tentativas definido ANTES de começar)
+   ↓
+6. CLASSIFICAR A CAUSA (determinístico vs. intermitente →
+   produto vs. teste vs. ambiente)
+   ↓
+7. [SÓ PERFORMANCE] PRIORIZAR POR IMPACTO MEDIDO (não por sensação)
+   ↓
+8. PROPOR (causa + evidência + classificação + opções com trade-offs)
+   ──→ AGUARDAR APROVAÇÃO
+   ↓ aprovado
+9. IMPLEMENTAR (uma mudança pequena por vez)
+   ↓
+10. VALIDAR (teste seletivo relevante → suíte completa → medir de novo
+    se foi otimização → comparar antes/depois)
+   ↓
+11. REVISAR DIFF
+   ↓
+12. DOCUMENTAR o achado na seção 8 (Histórico de achados) do projeto
+```
+
+**Fase 0 — Escopo e travas.** Antes de tocar em qualquer coisa, deixar
+explícito o que está e não está autorizado nesta rodada: pode alterar
+código? Pode rodar a suíte completa? Quantas reproduções são aceitáveis?
+Isso evita gastar tempo fazendo algo fora do escopo pedido.
+
+**Fase 2 — Evidência existente antes de gerar nova.** Procurar em logs
+anteriores, no histórico de achados (seção 8) e na documentação do
+projeto antes de rodar qualquer coisa nova. Frequentemente a resposta
+já está registrada.
+
+**Fase 4 — Quando instrumentar.** Só instrumentar quando a evidência
+existente genuinamente não permite confirmar/refutar a hipótese. A
+instrumentação precisa ser auditável como puramente aditiva: se o diff
+entre o original e a versão instrumentada tiver qualquer linha removida
+ou alterada (não só adicionada), a instrumentação virou uma reescrita
+disfarçada, e os resultados dela não são confiáveis.
+
+**Fase 5 — Medir/reproduzir com limite.** O comportamento correto
+quando N tentativas não reproduzem uma falha intermitente não é
+"tentar mais uma vez só para garantir" — é reportar "não reproduzido em
+N tentativas" como um dado real (baixa probabilidade do evento, não
+ausência de causa).
+
+**Fase 6 — Árvore de decisão para classificar a causa:**
+```
+A falha se repete de forma idêntica em toda execução com o mesmo input?
+├── SIM → determinístico → bug de produto (ou de teste, se a asserção
+│         está errada) — a causa está no código, não no timing.
+└── NÃO → intermitente → comparar com flakiness já documentada primeiro;
+          se for nova, distinguir:
+          ├── falta uma espera/checagem de assentamento antes da
+          │   próxima ação no teste? → bug de TESTE
+          ├── o comportamento do produto muda de fato dependendo de
+          │   timing real (corrida genuína na lógica do produto)?
+          │   → bug de PRODUTO
+          └── nenhum dos dois, ligado a características do ambiente de
+              execução (CPU/GPU compartilhada, I/O, renderização,
+              rede)? → problema de AMBIENTE
+```
+
+**Fase 7 — Priorizar por impacto real.** Expressar sempre em percentual
+do total, nunca só em números absolutos — um gargalo de 30s pode ser
+irrelevante (2% do total) ou crítico (30% do total) dependendo da
+escala.
+
+**Fase 8 — Propor sem implementar.** Toda proposta de correção/
+otimização deve vir com: a causa, a evidência que sustenta essa causa,
+o nível de confiança (confirmado por reprodução vs. hipótese não
+confirmada) e as alternativas com trade-offs — nunca uma correção
+"pronta pra aplicar" sem esse contexto.
+
+**Fase 10 — Validar de verdade.** Para bugs: teste seletivo relevante
+primeiro, suíte completa depois. Para otimizações: medir de novo com o
+**mesmo método de medição** usado no "antes" — comparar números que não
+vieram do mesmo processo de medição é uma comparação inválida.
+
+**Fase 12 — Documentar.** Todo achado relevante de uma investigação
+deve virar uma entrada na seção 8 do `CLAUDE.md` daquele projeto antes
+de considerar a tarefa terminada — senão a próxima sessão reinvestiga
+do zero.
+
+---
+
+## 3. Protocolo de testes deste projeto `[PREENCHER]`
+
+- Comando da suíte completa:
+- Existe seleção granular de testes? Como se usa?
+- Existem unidades de teste indivisíveis (dependência sequencial de
+  estado)? Quais, e por quê?
+- Onde vive o harness de teste (versionado no repo? efêmero/local?)
+- Critério de aprovação (o que conta como "suíte passou")?
+
+## 4. Protocolo de performance deste projeto `[PREENCHER]`
+
+- Como medir performance neste projeto (ferramentas, comandos)?
+- Duração de referência da suíte completa (última medição conhecida):
+- Gargalos conhecidos (ver também seção 8 — Histórico de achados):
+
+## 5. Git / commit / push / PR — convenções deste projeto `[PREENCHER]`
+
+- Branch de trabalho:
+- Convenção de mensagem de commit:
+- Template de PR (se houver):
+- Regras adicionais específicas deste repositório:
+
+## 6. Ambiente de execução deste projeto `[PREENCHER]`
+
+- Como rodar o projeto localmente:
+- Serviços dos quais os testes/execução dependem (servidores, bancos,
+  filas, etc.) e como subir cada um:
+- Onde ficam logs e artefatos temporários gerados durante o trabalho:
+
+## 7. Conhecimento específico do projeto `[PREENCHER]`
+
+- Arquitetura em poucas linhas:
+- Stack/linguagens/frameworks:
+- Decisões de design relevantes que não são óbvias lendo o código:
+
+## 8. Histórico de achados `[PREENCHER, log vivo]`
+
+Registrar aqui, com data, cada descoberta relevante de uma investigação
+(nova flakiness, gargalo medido, causa raiz encontrada, otimização
+proposta e seu status). Formato sugerido por entrada:
+
+```
+### AAAA-MM-DD — título curto do achado
+- O que foi investigado:
+- Causa encontrada (ou "não confirmada, hipótese mais provável: ..."):
+- Classificação: produto / teste / ambiente
+- Ação tomada ou recomendada (e se foi implementada):
+```
+
+---
+
+### Nota de manutenção deste template
+
+Este arquivo deve ser mantido **fora de qualquer projeto individual**
+(por exemplo, num repositório pessoal de configuração/templates), não
+dentro do repositório de um projeto específico — para que ele continue
+genérico e não acumule, com o tempo, detalhes de um projeto só. Cada
+projeto deve ter sua própria cópia, preenchida, como `CLAUDE.md` — e as
+seções 1 e 2 daquela cópia só devem divergir deste template se uma
+exceção for intencional e documentada.

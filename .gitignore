@@ -1,0 +1,9 @@
+# Graphify — grafo de conhecimento gerado (etapa 0: só preparando a
+# exclusão; a skill ainda não foi instalada, nada foi gerado ainda).
+# Ver CLAUDE.md, seção de conhecimento específico do projeto, para o
+# racional completo desta integração.
+graphify-out/
+graphify-out/graph.json
+graphify-out/graph.html
+graphify-out/GRAPH_REPORT.md
+graphify-out/cost.json
