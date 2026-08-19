@@ -492,3 +492,57 @@ também no `CLAUDE.md.template`, fora do escopo desta entrada):
 
 **Fase de otimização considerada encerrada nesta data.** Próxima etapa
 combinada: planejamento do Graphify.
+
+### 2026-08-19 — Primeira extração estrutural (`render/tiles.js`)
+validada; nova classe de flakiness em `render3d` documentada
+
+- O que foi feito: extração das 31 funções de bake/desenho de tiles
+  (`bakeGrass`..`bakeTemplePath`, `bakeShop`,
+  `drawWaterTile`/`drawFountainTile`/`drawAltarTile`/`drawCaveExitTile`,
+  `drawTile`) de `index.html` para `render/tiles.js`, carregado via
+  `<script src>` clássico (mesmo escopo léxico global, sem
+  import/export). Mudança puramente estrutural, planejada com apoio do
+  grafo do Graphify (ver achados anteriores). Commit `623d299`.
+- Validação: `--only=cadeia-progressao` 94/94; `--only=render3d` 17/17
+  em 3 execuções isoladas; suíte completa rodada 2x sem nenhuma
+  alteração de código entre as execuções.
+- Achado novo: na primeira execução da suíte completa pós-extração
+  (197/200 passaram), 3 checks da Seção 20 (`render3d`) falharam
+  juntos: "billboard do herói segue a posição do jogador", "câmera
+  acompanha o jogador", "billboard reflete a mudança de aparência" —
+  nunca antes documentados como flaky neste projeto.
+- Investigação: leitura de `test.mjs:936-965` (os 3 checks dependem do
+  laço `requestAnimationFrame(frame)` propagar `teleport()` dentro de
+  janelas fixas de 400-500ms) e de `frame()`/`R3.mostra()` em
+  `index.html:10963-11072`. `git diff` confirmou zero linhas tocando
+  `frame()`/`updateWorld()`/`R3.*`/`teleport()`/`updateAmbient()` — a
+  extração só mexeu em funções de bake/draw de tile 2D. Os valores
+  travados na falha (`x:20,z:52.2`; câmera idêntica antes/depois)
+  batem exatamente com o teleport de um check anterior (culling,
+  `teleport(20,52)`), indicando que o laço de frames simplesmente não
+  avançou dentro da janela de espera daquela execução específica — não
+  que a lógica de posição esteja errada.
+- Reprodução: 3/3 execuções isoladas de `--only=render3d` passaram
+  limpo (17/17 cada, incluindo os 3 checks). Uma segunda execução
+  completa da suíte (sem nenhuma alteração) teve 0 falhas na Seção 20,
+  mas reproduziu 5 falhas diferentes e não sobrepostas: "correr
+  (Shift) é mais rápido que andar" (Seção 16, novo — não documentado
+  antes) e a cascata de pesca já registrada no achado de 2026-08-19
+  acima ("não fisgar a tempo faz o peixe escapar" → cascata).
+- Classificação: ambiente/timing (WebGL por software), mesma família
+  das flakinesses já documentadas — não regressão estrutural da
+  extração. Confiança moderada-alta: zero sobreposição de código entre
+  a mudança e as funções envolvidas nas 3 falhas, zero reprodução em 4
+  repetições subsequentes, e padrão disperso (falhas diferentes a cada
+  execução) inconsistente com um bug determinístico introduzido pela
+  extração.
+- Ação: nenhuma correção implementada (fora de escopo desta etapa, não
+  autorizada). Extração de `render/tiles.js` aceita como validada e
+  commitada (`623d299`), com esta ressalva registrada para não ser
+  reinvestigada do zero.
+- Novo item para a lista de flakinesses conhecidas (uso futuro):
+  cluster de 3 checks de billboard/câmera em `render3d`
+  (`test.mjs:946,955,965`) pode falhar junto sob timing de ambiente;
+  "correr (Shift) é mais rápido que andar" (Seção 16) também observado
+  falhando isoladamente uma vez — nenhum dos dois com causa raiz
+  confirmada por reprodução determinística ainda.
