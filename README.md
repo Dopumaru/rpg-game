@@ -46,12 +46,13 @@ Por dentro: terreno dividido em chunks com a textura assada de uma vez só (1 dr
 |---|---|
 | Setas / WASD | Mover |
 | Shift | Correr |
-| Z / Enter / Espaço | Confirmar · Falar com NPC · Interagir · Atacar |
+| Z / Enter / Espaço | Confirmar · Falar com NPC · Interagir · Atacar · Pescar |
 | X / Esc | Voltar / Cancelar |
 | C | Menu do personagem (status, técnicas, equipamento, itens, pets) |
 | Q | Desmontar a peça em foco na mochila |
+| M | Abrir o mapa interativo |
+| N | Ligar/desligar som |
 | ◀ ▶ no menu | Trocar de aba |
-| M | Ligar/desligar som |
 
 ## 🎭 Crie seu guerreiro
 
@@ -113,6 +114,22 @@ Três mestres de missão dão **cadeias curtas** que empurram a progressão: o A
 São de três feitios: **caçar** N youkai de um tipo, **reunir** material de forja, ou **derrotar um chefe**. Pagam ouro e XP — e às vezes um consumível.
 
 Enquanto uma missão está ativa, um **painel no canto superior direito** mostra o alvo e o progresso, e uma **seta flutua em volta do personagem apontando para onde ir**, com a distância. Quando o objetivo está cumprido, a seta muda de cor e passa a apontar de volta para quem deu a missão.
+
+## 🎣 Pesca
+
+Três lagos novos pelo mundo — a Lagoa Central, o Lago do Planalto e o Lago dos Arrozais — além do rio que já cruzava o mapa. Encare qualquer água e aperte Z para lançar a linha: depois de uma espera, um **"!"** avisa a fisgada e uma barra mostra quanto tempo você tem para apertar Z de novo antes do peixe escapar.
+
+**Varas** se compram com **Umi, o Pescador**, perto da Lagoa Central — quanto melhor a vara, mais cara, maior a janela de reação e maior a raridade que ela alcança: a Vara de Junco (grátis) só traz peixe comum, a Vara do Espírito ($650) é a única que fisga o lendário.
+
+**Nove espécies de peixe** em cinco raridades, cada peixe com seu próprio peso sorteado — da Tanago-de-lago (comum, gramas) à Carpa-Dragão (lendária, até 9kg). Venda a pesca na mesma Peixaria, um peixe de cada vez ou tudo de uma vez (T).
+
+## 🗺️ Mapa interativo
+
+Aperte **M** para abrir o mapa. Passe o mouse por cima de qualquer região para ver o **nível recomendado**, os **youkai que patrulham ali**, o **chefe** (se houver) e os **3 itens mais raros** que podem cair — com o drop assinatura do chefe sempre em primeiro. Passe o mouse num lago para saber que dá pra pescar ali.
+
+## 🧑‍🌾 Mestres de missão com rosto próprio
+
+O Ancião Genzo, a Ferreira Sae e o Monge Eikan não são só uma paleta diferente: cada um tem um desenho só seu por cima do sprite genérico — barba longa e bengala para o ancião, bandana e avental de couro com martelo no quadril para a ferreira, cabeça raspada e manto longo com contas de oração para o monge. E onde quer que estejam, **nunca somem atrás de uma casa ou muro** — o jogo garante que continuam visíveis mesmo quando a câmera 3D deveria escondê-los atrás de uma estrutura.
 
 ## 🎒 Consumíveis
 
@@ -176,4 +193,4 @@ Acompanhe o estoque na aba **Itens** do menu e na barra do topo do altar.
 
 ## 🧪 Testes
 
-Validado com suíte automatizada (Playwright + Chromium): 169 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, persistência dos materiais no save, e o renderizador 3D (WebGL ativo, mundo em chunks, culling dos pedaços distantes, billboard do herói seguindo o jogador e refletindo a aparência, sombra no chão, câmera acompanhando, arena de batalha montada, avanço do herói em 3D ao atacar, telas 2D escondendo a cena a reserva 2D funcionando), e os NPCs e missões (três papéis de NPC, nenhum nascendo dentro de parede, moradores perambulando enquanto mestres ficam no posto, falas próprias e alternadas, cadeia de missões com nível mínimo, progresso contando só o alvo certo, seta apontando para o alvo e depois para o NPC, pagamento em ouro e XP na entrega, missão de coleta lendo o inventário, estoque do mascate sorteado e renovando, desconto no comum e ágio no raro, e persistência das missões no save) — tudo sem erros de JavaScript.
+Validado com suíte automatizada (Playwright + Chromium): 200 verificações cobrindo resolução responsiva, as quatro classes por equipamento, bônus de conjunto, pontos de status, loot por raridade em todos os slots, encantamento com fragmentos, espíritos companheiros (passivo, ataque em batalha, drops de chefes), drops assinatura, lojas das duas vilas, os três chefes youkai, fuga bloqueada, game over, save/load, corrida vs. caminhada, geração de partículas, os inimigos novos em batalha, slot de luvas, dano da bomba, veneno inimigo, menu de batalha unificado, fase de animação das técnicas, limite de 4 técnicas com fila de aprendizado, tela de esquecer/aprender, aba Técnicas, sprites de batalha das 4 classes, cinemática de entrada, tela de criação de personagem, composição em camadas (peitoral, elmo e arma alterando o sprite), persistência da aparência no save, integridade do catálogo de 103 equipamentos, mesas de drop temáticas por youkai, materiais por tipo de mob e de chefe, desmontar (rendimento por raridade, retorno do encanto, confirmação e cancelamento), encantar peças da mochila, custo em material a partir de +3, persistência dos materiais no save, e o renderizador 3D (WebGL ativo, mundo em chunks, culling dos pedaços distantes, billboard do herói seguindo o jogador e refletindo a aparência, sombra no chão, câmera acompanhando, arena de batalha montada, avanço do herói em 3D ao atacar, telas 2D escondendo a cena a reserva 2D funcionando), e os NPCs e missões (três papéis de NPC, nenhum nascendo dentro de parede, moradores perambulando enquanto mestres ficam no posto, falas próprias e alternadas, cadeia de missões com nível mínimo, progresso contando só o alvo certo, seta apontando para o alvo e depois para o NPC, pagamento em ouro e XP na entrega, missão de coleta lendo o inventário, estoque do mascate sorteado e renovando, desconto no comum e ágio no raro, persistência das missões no save, e as quatro novidades desta leva: os mestres de missão desenhando sempre por cima de qualquer estrutura enquanto moradores comuns continuam sujeitos à profundidade normal da cena, os três mestres com sprites visualmente distintos entre si e do genérico, os três lagos novos existindo no mapa, o ciclo completo de pesca (Z sem água não faz nada, encarar a água inicia, espera vira fisgada, fisgar dentro da janela adiciona peixe, não fisgar faz o peixe escapar, varas melhores alcançando raridades maiores), a peixaria comprando vara e vendendo peixe, o mapa interativo respondendo ao mouse com nível/mobs/chefe/itens raros por região e identificando lagos, a tecla M abrindo o mapa e N controlando o som, e a persistência de varas e peixes no save — tudo sem erros de JavaScript.
