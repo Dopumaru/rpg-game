@@ -27,116 +27,121 @@ const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30]);
 const MAPS = {};
 
 function genOverworld() {
-  const W = 96, H = 64;
+  const W = 192, H = 128;
   const t = [];
   for (let y = 0; y < H; y++) { t.push(new Array(W).fill(0)); }
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
   const rect = (x, y, w, h, v) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(i, j, v); };
+  // Mapa em escala 2x do layout original (posição e tamanho de toda
+  // estrutura/feature dobrados, para as regiões existentes ficarem maiores
+  // sem mudar a composição relativa entre elas). Colocações de 1 tile viram
+  // blocos 2x2 para preservar a proporção de estruturas compostas por várias
+  // peças (torii, prédios).
   // bordas de árvores
-  rect(0, 0, W, 2, 1); rect(0, H - 2, W, 2, 1); rect(0, 0, 2, H, 1); rect(W - 2, 0, 2, H, 1);
+  rect(0, 0, W, 4, 1); rect(0, H - 4, W, 4, 1); rect(0, 0, 4, H, 1); rect(W - 4, 0, 4, H, 1);
   // montanhas ao norte + entrada da caverna
-  rect(0, 0, W, 10, 8);
-  set(48, 9, 11); set(47, 10, 3); set(48, 10, 3); set(49, 10, 3);
-  set(47, 11, 25); set(48, 11, 26); // torii guardando a caverna (topo)
-  set(47, 12, 29); set(48, 12, 30); // pilares
+  rect(0, 0, W, 20, 8);
+  rect(96, 18, 2, 2, 11); rect(94, 20, 2, 2, 3); rect(96, 20, 2, 2, 3); rect(98, 20, 2, 2, 3);
+  rect(94, 22, 2, 2, 25); rect(96, 22, 2, 2, 26); // torii guardando a caverna (topo)
+  rect(94, 24, 2, 2, 29); rect(96, 24, 2, 2, 30); // pilares
   // rio horizontal + pontes
-  rect(2, 28, 92, 3, 2);
-  rect(20, 28, 2, 3, 7); rect(48, 28, 2, 3, 7); rect(76, 28, 2, 3, 7);
+  rect(4, 56, 184, 6, 2);
+  rect(40, 56, 4, 6, 7); rect(96, 56, 4, 6, 7); rect(152, 56, 4, 6, 7);
   // FLORESTA UMBRIA (oeste) com clareira do Rei Slime
-  for (let y = 32; y < 43; y++) for (let x = 6; x < 27; x++) {
+  for (let y = 64; y < 86; y++) for (let x = 12; x < 54; x++) {
     if (hash2(x, y) < 0.6) set(x, y, 1);
   }
-  rect(11, 35, 7, 5, 0);
+  rect(22, 70, 14, 10, 0);
   // BOSQUE SOMBRIO (leste)
-  for (let y = 34; y < 49; y++) for (let x = 56; x < 91; x++) {
+  for (let y = 68; y < 98; y++) for (let x = 112; x < 182; x++) {
     if (hash2(x + 7, y + 3) < 0.55) set(x, y, 1);
   }
   // bolsões de árvores no norte e campos
-  for (let i = 0; i < 40; i++) {
-    const cx = irnd(4, 91), cy = irnd(11, 60), r = irnd(1, 2);
-    if (cx > 10 && cx < 30 && cy > 42) continue;      // Vila Sakuramura
-    if (cx > 64 && cx < 86 && cy > 12 && cy < 26) continue; // Vila Iwamura
-    if (cx > 72 && cy > 48) continue;                  // cemitério
+  for (let i = 0; i < 160; i++) {
+    const cx = irnd(8, 182), cy = irnd(22, 120), r = irnd(2, 4);
+    if (cx > 20 && cx < 60 && cy > 84) continue;      // Vila Sakuramura
+    if (cx > 128 && cx < 172 && cy > 24 && cy < 52) continue; // Vila Iwamura
+    if (cx > 144 && cy > 96) continue;                  // cemitério
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (hash2(x * 3, y * 3) < 0.7 && t[y] && t[y][x] === 0) set(x, y, 1);
     }
   }
   // lagoa central
-  for (let y = 35; y < 42; y++) for (let x = 31; x < 39; x++) {
-    if (Math.hypot(x - 34.5, y - 38) < 3.2) set(x, y, 2);
+  for (let y = 70; y < 84; y++) for (let x = 62; x < 78; x++) {
+    if (Math.hypot(x - 69, y - 76) < 6.4) set(x, y, 2);
   }
   // lago do planalto (noroeste, longe da vila)
-  for (let y = 15; y < 22; y++) for (let x = 12; x < 20; x++) {
-    if (Math.hypot(x - 16, y - 18) < 3.0) set(x, y, 2);
+  for (let y = 30; y < 44; y++) for (let x = 24; x < 40; x++) {
+    if (Math.hypot(x - 32, y - 36) < 6.0) set(x, y, 2);
   }
   // lago dos arrozais (sul, perto da estrada do cemitério)
-  for (let y = 53; y < 60; y++) for (let x = 41; x < 49; x++) {
-    if (Math.hypot(x - 45, y - 56) < 3.0) set(x, y, 2);
+  for (let y = 106; y < 120; y++) for (let x = 82; x < 98; x++) {
+    if (Math.hypot(x - 90, y - 112) < 6.0) set(x, y, 2);
   }
   // ALDEIA VERDE (sul)
-  rect(12, 44, 17, 13, 0);
-  rect(14, 45, 4, 2, 18); rect(14, 47, 4, 2, 5); set(15, 48, 19);
-  rect(23, 45, 4, 2, 18); rect(23, 47, 4, 2, 5); set(24, 48, 19);
-  set(20, 50, 13); // chozuya (fonte)
-  rect(23, 52, 3, 1, 18); set(23, 53, 5); set(24, 53, 14); set(25, 53, 5); // loja
-  rect(20, 44, 1, 13, 28); rect(13, 50, 15, 1, 28); // piso de pedra do templo
-  set(20, 50, 13);
-  set(16, 53, 21); // altar de encantamento
-  set(19, 42, 25); set(20, 42, 26);  // torii na entrada norte (topo)
-  set(19, 43, 29); set(20, 43, 30);  // pilares
-  set(18, 51, 27); set(22, 51, 27);  // lanternas junto ao chozuya
-  set(14, 52, 27); set(26, 52, 27);
+  rect(24, 88, 34, 26, 0);
+  rect(28, 90, 8, 4, 18); rect(28, 94, 8, 4, 5); rect(30, 96, 2, 2, 19);
+  rect(46, 90, 8, 4, 18); rect(46, 94, 8, 4, 5); rect(48, 96, 2, 2, 19);
+  rect(40, 100, 2, 2, 13); // chozuya (fonte)
+  rect(46, 104, 6, 2, 18); rect(46, 106, 2, 2, 5); rect(48, 106, 2, 2, 14); rect(50, 106, 2, 2, 5); // loja
+  rect(40, 88, 2, 26, 28); rect(26, 100, 30, 2, 28); // piso de pedra do templo
+  rect(40, 100, 2, 2, 13);
+  rect(32, 106, 2, 2, 21); // altar de encantamento
+  rect(38, 84, 2, 2, 25); rect(40, 84, 2, 2, 26);  // torii na entrada norte (topo)
+  rect(38, 86, 2, 2, 29); rect(40, 86, 2, 2, 30);  // pilares
+  rect(36, 102, 2, 2, 27); rect(44, 102, 2, 2, 27);  // lanternas junto ao chozuya
+  rect(28, 104, 2, 2, 27); rect(52, 104, 2, 2, 27);
   // VILA ROCHA (nordeste, junto às montanhas)
-  rect(66, 13, 19, 12, 0);
-  rect(68, 14, 4, 2, 18); rect(68, 16, 4, 2, 5); set(69, 17, 19);
-  rect(80, 14, 4, 2, 18); rect(80, 16, 4, 2, 5); set(81, 17, 19);
-  set(74, 20, 13); // chozuya
-  rect(77, 21, 3, 1, 18); set(77, 22, 5); set(78, 22, 14); set(79, 22, 5); // loja
-  rect(76, 13, 1, 12, 28); rect(67, 20, 17, 1, 28);
-  set(74, 20, 13);
-  set(71, 22, 21); // altar de encantamento
-  set(75, 23, 25); set(76, 23, 26);  // torii ao sul (topo)
-  set(75, 24, 29); set(76, 24, 30);  // pilares
-  set(72, 18, 27); set(77, 18, 27);  // lanternas
+  rect(132, 26, 38, 24, 0);
+  rect(136, 28, 8, 4, 18); rect(136, 32, 8, 4, 5); rect(138, 34, 2, 2, 19);
+  rect(160, 28, 8, 4, 18); rect(160, 32, 8, 4, 5); rect(162, 34, 2, 2, 19);
+  rect(148, 40, 2, 2, 13); // chozuya
+  rect(154, 42, 6, 2, 18); rect(154, 44, 2, 2, 5); rect(156, 44, 2, 2, 14); rect(158, 44, 2, 2, 5); // loja
+  rect(152, 26, 2, 24, 28); rect(134, 40, 34, 2, 28);
+  rect(148, 40, 2, 2, 13);
+  rect(142, 44, 2, 2, 21); // altar de encantamento
+  rect(150, 46, 2, 2, 25); rect(152, 46, 2, 2, 26);  // torii ao sul (topo)
+  rect(150, 48, 2, 2, 29); rect(152, 48, 2, 2, 30);  // pilares
+  rect(144, 36, 2, 2, 27); rect(154, 36, 2, 2, 27);  // lanternas
   // CEMITÉRIO ANTIGO (sudeste)
-  for (let y = 50; y < 61; y++) for (let x = 74; x < 91; x++) {
+  for (let y = 100; y < 122; y++) for (let x = 148; x < 182; x++) {
     if (t[y][x] === 1) set(x, y, 0);
     if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
   }
   // estradas
-  rect(20, 31, 1, 13, 3);              // ponte oeste -> Sakuramura
-  rect(20, 11, 1, 17, 3);              // ponte oeste -> norte
-  rect(20, 11, 29, 1, 3);              // norte -> caverna
-  rect(48, 11, 1, 17, 3);              // caverna -> ponte central
-  rect(48, 31, 1, 19, 3);              // ponte central -> estrada sul
-  rect(21, 50, 56, 1, 3);              // estrada sul: aldeia -> cemitério
-  rect(76, 25, 1, 3, 3);               // Iwamura -> ponte leste
-  rect(76, 31, 1, 19, 3);              // ponte leste -> estrada sul
+  rect(40, 62, 2, 26, 3);              // ponte oeste -> Sakuramura
+  rect(40, 22, 2, 34, 3);              // ponte oeste -> norte
+  rect(40, 22, 58, 2, 3);              // norte -> caverna
+  rect(96, 22, 2, 34, 3);              // caverna -> ponte central
+  rect(96, 62, 2, 38, 3);              // ponte central -> estrada sul
+  rect(42, 100, 112, 2, 3);            // estrada sul: aldeia -> cemitério
+  rect(152, 50, 2, 6, 3);              // Iwamura -> ponte leste
+  rect(152, 62, 2, 38, 3);             // ponte leste -> estrada sul
   // placas
-  set(19, 46, 15); set(19, 32, 15); set(50, 12, 15); set(73, 50, 15); set(73, 19, 15);
+  rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
-  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
+  for (let y = 4; y < H - 4; y++) for (let x = 4; x < W - 4; x++) {
     if (t[y][x] !== 0) continue;
     const d = hash2(x * 7, y * 7);
     if (d < 0.05) set(x, y, 4);            // flor
     else if (d < 0.075) set(x, y, 22);     // arbusto
     else if (d < 0.088) set(x, y, 23);     // pedra
-    else if (d < 0.095 && y > 30 && x < 30) set(x, y, 24); // cogumelo (floresta)
+    else if (d < 0.095 && y > 60 && x < 60) set(x, y, 24); // cogumelo (floresta)
   }
   // baús escondidos
-  set(8, 33, 16); set(88, 36, 16); set(89, 59, 16);
+  rect(16, 66, 2, 2, 16); rect(176, 72, 2, 2, 16); rect(178, 118, 2, 2, 16);
   return { w: W, h: H, tiles: t, name: 'overworld' };
 }
 
 // regiões nomeadas (toast ao entrar)
 const REGIONS = [
-  { x1: 12, y1: 44, x2: 28, y2: 56, name: 'Vila Sakuramura' },
-  { x1: 66, y1: 13, x2: 84, y2: 24, name: 'Vila Iwamura' },
-  { x1: 6,  y1: 32, x2: 26, y2: 42, name: 'Bosque de Bambu' },
-  { x1: 74, y1: 49, x2: 90, y2: 61, name: 'Templo Abandonado' },
-  { x1: 56, y1: 33, x2: 90, y2: 49, name: 'Floresta de Aokigahara' },
-  { x1: 2,  y1: 10, x2: 93, y2: 27, name: 'Planalto do Norte' },
-  { x1: 2,  y1: 31, x2: 93, y2: 61, name: 'Campos de Arroz' }
+  { x1: 24, y1: 88, x2: 56, y2: 112, name: 'Vila Sakuramura' },
+  { x1: 132, y1: 26, x2: 168, y2: 48, name: 'Vila Iwamura' },
+  { x1: 12,  y1: 64, x2: 52, y2: 84, name: 'Bosque de Bambu' },
+  { x1: 148, y1: 98, x2: 180, y2: 122, name: 'Templo Abandonado' },
+  { x1: 112, y1: 66, x2: 180, y2: 98, name: 'Floresta de Aokigahara' },
+  { x1: 4,  y1: 20, x2: 186, y2: 54, name: 'Planalto do Norte' },
+  { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' }
 ];
 function regionAt(tx, ty) {
   for (const r of REGIONS) if (tx >= r.x1 && tx <= r.x2 && ty >= r.y1 && ty <= r.y2) return r.name;
@@ -193,8 +198,8 @@ function enterMap(name, px, py) {
     G.region = 'Caverna de Orochi';
     toast('Caverna de Orochi');
   } else {
-    if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 14 * TILE, 37 * TILE, 5, true));
-    if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 82 * TILE, 55 * TILE, 8, true));
+    if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 28 * TILE, 74 * TILE, 5, true));
+    if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 164 * TILE, 110 * TILE, 8, true));
     G.region = null;
   }
   AU.setTrack(name === 'cave' ? AU.CAVE : AU.WORLD);
@@ -203,13 +208,13 @@ function enterMap(name, px, py) {
 
 const SPAWN_ZONES = {
   overworld: [
-    { x1: 6, y1: 32, x2: 70, y2: 61, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 8,
-      exclude: [{ x1: 11, y1: 43, x2: 29, y2: 57 }, { x1: 5, y1: 31, x2: 27, y2: 43 }] },
-    { x1: 6, y1: 32, x2: 26, y2: 42, types: ['lobo', 'aranha', 'goblin'], lv: [3, 5], count: 6 },
-    { x1: 6, y1: 11, x2: 90, y2: 26, types: ['lobo', 'esqueleto', 'harpia'], lv: [4, 6], count: 8,
-      exclude: [{ x1: 65, y1: 12, x2: 85, y2: 25 }] },
-    { x1: 56, y1: 34, x2: 90, y2: 48, types: ['esqueleto', 'aranha', 'harpia'], lv: [5, 7], count: 7 },
-    { x1: 74, y1: 50, x2: 90, y2: 60, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 6 }
+    { x1: 12, y1: 64, x2: 140, y2: 122, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 8,
+      exclude: [{ x1: 22, y1: 86, x2: 58, y2: 114 }, { x1: 10, y1: 62, x2: 54, y2: 86 }] },
+    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin'], lv: [3, 5], count: 6 },
+    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia'], lv: [4, 6], count: 8,
+      exclude: [{ x1: 130, y1: 24, x2: 170, y2: 50 }] },
+    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia'], lv: [5, 7], count: 7 },
+    { x1: 148, y1: 100, x2: 180, y2: 120, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 6 }
   ],
   cave: [
     { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 9 }
@@ -492,44 +497,44 @@ function updateAmbient(dt) {
 // paradas dos mascates: pontos por onde circulam
 const NPC_DEFS = [
   // --- Vila Sakuramura: mestre de missão, moradores
-  { id: 'anciao',  tipo: 'quest',   nome: 'Ancião Genzo',   x: 23, y: 51, tema: 'vila',
+  { id: 'anciao',  tipo: 'quest',   nome: 'Ancião Genzo',   x: 46, y: 102, tema: 'vila',
     look: { cabeca: 'onmyoji', pele: 1, corCabelo: 4, olhos: 4, roupa: 4 },
     linha: 'Sakuramura resiste, mas mal.\nUm braço firme faria diferença.' },
-  { id: 'ald_kioko', tipo: 'aldeao', nome: 'Kioko',  x: 17, y: 53, raio: 4, tema: 'vila',
+  { id: 'ald_kioko', tipo: 'aldeao', nome: 'Kioko',  x: 34, y: 106, raio: 8, tema: 'vila',
     look: { cabeca: 'samurai', pele: 0, corCabelo: 0, olhos: 0, roupa: 3 } },
-  { id: 'ald_taro',  tipo: 'aldeao', nome: 'Taro',   x: 26, y: 54, raio: 5, tema: 'vila',
+  { id: 'ald_taro',  tipo: 'aldeao', nome: 'Taro',   x: 52, y: 108, raio: 10, tema: 'vila',
     look: { cabeca: 'samurai', pele: 2, corCabelo: 1, olhos: 3, roupa: 0 } },
-  { id: 'ald_hana',  tipo: 'aldeao', nome: 'Hana',   x: 20, y: 46, raio: 4, tema: 'vila',
+  { id: 'ald_hana',  tipo: 'aldeao', nome: 'Hana',   x: 40, y: 92, raio: 8, tema: 'vila',
     look: { cabeca: 'kyudoka', pele: 1, corCabelo: 6, olhos: 2, roupa: 3 } },
-  { id: 'ald_goro',  tipo: 'aldeao', nome: 'Goro',   x: 29, y: 49, raio: 6, tema: 'campo',
+  { id: 'ald_goro',  tipo: 'aldeao', nome: 'Goro',   x: 58, y: 98, raio: 12, tema: 'campo',
     look: { cabeca: 'samurai', pele: 3, corCabelo: 0, olhos: 0, roupa: 1 } },
   // --- Vila Iwamura: ferreira e moradores
-  { id: 'ferreira', tipo: 'quest',   nome: 'Ferreira Sae',  x: 78, y: 25, tema: 'forja',
+  { id: 'ferreira', tipo: 'quest',   nome: 'Ferreira Sae',  x: 156, y: 50, tema: 'forja',
     look: { cabeca: 'shinobi', pele: 2, corCabelo: 2, olhos: 5, roupa: 5 },
     linha: 'Martelo não bate sozinho.\nSe quiser aço, traga do que se faz aço.' },
-  { id: 'ald_ren',   tipo: 'aldeao', nome: 'Ren',    x: 74, y: 22, raio: 4, tema: 'forja',
+  { id: 'ald_ren',   tipo: 'aldeao', nome: 'Ren',    x: 148, y: 44, raio: 8, tema: 'forja',
     look: { cabeca: 'samurai', pele: 1, corCabelo: 3, olhos: 1, roupa: 1 } },
-  { id: 'ald_mika',  tipo: 'aldeao', nome: 'Mika',   x: 82, y: 27, raio: 5, tema: 'forja',
+  { id: 'ald_mika',  tipo: 'aldeao', nome: 'Mika',   x: 164, y: 54, raio: 10, tema: 'forja',
     look: { cabeca: 'kyudoka', pele: 0, corCabelo: 5, olhos: 2, roupa: 2 } },
-  { id: 'ald_sora',  tipo: 'aldeao', nome: 'Sora',   x: 70, y: 28, raio: 6, tema: 'montanha',
+  { id: 'ald_sora',  tipo: 'aldeao', nome: 'Sora',   x: 140, y: 56, raio: 12, tema: 'montanha',
     look: { cabeca: 'shinobi', pele: 2, corCabelo: 0, olhos: 4, roupa: 6 } },
   // --- monge no caminho do templo
-  { id: 'monge',    tipo: 'quest',   nome: 'Monge Eikan',   x: 60, y: 58, tema: 'templo',
+  { id: 'monge',    tipo: 'quest',   nome: 'Monge Eikan',   x: 120, y: 116, tema: 'templo',
     look: { cabeca: 'onmyoji', pele: 3, corCabelo: 4, olhos: 5, roupa: 4 },
     linha: 'O templo chora à noite.\nAlguém precisa calar esse choro.' },
-  { id: 'ald_yuki',  tipo: 'aldeao', nome: 'Yuki',   x: 34, y: 40, raio: 7, tema: 'bambu',
+  { id: 'ald_yuki',  tipo: 'aldeao', nome: 'Yuki',   x: 68, y: 80, raio: 14, tema: 'bambu',
     look: { cabeca: 'shinobi', pele: 1, corCabelo: 1, olhos: 0, roupa: 0 } },
-  { id: 'ald_ken',   tipo: 'aldeao', nome: 'Ken',    x: 66, y: 44, raio: 7, tema: 'bambu',
+  { id: 'ald_ken',   tipo: 'aldeao', nome: 'Ken',    x: 122, y: 100, raio: 14, tema: 'bambu',
     look: { cabeca: 'samurai', pele: 0, corCabelo: 2, olhos: 3, roupa: 1 } },
   // --- pescador junto à Lagoa Central
-  { id: 'pescador', tipo: 'pesca', nome: 'Umi, o Pescador', x: 30, y: 39, tema: 'vila',
+  { id: 'pescador', tipo: 'pesca', nome: 'Umi, o Pescador', x: 60, y: 78, tema: 'vila',
     look: { cabeca: 'kyudoka', pele: 2, corCabelo: 3, olhos: 1, roupa: 2 } },
   // --- mascates que circulam por trechos largos
-  { id: 'merc_tobei', tipo: 'viajante', nome: 'Tobei, o mascate', x: 40, y: 50, raio: 12, tema: 'mascate',
+  { id: 'merc_tobei', tipo: 'viajante', nome: 'Tobei, o mascate', x: 80, y: 100, raio: 24, tema: 'mascate',
     look: { cabeca: 'kyudoka', pele: 2, corCabelo: 1, olhos: 3, roupa: 5 }, margem: 0.62 },
-  { id: 'merc_orin',  tipo: 'viajante', nome: 'Orin das Estradas', x: 62, y: 30, raio: 12, tema: 'mascate',
+  { id: 'merc_orin',  tipo: 'viajante', nome: 'Orin das Estradas', x: 124, y: 60, raio: 24, tema: 'mascate',
     look: { cabeca: 'onmyoji', pele: 0, corCabelo: 6, olhos: 2, roupa: 6 }, margem: 0.72 },
-  { id: 'merc_sanzo', tipo: 'viajante', nome: 'Sanzo, o raro', x: 50, y: 62, raio: 10, tema: 'mascate',
+  { id: 'merc_sanzo', tipo: 'viajante', nome: 'Sanzo, o raro', x: 100, y: 124, raio: 20, tema: 'mascate',
     look: { cabeca: 'shinobi', pele: 3, corCabelo: 0, olhos: 5, roupa: 5 }, margem: 0.9 }
 ];
 

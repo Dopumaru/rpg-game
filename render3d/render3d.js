@@ -931,7 +931,13 @@ function desenhaMundo3D(m) {
   }
   R3.escondeNaoUsados();
   R3.culling(hx, hz);
-  R3.camPara(hx, hz + 0.2);
+  // câmera segue o jogador, mas não passa da borda do mapa: sem isso, perto
+  // da borda a câmera mostrava o vazio além do terreno gerado. A margem
+  // nunca passa de metade do mapa, senão mapas pequenos (a caverna) travariam
+  // a câmera num ponto fixo.
+  const camMX = Math.min(20, m.w / 2 - 1), camMZ = Math.min(20, m.h / 2 - 1);
+  const camHx = clamp(hx, camMX, m.w - camMX), camHz = clamp(hz, camMZ, m.h - camMZ);
+  R3.camPara(camHx, camHz + 0.2);
   R3.desenha();
 
   // marcador acima dos NPCs: missão nova, missão pronta, mascate

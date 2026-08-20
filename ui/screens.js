@@ -211,11 +211,11 @@ function updatePeixaria() {
 // Painel fixo em coordenadas lógicas (VW×VH) — o mesmo em qualquer resolução
 // de tela, já que todo o jogo desenha nesse espaço lógico via transform.
 const MAPA_X = 10, MAPA_Y = 20, MAPA_W = 190, MAPA_H = 127;
-const MAPA_S = MAPA_W / 96;
+const MAPA_S = MAPA_W / 192;
 const LAGOS = [
-  { nome: 'Lagoa Central', x: 34.5, y: 38, r: 4 },
-  { nome: 'Lago do Planalto', x: 16, y: 18, r: 3.5 },
-  { nome: 'Lago dos Arrozais', x: 45, y: 56, r: 3.5 }
+  { nome: 'Lagoa Central', x: 69, y: 76, r: 8 },
+  { nome: 'Lago do Planalto', x: 32, y: 36, r: 7 },
+  { nome: 'Lago dos Arrozais', x: 90, y: 112, r: 7 }
 ];
 // nível recomendado, mobs e chefe de cada região — a mesma curva de
 // dificuldade documentada no jogo, só que consultável no mapa
@@ -236,8 +236,8 @@ const REGIAO_COR = {
   'Templo Abandonado': '#6a5a8a', 'Caverna de Orochi': '#4a4458'
 };
 // ícone especial no mapa: entrada da caverna, perto do torii norte
-const CAVERNA_PONTO = { x: 48, y: 9.5 };
-const BOSS_PONTO = { reislime: [14, 37], necromante: [82, 55], dragao: [24, 5] };
+const CAVERNA_PONTO = { x: 96, y: 19 };
+const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 110], dragao: [48, 10] };
 
 // itensRarosDaRegiao/infoDaRegiao extraídos para economy/shop.js.
 
@@ -246,9 +246,9 @@ const BOSS_PONTO = { reislime: [14, 37], necromante: [82, 55], dragao: [24, 5] }
 // pelos testes, que passam a coordenada diretamente.
 function regiaoNoMapa(lx, ly) {
   const tx = (lx - MAPA_X) / MAPA_S, ty = (ly - MAPA_Y) / MAPA_S;
-  if (tx < 0 || ty < 0 || tx >= 96 || ty >= 64) return null;
+  if (tx < 0 || ty < 0 || tx >= 192 || ty >= 128) return null;
   for (const lago of LAGOS) if (Math.hypot(tx - lago.x, ty - lago.y) < lago.r + 1.2) return { tipo: 'lago', nome: lago.nome };
-  if (Math.hypot(tx - CAVERNA_PONTO.x, ty - CAVERNA_PONTO.y) < 2.4) return { tipo: 'regiao', nome: 'Caverna de Orochi' };
+  if (Math.hypot(tx - CAVERNA_PONTO.x, ty - CAVERNA_PONTO.y) < 4.8) return { tipo: 'regiao', nome: 'Caverna de Orochi' };
   const r = regionAt(Math.floor(tx), Math.floor(ty));
   return r ? { tipo: 'regiao', nome: r } : null;
 }
