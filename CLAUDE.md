@@ -546,3 +546,48 @@ validada; nova classe de flakiness em `render3d` documentada
   "correr (Shift) é mais rápido que andar" (Seção 16) também observado
   falhando isoladamente uma vez — nenhum dos dois com causa raiz
   confirmada por reprodução determinística ainda.
+
+### 2026-08-20 — Segunda extração estrutural (`economy/shop.js`) e
+terceira (`quests/quests.js`); nova ocorrência da mesma classe de
+flakiness
+
+- `economy/shop.js`: extração de 21 funções + constantes `NO_DROP`/
+  `SHOP_STOCK` (loot, raridade, dismontar, estoque/preço de mascate,
+  itens raros por região, exibição/atualização de loja), espalhadas em
+  5 blocos não-contíguos do arquivo original (ao contrário de
+  `render/tiles.js`, que era um único bloco). Cada função localizada e
+  extraída individualmente por contagem de chaves. `matQty`, `addMats`,
+  `emptyMats` e `dismantleYield` ficaram em `index.html` por serem
+  usados também por persistência, batalha e o altar de encantamento;
+  `varaAtual` ficou por pertencer à pesca, apesar de estar fisicamente
+  perto de `rollPeixe`/`comprarVara` no arquivo original. Validação:
+  `--only=cadeia-progressao` 94/94; suíte completa 200/200, 0 falhas,
+  sem flakiness observada. Commit `b6f292e`, PR #16, mergeado.
+- `quests/quests.js`: extração de 18 símbolos (`QUESTS` + cadeia de
+  missões, HUD, seta guia, `conversaNPC`, `falaAleatoria`, tela de
+  oferta), em 4 blocos majoritariamente contíguos. `TILES_INTERATIVOS`
+  e `desenhaMarcaNPC` ficaram em `index.html` por serem usados pela
+  interação genérica do mundo e pelo desenho de NPC, não por serem
+  lógica de missão em si. Validação: `--only=cadeia-progressao` 94/94;
+  `--only=npcs-missoes` isolado 30/30 (limpo, incluindo os 2 checks
+  abaixo); suíte completa, 1ª execução: 198/200, com 2 falhas novas
+  ("mascate abre a própria loja", "a loja do mascate lista a carga
+  dele" — Seção 21); suíte completa, 2ª execução (sem nenhuma
+  alteração de código): 200/200, não reproduziu.
+- Investigação das 2 falhas: mesmo padrão já registrado para o cluster
+  de `render3d` (achado anterior, mesma data de sessão) — falha só
+  aparece na execução completa de longa duração, nunca isolada nem em
+  repetição imediata. Hipótese mais provável: fila de toques
+  (`tap()`/`filaToques`, aging de até 8 quadros) perdendo o `press('z')`
+  sob jank de frame acumulado, mesma família de causa raiz (WebGL por
+  software) documentada em outros pontos deste arquivo. Não
+  investigado com o mesmo nível de profundidade (leitura linha a linha)
+  do achado de `render3d`, porque o padrão de sintoma já é conhecido:
+  registrado aqui para não precisar reinvestigar do zero, não com a
+  mesma confiança "moderada-alta" já estabelecida para o caso anterior.
+- Ação: nenhuma correção implementada. `quests/quests.js` aceito como
+  validado e commitado, com esta ressalva registrada.
+- Novo item para a lista de flakinesses conhecidas: falhas de
+  interação por `press('z')` com NPC mascate (Seção 21,
+  `test.mjs` próximo à linha 1184) sob suíte completa de longa duração
+  — mesma família da fila de toques já suspeita nos achados de pesca.
