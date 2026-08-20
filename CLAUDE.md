@@ -263,8 +263,22 @@ obrigatória antes de considerar qualquer alteração pronta para PR:
 
 ## 7. Conhecimento específico do projeto
 
-- Arquitetura: arquivo único `index.html` (jogo completo), three.js
-  embutido para o mundo/batalha em 3D, personagens 2D renderizados
+- Arquitetura: `index.html` era um arquivo único até 2026-08-20;
+  desde então o jogo é dividido em 9 módulos carregados via `<script
+  src>` clássico (não ES modules — todos compartilham o mesmo escopo
+  léxico global de `index.html`, então símbolos são resolvidos por
+  nome, sem `import`/`export`):
+  `render/tiles.js`, `economy/shop.js`, `quests/quests.js`,
+  `craft/altar.js`, `sprites/sprites.js`, `battle/battle.js`,
+  `render3d/render3d.js`, `world/world.js`, `ui/screens.js`. O que
+  sobrou em `index.html` (núcleo: bootstrap do motor, tabelas de
+  dados centrais, estado do jogador `G`/`P`, persistência,
+  partículas, o loop principal `frame()` e `window.DBG`) caiu de
+  11.657 para ~800 linhas. Detalhes de cada extração (escopo,
+  dependências que ficaram cross-cutting no core, validação) estão no
+  Histórico de Achados (seção 8). three.js embutido no primeiro
+  `<script>` do arquivo (bundle minificado, nunca tocado pelas
+  extrações) para o mundo/batalha em 3D; personagens 2D renderizados
   como billboards sobre a cena 3D.
 - Renderização neste ambiente de teste roda **WebGL por software**
   (sem GPU) — é a causa raiz de praticamente toda a imprevisibilidade
@@ -591,3 +605,157 @@ flakiness
   interação por `press('z')` com NPC mascate (Seção 21,
   `test.mjs` próximo à linha 1184) sob suíte completa de longa duração
   — mesma família da fila de toques já suspeita nos achados de pesca.
+
+### 2026-08-20 — Quarta (`craft/altar.js`) e quinta (`sprites/sprites.js`)
+extrações estruturais
+
+- `craft/altar.js`: extração de 5 funções (`canEnchant`, `altarList`,
+  `drawEnchant`, `encantar`, `updateEnchant`) — o menor módulo até
+  então. `enchLvl`, `enchCost`, `enchMatCost`, `eqName`, `enchBonus`,
+  `askConfirm`, `drawConfirm`, `drawMatBar` e `ENCH_MAX` ficaram em
+  `index.html` por serem usados também pela tela de equipamento do
+  menu de pausa. Validação: `--only=cadeia-progressao` 94/94; suíte
+  completa 198/200 na 1ª execução (2 falhas de mascate, mesma
+  flakiness já documentada), 200/200 na 2ª execução, não reproduziu.
+  Commit `5054323`, PR #18, mergeado.
+- `sprites/sprites.js`: extração de 26 símbolos — o maior módulo desta
+  fase (1.434 linhas), quase todo tabelas de arte pixel (`HEADS`,
+  `BODIES`, `ARMOR_ART`, `WEAPON_ART`, `HELM_ART`, `ENEMY_ART`,
+  `PET_ART`, `HAIR_ART`, `ACESSORIO_PATCH`) mais funções de
+  composição (`heroSprite`, `composeSprite`, `npcSprite`,
+  `enemySprite`, `petSprite`). `weaponType`, `curClass`, `className`,
+  `defaultLook`, `setActive` e as listas de opções de aparência
+  (`PELE`/`COR_CABELO`/`COR_OLHOS`/`ESTILO_CABELO`/`CORPO`) ficaram no
+  core por serem usadas também pela tela de criação de personagem.
+  Validação: `--only=cadeia-progressao` 93/94 (1 falha já
+  documentada — "correr é mais rápido que andar" — sem relação com
+  sprites); suíte completa 200/200, 0 falhas. Commit `5449c40`, PR
+  #19, mergeado.
+
+### 2026-08-20 — Sexta (`battle/battle.js`) e sétima
+(`render3d/render3d.js`) extrações estruturais; reordenação do plano
+
+- `battle/battle.js`: primeira extração combinada desde
+  `economy/shop.js` — motor de batalha (técnicas, turnos, dano, IA do
+  inimigo, fuga, itens) **e** HUD/desenho da tela de combate no mesmo
+  arquivo (1.129 linhas, 29 símbolos), porque a análise do Graphify já
+  havia identificado dependência circular real entre eles (17/17
+  arestas). `gainXP`, `petDmg`, `spawnParticle`, `barRect`, `matQty` e
+  `addMats` ficaram no core (usados também por mundo, persistência e
+  menu de pausa). Validação: `--only=cadeia-progressao` 94/94 (todos
+  os 3 chefes); suíte completa 200/200, 0 falhas — sem nenhuma
+  flakiness desta vez, apesar de ser a mudança de maior superfície até
+  então. Commit `20edf3c`, PR #20, mergeado.
+- **Achado que mudou a ordem planejada**: ao inspecionar a região que
+  seria `world/`, o renderizador 3D (`R3`, `MODELOS3`, ~800 linhas)
+  apareceu fisicamente encravado no meio dela, entre `updateNPCs`/
+  pesca/mapa e `drawWorld`. Extrair `world/` primeiro exigiria cortar
+  ao redor desse bloco inteiro. Decisão (aprovada explicitamente):
+  inverter a ordem e extrair `render3d/` antes de `world/`.
+- `render3d/render3d.js`: extração de 18 símbolos (944 linhas) — `R3`
+  (motor completo, 450 linhas), `MODELOS3`, `GEOS`/`geo3`,
+  `escala2x`/`4x`, `desenhaMundo3D`, extensão da arena de batalha 3D
+  via `Object.assign(R3, {...})`. Achado durante a inspeção:
+  `desenhaPersonagens2D` (renderizador 2D de reserva) e
+  `desenhaMarcaNPC` (usado tanto pelo caminho 2D quanto pelo 3D)
+  ficaram no core apesar de estarem fisicamente no meio do bloco —
+  não são exclusivos do render3d. Validação: `--only=cadeia-progressao`
+  94/94; suíte completa 200/200, 0 falhas, incluindo a Seção 20
+  (billboards/câmera/arena 3D) diretamente. Commit `641c397`, PR #21,
+  mergeado.
+
+### 2026-08-20 — Oitava extração estrutural (`world/world.js`)
+
+- Extração combinada de mapgen (`genOverworld`, `genCave`, `REGIONS`,
+  `regionAt`) e simulação (`updateWorld`, `tryMove`, `spawnEnemies`,
+  `updateNPCs`, `updateAmbient`) no mesmo arquivo — 590 linhas, 22
+  símbolos — mesmo padrão de `battle/battle.js`, por causa da
+  dependência circular real (6/8 arestas) já identificada na análise
+  do Graphify. `G`/`P`/`newPlayer`, o sistema de partículas completo,
+  `fadeTo`, `treeSpecies`, `FALAS`, `TILES_INTERATIVOS` e `drawWorld`
+  ficaram no core. Validação: `--only=cadeia-progressao` 94/94; suíte
+  completa, 1ª execução: 198/200 (2 falhas de `render3d` já
+  documentadas); 2ª execução: 199/200 (1 falha de movimento, também já
+  documentada, **zero sobreposição** com a 1ª execução) — nenhuma das
+  3 falhas observadas nas duas execuções tem relação de código com
+  `world.js`. Commit `9c61267`, PR #22, mergeado.
+
+### 2026-08-20 — Nona e última extração estrutural (`ui/screens.js`);
+série de extrações estruturais encerrada
+
+- Módulo final planejado com apoio do Graphify: telas de menu
+  (título, pausa/equipamento, criação de personagem, aprender técnica,
+  game over, vitória, diálogo, confirmação genérica) mais o sistema de
+  pesca completo e o mapa interativo — 1.322 linhas, 42 símbolos.
+  `desenhaPersonagens2D`, `drawWorld`, `drawWorldHUD`, `barRect`,
+  `ESTADOS_3D` e `desenhaMarcaNPC` ficaram no core por serem chamados
+  diretamente por `frame()`, não são telas de menu.
+- Validação: `--only=cadeia-progressao` 94/94 (não exercita pesca);
+  `--only=pesca-mapa` isolado 32/32, limpo, incluindo os 5 checks que
+  falharam na suíte completa; suíte completa, 1ª execução: 195/200 (5
+  falhas — cascata de pesca, mesma classe de flakiness de ambiente já
+  documentada, mas com 1 check a mais que a cascata original de 4 —
+  "a pesca devolve o jogador ao mundo" — registrado aqui como extensão
+  do mesmo cluster); 2ª execução sem nenhuma alteração: 200/200, não
+  reproduziu. Commit `fbd0872`, PR #23, mergeado.
+- **Resumo da série completa (9 módulos)**: `index.html` caiu de
+  11.657 para ~800 linhas (~93% de redução no núcleo). Ordem real de
+  extração: `render/tiles.js` → `economy/shop.js` → `quests/quests.js`
+  → `craft/altar.js` → `sprites/sprites.js` → `battle/battle.js` →
+  `render3d/render3d.js` (reordenado, ver achado acima) →
+  `world/world.js` → `ui/screens.js`. Cada extração seguiu o mesmo
+  protocolo: inspeção precisa de dependências (com correções ao longo
+  do caminho — funções que o mapeamento inicial do grafo classificou
+  errado, como `bakeShop()`/`drawAltarTile()` para tiles, ou que só a
+  leitura direta do código revelou, como `estoqueLoja()`/`ENEMY_ART`/
+  `PET_ART` para shop/sprites) → apresentação do plano →
+  implementação → `--only=cadeia-progressao` → suíte completa → (se
+  flakiness já conhecida: confirmação por repetição, sem reinvestigar
+  do zero) → commit → push → PR. Todas as 9 extrações preservaram
+  `window.DBG` intacto e não alteraram nenhuma lógica de jogo.
+
+### 2026-08-20 — Investigação do Graphify no repositório real
+pós-extração
+
+- Com o código dividido em módulos `.js` reais, `graphify extract .
+  --code-only` finalmente processa o código autoral sem precisar do
+  workaround de copiar para um diretório isolado (usado durante a POC,
+  quando tudo ainda estava em `index.html` e era classificado como
+  documento, não código). Resultado: 230 nós, 434 arestas, 9
+  comunidades, a partir de 9 arquivos `.js` (`index.html` continua de
+  fora — ainda é classificado por extensão como documento, não
+  código).
+- `graphify benchmark`: 22.1x menos tokens por consulta (custo médio
+  ~694 tokens vs. ~15.333 tokens de leitura ingênua do corpus de 9
+  arquivos). Duas ressalvas relevantes, verificadas antes de comunicar
+  o número: (1) o grafo não inclui `index.html` — o núcleo do jogo
+  (`frame()`, `G`, `P`, `window.DBG`) fica fora da cobertura; (2) o
+  benchmark mede responder UMA pergunta arquitetural via
+  `graphify query` vs. ler o corpus inteiro — não mede trabalho de
+  edição/implementação, que é onde a maior parte dos tokens desta
+  sessão foi gasta, já que ler o arquivo antes de editar continua
+  necessário independente do grafo.
+- Investigação do hook `PreToolUse` (`graphify claude install`) via
+  leitura direta do código-fonte instalado
+  (`graphify/install.py`/`cli.py`, não documentação): dispara em
+  `Bash|Grep` (busca) e `Read|Glob` (leitura); não é chamada de LLM,
+  custo de execução desprezível; no modo padrão (não-strict) só
+  injeta uma sugestão curta (`additionalContext`) para tentar
+  `graphify query` antes de ler/grepar — nunca bloqueia. Existe um
+  modo `strict` (opt-in, não é o padrão) que bloqueia a primeira
+  leitura crua por sessão de um arquivo indexado. Avaliação
+  comunicada ao usuário antes da instalação: útil para exploração
+  arquitetural (o tipo de pergunta feita durante o planejamento das 9
+  extrações), pouco relevante para sessões de edição rotineira.
+- Decisão do usuário: instalar mesmo assim (`graphify claude install`,
+  modo padrão/não-strict).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
