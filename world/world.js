@@ -108,15 +108,15 @@ function genOverworld() {
     if (t[y][x] === 1) set(x, y, 0);
     if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
   }
-  // estradas
-  rect(40, 62, 2, 26, 3);              // ponte oeste -> Sakuramura
-  rect(40, 22, 2, 34, 3);              // ponte oeste -> norte
-  rect(40, 22, 58, 2, 3);              // norte -> caverna
-  rect(96, 22, 2, 34, 3);              // caverna -> ponte central
-  rect(96, 62, 2, 38, 3);              // ponte central -> estrada sul
-  rect(42, 100, 112, 2, 3);            // estrada sul: aldeia -> cemitério
-  rect(152, 50, 2, 6, 3);              // Iwamura -> ponte leste
-  rect(152, 62, 2, 38, 3);             // ponte leste -> estrada sul
+  // estradas (largura 4 — 2 era estreito demais para desviar de inimigo no caminho)
+  rect(39, 62, 4, 26, 3);              // ponte oeste -> Sakuramura
+  rect(39, 22, 4, 34, 3);              // ponte oeste -> norte
+  rect(40, 20, 58, 4, 3);              // norte -> caverna (alargada só para cima: evita os pilares do torii em y=24-25)
+  rect(96, 22, 4, 34, 3);              // caverna -> ponte central (alargada só para a direita: evita o pilar esquerdo em x=94-95)
+  rect(95, 62, 4, 38, 3);              // ponte central -> estrada sul
+  rect(42, 99, 112, 4, 3);             // estrada sul: aldeia -> cemitério
+  rect(151, 50, 4, 6, 3);              // Iwamura -> ponte leste
+  rect(151, 62, 4, 38, 3);             // ponte leste -> estrada sul
   // placas
   rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama

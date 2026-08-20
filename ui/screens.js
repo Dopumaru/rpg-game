@@ -238,6 +238,41 @@ const REGIAO_COR = {
 // ícone especial no mapa: entrada da caverna, perto do torii norte
 const CAVERNA_PONTO = { x: 96, y: 19 };
 const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 110], dragao: [48, 10] };
+// cor por tipo de tile para a miniatura ilustrada do mapa (ver legenda em
+// world/world.js:22-25). Água/lagos ficam por conta do desenho de LAGOS por
+// cima, então a cor de água aqui é só o leito visto de longe.
+const TILE_COR_MAPA = {
+  0: '#3d6b3d', 1: '#204a26', 2: '#2e5c86', 3: '#8a7550', 4: '#6f9a4a',
+  5: '#5a5a62', 6: '#7a7482', 7: '#8a7550', 8: '#4a4a54', 9: '#463a4e',
+  10: '#2a2430', 11: '#2a2430', 12: '#2a2430', 13: '#3a6f9a', 14: '#a06a3a',
+  15: '#8a7550', 16: '#a08a3a', 17: '#7a7550', 18: '#8a3a3a', 19: '#5a4530',
+  20: '#5a5a62', 21: '#6a5a8a', 22: '#356135', 23: '#6a6a72', 24: '#7a6a4a',
+  25: '#a03a3a', 26: '#a03a3a', 27: '#c8a03a', 28: '#8a8290', 29: '#5a4a3a',
+  30: '#5a4a3a'
+};
+// rasteriza o terreno inteiro num canvas offscreen 1px-por-tile, uma única
+// vez por mapa (cacheado no próprio objeto do mapa) — desenhar ~24.576
+// tiles por frame seria caro à toa, já que o terreno nunca muda.
+function mapaMiniatura(map) {
+  if (map._miniCv) return map._miniCv;
+  const cv = document.createElement('canvas');
+  cv.width = map.w; cv.height = map.h;
+  const c2 = cv.getContext('2d');
+  const img = c2.createImageData(map.w, map.h);
+  for (let y = 0; y < map.h; y++) {
+    for (let x = 0; x < map.w; x++) {
+      const cor = TILE_COR_MAPA[map.tiles[y][x]] || '#3d6b3d';
+      const i = (y * map.w + x) * 4;
+      img.data[i] = parseInt(cor.slice(1, 3), 16);
+      img.data[i + 1] = parseInt(cor.slice(3, 5), 16);
+      img.data[i + 2] = parseInt(cor.slice(5, 7), 16);
+      img.data[i + 3] = 255;
+    }
+  }
+  c2.putImageData(img, 0, 0);
+  map._miniCv = cv;
+  return cv;
+}
 
 // itensRarosDaRegiao/infoDaRegiao extraídos para economy/shop.js.
 
@@ -265,27 +300,38 @@ function drawMapa() {
   ctx.fillStyle = '#ffd94e';
   ctx.fillText('MAPA DE FORGED LEGEND', 10, 14);
 
-  // regiões
-  for (const r of REGIONS) {
-    const px = MAPA_X + r.x1 * MAPA_S, py = MAPA_Y + r.y1 * MAPA_S;
-    const pw = (r.x2 - r.x1 + 1) * MAPA_S, ph = (r.y2 - r.y1 + 1) * MAPA_S;
-    const hover = G.mapaHover && G.mapaHover.tipo === 'regiao' && G.mapaHover.nome === r.name;
-    ctx.globalAlpha = hover ? 0.55 : 0.32;
-    ctx.fillStyle = REGIAO_COR[r.name] || '#5a5a6a';
-    ctx.fillRect(px, py, pw, ph);
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = hover ? '#ffd94e' : 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = hover ? 1.4 : 0.6;
-    ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+  // terreno real, rasterizado (cartografia do mapa em vez de retângulos
+  // ilustrativos por região)
+  const mapaBase = MAPS.overworld || (MAPS.overworld = genOverworld());
+  const mini = mapaMiniatura(mapaBase);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(mini, MAPA_X, MAPA_Y, MAPA_W, MAPA_H);
+  ctx.imageSmoothingEnabled = true;
+  // realce só da região sob o mouse, por cima do terreno
+  if (G.mapaHover && G.mapaHover.tipo === 'regiao') {
+    const r = REGIONS.find(rr => rr.name === G.mapaHover.nome);
+    if (r) {
+      const px = MAPA_X + r.x1 * MAPA_S, py = MAPA_Y + r.y1 * MAPA_S;
+      const pw = (r.x2 - r.x1 + 1) * MAPA_S, ph = (r.y2 - r.y1 + 1) * MAPA_S;
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = REGIAO_COR[r.name] || '#5a5a6a';
+      ctx.fillRect(px, py, pw, ph);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#ffd94e';
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+    }
   }
   ctx.lineWidth = 1;
-  // lagos
+  // lagos — o terreno real já pinta a água; aqui só um contorno para marcar
+  // a área interativa, mais forte quando o mouse está em cima
   for (const lago of LAGOS) {
     const hover = G.mapaHover && G.mapaHover.tipo === 'lago' && G.mapaHover.nome === lago.nome;
-    ctx.fillStyle = hover ? '#8ec6f0' : '#3a6a9a';
     ctx.beginPath();
-    ctx.arc(MAPA_X + lago.x * MAPA_S, MAPA_Y + lago.y * MAPA_S, Math.max(2.5, lago.r * MAPA_S * 0.5), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(MAPA_X + lago.x * MAPA_S, MAPA_Y + lago.y * MAPA_S, Math.max(2.5, lago.r * MAPA_S * 0.85), 0, Math.PI * 2);
+    ctx.strokeStyle = hover ? '#8ec6f0' : 'rgba(142,198,240,0.4)';
+    ctx.lineWidth = hover ? 1.6 : 0.8;
+    ctx.stroke();
   }
   // entrada da caverna e chefes
   ctx.font = '8px monospace';
