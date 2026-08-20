@@ -31,7 +31,7 @@ const QUESTS = {
   q_konpaku: {
     nome: 'Konpaku no arrozal', npc: 'anciao', nivel: 1,
     tipo: 'matar', alvo: 'slime', qtd: 6,
-    local: [30, 52], dica: 'Campos de Arroz, a leste da vila',
+    local: [60, 104], dica: 'Campos de Arroz, a leste da vila',
     ouro: 70, xp: 60,
     oferta: 'Ancião Genzo:\nOs Konpaku tomaram o arrozal a leste.\nDerrube seis deles e a vila come.',
     fim: 'Ancião Genzo:\nO arrozal respira de novo.\nTome, é pouco, mas é de coração.',
@@ -40,7 +40,7 @@ const QUESTS = {
   q_kappa: {
     nome: 'Kappa na margem', npc: 'anciao', nivel: 2,
     tipo: 'matar', alvo: 'goblin', qtd: 5,
-    local: [44, 46], dica: 'a margem do rio, a leste',
+    local: [88, 92], dica: 'a margem do rio, a leste',
     ouro: 120, xp: 110,
     oferta: 'Ancião Genzo:\nOs Kappa arrastam quem chega perto\nda água. Cinco a menos já ajuda.',
     fim: 'Ancião Genzo:\nAs crianças podem voltar ao rio.\nVocê tem o agradecimento da vila.',
@@ -49,7 +49,7 @@ const QUESTS = {
   q_nurarihyon: {
     nome: 'O velho do bambuzal', npc: 'anciao', nivel: 4,
     tipo: 'matar', alvo: 'reislime', qtd: 1,
-    local: [14, 37], dica: 'Bosque de Bambu, a oeste',
+    local: [28, 74], dica: 'Bosque de Bambu, a oeste',
     ouro: 300, xp: 260, item: 'elixir',
     oferta: 'Ancião Genzo:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono.\nExpulse-o do bambuzal.',
     fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.'
@@ -57,7 +57,7 @@ const QUESTS = {
   q_ferro: {
     nome: 'Ferro para a forja', npc: 'ferreira', nivel: 3,
     tipo: 'coletar', alvo: 'ferro', qtd: 5,
-    local: [58, 40], dica: 'Oni e Doro-ningyo deixam ferro',
+    local: [116, 80], dica: 'Oni e Doro-ningyo deixam ferro',
     ouro: 150, xp: 130,
     oferta: 'Ferreira Sae:\nMinha bigorna está ociosa.\nTraga cinco Ferro Velho e eu\ntransformo em algo que corta.',
     fim: 'Ferreira Sae:\nIsso serve. O fole já está quente.\nPegue sua parte.',
@@ -66,7 +66,7 @@ const QUESTS = {
   q_tengu: {
     nome: 'Asas sobre o planalto', npc: 'ferreira', nivel: 5,
     tipo: 'matar', alvo: 'harpia', qtd: 5,
-    local: [58, 18], dica: 'Planalto do Norte',
+    local: [116, 36], dica: 'Planalto do Norte',
     ouro: 240, xp: 220, item: 'pocaoG',
     oferta: 'Ferreira Sae:\nOs Tengu levam o minério que\nsobe pela trilha. Cinco penas\nmenos no céu resolvem.',
     fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.'
@@ -74,7 +74,7 @@ const QUESTS = {
   q_yurei: {
     nome: 'O choro do templo', npc: 'monge', nivel: 6,
     tipo: 'matar', alvo: 'fantasma', qtd: 6,
-    local: [64, 62], dica: 'Templo Abandonado, ao sul',
+    local: [128, 124], dica: 'Templo Abandonado, ao sul',
     ouro: 280, xp: 250,
     oferta: 'Monge Eikan:\nOs Yurei não descansam porque\nninguém rezou por eles. Se a reza\nnão serve, sirva a lâmina.',
     fim: 'Monge Eikan:\nO templo silenciou.\nQue eles encontrem o caminho.',
@@ -83,7 +83,7 @@ const QUESTS = {
   q_kagemaru: {
     nome: 'O onmyoji negro', npc: 'monge', nivel: 8,
     tipo: 'matar', alvo: 'necromante', qtd: 1,
-    local: [82, 55], dica: 'Templo Abandonado, a leste',
+    local: [164, 110], dica: 'Templo Abandonado, a leste',
     ouro: 460, xp: 420, item: 'elixir',
     oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nO que ele virou já não é irmão\nde ninguém. Termine isso.',
     fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir.'
