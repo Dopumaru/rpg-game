@@ -428,22 +428,26 @@ function updateWorld(dt) {
     e.animT += dt;
     const dist = Math.hypot(e.x - P.x, e.y - P.y);
     const chaseR = e.isBoss ? TILE * 4 : TILE * 4.5;
-    let evx = 0, evy = 0;
+    let tvx = 0, tvy = 0;
     const espd = e.isBoss ? 30 : (e.type === 'morcego' || e.type === 'lobo' ? 46 : 28);
     if (dist < chaseR) {
-      evx = (P.x - e.x) / dist * espd;
-      evy = (P.y - e.y) / dist * espd;
+      tvx = (P.x - e.x) / dist * espd;
+      tvy = (P.y - e.y) / dist * espd;
     } else if (!e.isBoss) {
       e.moveT -= dt;
       if (e.moveT <= 0) {
         e.moveT = rnd(0.8, 2.4);
         const d = irnd(0, 4);
-        e.vx = d === 0 ? espd * 0.6 : d === 1 ? -espd * 0.6 : 0;
-        e.vy = d === 2 ? espd * 0.6 : d === 3 ? -espd * 0.6 : 0;
+        e.tvx = d === 0 ? espd * 0.6 : d === 1 ? -espd * 0.6 : 0;
+        e.tvy = d === 2 ? espd * 0.6 : d === 3 ? -espd * 0.6 : 0;
       }
-      evx = e.vx; evy = e.vy;
+      tvx = e.tvx || 0; tvy = e.tvy || 0;
     }
-    if (evx || evy) tryMove(e, evx * dt, evy * dt);
+    // velocidade suavizada (mesmo peso da aceleração do herói), em vez de
+    // saltar direto pra velocidade alvo a cada troca de direção
+    e.vx = lerp(e.vx || 0, tvx, Math.min(1, dt * 10));
+    e.vy = lerp(e.vy || 0, tvy, Math.min(1, dt * 10));
+    if (Math.abs(e.vx) > 0.5 || Math.abs(e.vy) > 0.5) tryMove(e, e.vx * dt, e.vy * dt);
     // toque = batalha
     if (dist < 13 && G.state === 'world') {
       startBattle(e);
@@ -466,9 +470,19 @@ function updateWorld(dt) {
     }
   }
 
-  // câmera: segue o herói travada em pixel inteiro (zero tremor ao andar)
-  G.camX = clamp(Math.round(P.x) + 8 - VW / 2, 0, G.map.w * TILE - VW);
-  G.camY = clamp(Math.round(P.y) + 11 - VH / 2, 0, G.map.h * TILE - VH);
+  // câmera: segue o herói com leve inércia, mas trava em pixel inteiro (zero
+  // tremor ao andar) — um salto grande (teleporte, entrar em mapa novo) corta
+  // direto em vez de deslizar pela tela
+  const camTX = clamp(P.x + 8 - VW / 2, 0, G.map.w * TILE - VW);
+  const camTY = clamp(P.y + 11 - VH / 2, 0, G.map.h * TILE - VH);
+  if (G.camXf === undefined || Math.hypot(camTX - G.camXf, camTY - G.camYf) > TILE) {
+    G.camXf = camTX; G.camYf = camTY;
+  } else {
+    G.camXf = lerp(G.camXf, camTX, Math.min(1, dt * 12));
+    G.camYf = lerp(G.camYf, camTY, Math.min(1, dt * 12));
+  }
+  G.camX = Math.round(G.camXf);
+  G.camY = Math.round(G.camYf);
 }
 
 // ambiente: vagalumes, folhas, poeira — depende da região
@@ -604,14 +618,18 @@ function updateNPCs(dt) {
       const lonje = Math.hypot(dx, dy) > (n.raio || 4) * TILE;
       if (lonje) {
         const d = Math.hypot(dx, dy) || 1;
-        n.vx = dx / d * vel; n.vy = dy / d * vel;
+        n.tvx = dx / d * vel; n.tvy = dy / d * vel;
       } else {
         const d = irnd(0, 5);
-        n.vx = d === 0 ? vel : d === 1 ? -vel : 0;
-        n.vy = d === 2 ? vel : d === 3 ? -vel : 0;
+        n.tvx = d === 0 ? vel : d === 1 ? -vel : 0;
+        n.tvy = d === 2 ? vel : d === 3 ? -vel : 0;
       }
     }
-    if (n.vx || n.vy) {
+    // mesma suavização de velocidade dos mobs: sem salto instantâneo ao
+    // trocar de direção
+    n.vx = lerp(n.vx || 0, n.tvx || 0, Math.min(1, dt * 10));
+    n.vy = lerp(n.vy || 0, n.tvy || 0, Math.min(1, dt * 10));
+    if (Math.hypot(n.vx, n.vy) > 3) {
       const nx = n.x + n.vx * dt, ny = n.y + n.vy * dt;
       if (!isSolid(G.map, Math.floor((nx + 8) / TILE), Math.floor((n.y + 12) / TILE))) n.x = nx;
       else n.vx = 0;
