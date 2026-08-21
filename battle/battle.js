@@ -12,13 +12,14 @@
    quebrar a direção de uma das duas dependências.
    Script clássico (não é módulo ES) — compartilha o mesmo escopo
    léxico global de index.html via <script src>. Depende por nome (sem
-   import) de: ENEMIES, EQUIP, PETS, RARITY, G, P, AU, ctx, VW, VH,
-   TILE, gainXP(), petDmg(), spawnParticle(), barRect(), toast(),
-   saveGame(), showMsg(), matsText(), burst(), burstScreen(),
-   addFloater(), clamp(), lerp(), pick(), rnd(), irnd(), tap(),
-   drawWorld(), eff(), matQty(), addMats(), heroSprite(),
-   battleSprite(), enemySprite(), petSprite(), rollLoot(), rollFrags(),
-   rollMats(), addEquipToInv(), questMatou(), questColetou() — todos
+   import) de: ENEMIES, EQUIP, PETS, PET_ABILITY, PET_DROPS, BOSS_PETS,
+   RARITY, G, P, AU, ctx, VW, VH, TILE, gainXP(), checaMarcosPets(),
+   spawnParticle(), barRect(), toast(), saveGame(), showMsg(),
+   matsText(), burst(), burstScreen(), addFloater(), clamp(), lerp(),
+   pick(), rnd(), irnd(), tap(), drawWorld(), eff(), matQty(),
+   addMats(), heroSprite(), battleSprite(), enemySprite(), petSprite(),
+   rollLoot(), rollFrags(), rollMats(), addEquipToInv(), questMatou(),
+   questColetou() — todos
    continuam definidos em index.html ou nos módulos já extraídos
    (economy/shop.js, quests/quests.js, sprites/sprites.js) e
    acessíveis por nome sem export.
@@ -172,8 +173,9 @@ function playerAttack(b, opts) {
     crit = false;
   } else {
     dmg = calcDamage(atkNow, defNow, mult);
-    if (crit) dmg = Math.round(dmg * 1.8);
+    if (crit) dmg = Math.round(dmg * (1.8 + (P.activePet === 'byakko' ? 0.2 : 0)));    // Fúria do Tigre Branco
   }
+  if (P.activePet === 'dragaozinho') dmg = Math.round(dmg * 1.12);   // Fúria do Dragão Selado
   b.enemy.hp = Math.max(0, b.enemy.hp - dmg);
   b.eFlash = 0.25;
   G.shake = crit ? 6 : 3.5;
@@ -231,7 +233,8 @@ function enemyTurn(b) {
 function applyEnemyHit(b) {
   const pe = b.pendingEnemy || { mult: 1 };
   const defNow = eff().def + (b.defBuff > 0 ? Math.round(eff().def * 0.6) : 0);
-  const dmg = calcDamage(b.enemy.atk, defNow, pe.mult);
+  let dmg = calcDamage(b.enemy.atk, defNow, pe.mult);
+  if (P.activePet === 'genbu') dmg = Math.round(dmg * 0.88);    // Casco de Jade
   P.hp = Math.max(0, P.hp - dmg);
   b.pFlash = 0.25;
   G.shake = pe.skillName ? 6 : 4;
@@ -248,11 +251,26 @@ function applyEnemyHit(b) {
   b.pendingEnemy = null;
 }
 
+// Bênção da Fênix: cura 10% do HP máx. no início de cada turno do jogador
+function startTurnHeal(b) {
+  if (P.activePet !== 'suzaku') return;
+  const E = eff();
+  if (P.hp >= E.maxHp) return;
+  const heal = Math.max(1, Math.round(E.maxHp * 0.1));
+  P.hp = Math.min(E.maxHp, P.hp + heal);
+  addDmgPop(b, 'player', '+' + heal, '#ff8ac0');
+}
 function endBattleWin(b) {
   G.stats.kills++;
   const e = b.enemy;
-  const ups = gainXP(e.xp);
-  P.gold += e.gold;
+  const xpGain = Math.round(e.xp * (P.activePet === 'kotodama' ? 1.2 : 1));   // Palavra de Poder
+  const ups = gainXP(xpGain);
+  const goldGain = Math.round(e.gold * (P.activePet === 'nekomata' ? 1.1 : 1));   // Sorte do Gato de Duas Caudas
+  P.gold += goldGain;
+  if (P.activePet === 'baku') {   // Devorador de Pesadelos
+    const Emp = eff();
+    P.mp = Math.min(Emp.maxMp, P.mp + Math.round(Emp.maxMp * 0.2));
+  }
   // loot por raridade
   let dropTxt = null, dropColor = null;
   const loot = rollLoot(e.type);
@@ -276,19 +294,22 @@ function endBattleWin(b) {
   questMatou(e.type);
   questColetou();
   const matTxt = matsText(mats) || null;
-  // pets: chefes sempre dão o seu; mobs têm chance pequena de deixar um filhote
+  // pets: chefes sempre dão o seu; mobs têm chance pequena e independente
+  // de deixar cada um dos filhotes ligados a eles
   let petTxt = null, petColor = null;
   let newPet = null;
-  const bp = BOSS_PETS[e.type], pd = PET_DROPS[e.type];
+  const bp = BOSS_PETS[e.type];
   if (bp && !P.pets.includes(bp)) newPet = bp;
-  else if (pd && Math.random() < pd[1] && !P.pets.includes(pd[0])) newPet = pd[0];
+  else for (const [id, chance] of (PET_DROPS[e.type] || [])) {
+    if (!P.pets.includes(id) && Math.random() < chance) { newPet = id; break; }
+  }
   if (newPet) {
     P.pets.push(newPet);
     if (!P.activePet) P.activePet = newPet;
     petTxt = PETS[newPet].name;
     petColor = RARITY[PETS[newPet].rar].color;
   }
-  b.rewards = { xp: e.xp, gold: e.gold, ups, dropTxt, dropColor, frags, matTxt, petTxt, petColor, newSkill: ups.newSkill };
+  b.rewards = { xp: xpGain, gold: goldGain, ups, dropTxt, dropColor, frags, matTxt, petTxt, petColor, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) {
     AU.sfx('level');
@@ -303,13 +324,14 @@ function endBattleWin(b) {
   const i = G.entities.indexOf(b.ent);
   if (i >= 0) G.entities.splice(i, 1);
   if (e.boss) G.flags[e.type] = true;
+  checaMarcosPets();
   saveGame();
 }
 
 function fleeBattle(b) {
-  const spdNow = eff().spd + (b.spdBuff > 0 ? 6 : 0);
-  const chance = clamp(0.5 + (spdNow - b.enemy.spd) * 0.06, 0.25, 0.95);
   if (b.enemy.boss) { battleLog(b, 'Não dá para fugir de um chefe!'); b.phase = 'menu'; return; }
+  const spdNow = eff().spd + (b.spdBuff > 0 ? 6 : 0);
+  const chance = P.activePet === 'kitsune' ? 1 : clamp(0.5 + (spdNow - b.enemy.spd) * 0.06, 0.25, 0.95);    // Ilusão da Raposa
   if (Math.random() < chance) {
     AU.sfx('flee');
     battleLog(b, 'Você fugiu!');
@@ -501,7 +523,7 @@ function updateBattle(dt) {
   switch (b.phase) {
     case 'entrada':
       // cinemática: linhas de velocidade, personagens deslizam para a arena
-      if (b.t > 1.35 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; b.t = 0; }
+      if (b.t > 1.35 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; b.t = 0; startTurnHeal(b); }
       break;
     case 'menu': {
       if (b.sub === null) {
@@ -559,15 +581,11 @@ function updateBattle(dt) {
       break;
     }
     case 'playerActDone':
-      // o pet ataca logo depois do herói
-      if (!b.petStruck && b.t > 0.3 && P.activePet && b.enemy.hp > 0) {
+      // o pet comemora ao lado do herói — puramente visual, pets não
+      // atacam mais em batalha (só concedem status/habilidade passiva)
+      if (!b.petStruck && b.t > 0.3 && P.activePet) {
         b.petStruck = true;
         b.petAnim = 0.3;
-        const pd = Math.max(1, Math.round(petDmg(P.activePet) - b.enemy.def * 0.3));
-        b.enemy.hp = Math.max(0, b.enemy.hp - pd);
-        b.eFlash = 0.2;
-        addDmgPop(b, 'enemy', pd, RARITY[PETS[P.activePet].rar].color);
-        AU.tone(520, 0.07, 'square', 0.05, -160);
       }
       if (b.petAnim > 0) b.petAnim -= dt;
       if (b.t > (P.activePet ? 0.62 : 0.5)) {
@@ -584,13 +602,13 @@ function updateBattle(dt) {
     case 'enemyAct':
       if (b.enemy.hp <= 0) { endBattleWin(b); break; }
       if (b.enemySkipped) {
-        if (b.t > 0.5) { battleLog(b, b.enemy.name + ' está congelado!'); b.phase = 'menu'; }
+        if (b.t > 0.5) { battleLog(b, b.enemy.name + ' está congelado!'); b.phase = 'menu'; startTurnHeal(b); }
         break;
       }
       if (b.pendingEnemy && b.t > 0.38) applyEnemyHit(b);
       if (!b.pendingEnemy && b.t > 0.82) {
         if (P.hp <= 0) { b.phase = 'lose'; b.t = 0; AU.sfx('die'); }
-        else b.phase = 'menu';
+        else { b.phase = 'menu'; startTurnHeal(b); }
       }
       break;
     case 'result':

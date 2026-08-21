@@ -114,6 +114,9 @@ function questCompleta(id) {
   const q = QUESTS[id], a = P.quests.ativas[id];
   return a && a.prog >= q.qtd;
 }
+// pets concedidos ao entregar uma missão específica: um por fim de ramo
+// (o mestre não tem mais nada pra pedir) + o prêmio por fechar as 7
+const QUEST_PET_REWARD = { q_ferro: 'yamawaro', q_nurarihyon: 'nekomata', q_tengu: 'tanuki', q_kagemaru: 'kitsune' };
 function entregaQuest(id) {
   const q = QUESTS[id];
   delete P.quests.ativas[id];
@@ -127,6 +130,8 @@ function entregaQuest(id) {
   if (q.item) txt += '\n+ ' + ITEMS[q.item].name;
   if (ups.length) txt += '\nNÍVEL ' + ups[ups.length - 1] + '!';
   showMsg(txt);
+  if (QUEST_PET_REWARD[id]) awardPet(QUEST_PET_REWARD[id]);
+  if (P.quests.feitas.length >= Object.keys(QUESTS).length) awardPet('byakko');
   saveGame();
 }
 // avanço por tipo de objetivo

@@ -50,11 +50,14 @@ function rollRarity(maxTier) {
   let total = 0;
   for (let i = 0; i <= maxTier; i++) total += RARITY[RAR_KEYS[i]].w;
   let r = Math.random() * total;
+  let idx = 0;
   for (let i = 0; i <= maxTier; i++) {
     r -= RARITY[RAR_KEYS[i]].w;
-    if (r <= 0) return RAR_KEYS[i];
+    if (r <= 0) { idx = i; break; }
   }
-  return RAR_KEYS[0];
+  // Augúrio Sombrio (Karasu-tengu): 8% de chance de subir um degrau de raridade
+  if (P.activePet === 'corvo' && idx < maxTier && Math.random() < 0.08) idx++;
+  return RAR_KEYS[idx];
 }
 function rollLoot(type) {
   const d = ENEMIES[type];
@@ -214,6 +217,7 @@ function estoqueLoja() { return G.shopId === 'mascate' ? G.shopStock : SHOP_STOC
 function shopEntry(s) {
   const e = shopEntryBase(s);
   if (G.shopId === 'mascate' && G.shopNPC) e.price = precoMascate(e, G.shopNPC.margem);
+  if (P.activePet === 'tanuki') e.price = Math.max(1, Math.round(e.price * 0.85));   // Bolso Sem Fundo
   return e;
 }
 function shopEntryBase(s) {
@@ -277,7 +281,13 @@ function updateShop() {
         if (P.items[e.id] < 9) { P.gold -= e.price; P.items[e.id]++; AU.sfx('coin'); saveGame(); }
         else AU.sfx('back');
       } else {
-        if (P.equipInv.length < 18) { P.gold -= e.price; P.equipInv.push(e.id); AU.sfx('coin'); saveGame(); }
+        if (P.equipInv.length < 18) {
+          P.gold -= e.price; P.equipInv.push(e.id); AU.sfx('coin'); saveGame();
+          if (G.shopId === 'mascate' && G.shopNPC) {
+            if (G.shopNPC.id === 'merc_sanzo' && Math.random() < 0.05) awardPet('nekomatinha');
+            if (EQUIP[e.id].rar === 'raro' && Math.random() < 0.04) awardPet('kodama');
+          }
+        }
         else { toast('Mochila cheia!'); AU.sfx('back'); }
       }
     } else AU.sfx('back');

@@ -119,6 +119,7 @@ function encantar(id) {
   addFloater(P.x + 8, P.y - 4, '+' + P.ench[id], '#d8a0ff');
   burstScreen(VW / 2, VH / 2, 30, { color: ['#b06ae8', '#d8a0ff', '#e0b8ff'], spdMax: 100, lifeMax: 0.9, size: 2, drag: 2.5 });
   clampVitals();
+  if (P.ench[id] === ENCH_MAX) awardPet('baku');   // primeira peça encantada até o máximo
   saveGame();
 }
 function updateEnchant() {
