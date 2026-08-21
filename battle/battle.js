@@ -127,6 +127,9 @@ function startBattle(ent) {
   G.battle = {
     enemy: e, ent,
     phase: 'entrada', t: 0,
+    // chefes ganham uma cinemática de entrada bem mais longa (estilo anime:
+    // impacto no meio do caminho, cartão de título, mais tempo de leitura)
+    entradaDur: e.boss ? 3.0 : 1.35, impactDone: false,
     menuIdx: 0, sub: null, subIdx: 0,
     log: e.boss ? e.name + ' bloqueia seu caminho!' : e.name + ' (Nv.' + e.lvl + ') apareceu!',
     pAnim: 0, eAnim: 0, eFlash: 0, pFlash: 0,
@@ -140,7 +143,7 @@ function startBattle(ent) {
   G.battleFlash = 1;
   G.shake = e.boss ? 8 : 5;
   AU.sfx(e.boss ? 'boss' : 'battle');
-  AU.setTrack(AU.BATTLE);
+  AU.setTrack(e.boss ? AU.BOSS : AU.BATTLE);
   // entrada: faíscas convergindo para o centro
   for (let i = 0; i < 26; i++) {
     const a = (i / 26) * Math.PI * 2, r0 = 150;
@@ -181,7 +184,7 @@ function playerAttack(b, opts) {
   b.eFlash = 0.25;
   G.shake = crit ? 6 : 3.5;
   addDmgPop(b, 'enemy', dmg, crit ? '#ffd94e' : '#fff');
-  AU.sfx(o.magic ? 'magic' : (crit ? 'crit' : 'hit'));
+  AU.sfx(o.magic ? 'magic' : (crit ? 'crit' : 'hit'), b.enemy.type);
   // impacto visual: faíscas mágicas ou respingo de golpe
   const ix = 76, iy = 74;
   if (o.magic) {
@@ -243,7 +246,7 @@ function applyEnemyHit(b) {
   burstScreen(268, 76, pe.skillName ? 16 : 10, {
     color: ['#e05050', '#ff8a4e', '#c03030'], spdMax: 90, lifeMax: 0.5, size: 2, g: 110
   });
-  AU.sfx('hurt');
+  AU.sfx('hurt', b.enemy.type);
   if (pe.venom && b.pPoison <= 0) {
     b.pPoison = 3;
     addDmgPop(b, 'player', 'VENENO', '#a0e84e');
@@ -538,7 +541,14 @@ function updateBattle(dt) {
   switch (b.phase) {
     case 'entrada':
       // cinemática: linhas de velocidade, personagens deslizam para a arena
-      if (b.t > 1.35 || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; b.t = 0; startTurnHeal(b); }
+      // (chefes: soco de impacto no meio da entrada, depois do slide-in)
+      if (b.enemy.boss && !b.impactDone && b.t > 0.65) {
+        b.impactDone = true;
+        G.shake = 10;
+        G.battleFlash = 0.6;
+        burstScreen(76, 74, 24, { color: ['#ff6060', '#ffd94e', '#fff0a0'], spdMax: 130, lifeMax: 0.6, size: 2, drag: 3 });
+      }
+      if (b.t > b.entradaDur || tap('ok')) { b.phase = 'menu'; b.menuIdx = 0; b.t = 0; startTurnHeal(b); }
       break;
     case 'menu': {
       if (b.sub === null) {
@@ -909,7 +919,14 @@ function drawBattle() {
   const e = b.enemy;
   const es = enemySprite(e.type);
   const escale = e.boss ? 4.4 : 4.2;
-  const ew = es.width * escale, eh = es.height * escale;
+  // soco de impacto na entrada de chefe: um pulso de escala logo depois do
+  // slide-in, sincronizado com o shake/flash em updateBattle()
+  let pulseScale = 1;
+  if (e.boss && b.phase === 'entrada') {
+    const pk = clamp((b.t - 0.65) / 0.35, 0, 1);
+    pulseScale = 1 + Math.sin(pk * Math.PI) * 0.28;
+  }
+  const ew = es.width * escale * pulseScale, eh = es.height * escale * pulseScale;
   const entrada = b.phase === 'entrada' ? clamp(b.t / 0.55, 0, 1) : 1;
   const slideE = Math.round((1 - easeOut(entrada)) * -140);
   const ex = 76 - ew / 2 + slideE + (b.phase === 'enemyAct' && b.t < 0.45 ? Math.round(b.t * 40) : 0);
@@ -1056,7 +1073,10 @@ function drawBattle() {
     if (k > 0.45) {
       const f = clamp((k - 0.45) / 0.3, 0, 1);
       const cw = 150, cx0 = lerp(-cw, VW / 2 - cw / 2, easeOut(f));
-      const sair = k > 1.1 ? (k - 1.1) / 0.25 : 0;
+      // sai nos últimos 0.25s da cinemática, seja ela curta (mob comum) ou
+      // longa (chefe) — mantém o cartão visível por toda a entrada estendida
+      const saiEm = b.entradaDur - 0.25;
+      const sair = k > saiEm ? (k - saiEm) / 0.25 : 0;
       ctx.globalAlpha = 1 - sair;
       ctx.fillStyle = b.enemy.boss ? 'rgba(90,10,20,0.95)' : 'rgba(20,14,34,0.95)';
       ctx.fillRect(cx0, 52, cw, 22);

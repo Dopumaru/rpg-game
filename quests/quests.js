@@ -297,8 +297,14 @@ function updateMainQuest() {
     P.quests.mainPaid[s.id] = true;
     P.gold += s.ouro;
     gainXP(s.xp);
-    AU.sfx('coin');
-    toast('Tutorial: ' + s.nome + ' (+' + s.ouro + ' ouro)');
+    // último passo: fanfarra de conquista em vez do coin comum de cada etapa
+    if (MAIN_QUEST_STEPS.every(x => P.quests.mainPaid[x.id])) {
+      AU.sfx('conquista');
+      toast('Tutorial completo! Você já viu tudo que o jogo oferece.');
+    } else {
+      AU.sfx('coin');
+      toast('Tutorial: ' + s.nome + ' (+' + s.ouro + ' ouro)');
+    }
     saveGame();
   }
 }

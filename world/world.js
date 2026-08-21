@@ -355,10 +355,10 @@ function updateWorld(dt) {
   } else if (cur === 12) { // saída caverna
     fadeTo(() => { enterMap('overworld', 48 * TILE, 10 * TILE); P.dir = 'down'; saveGame(); });
   }
-  // toast de região
+  // toast de região + troca de trilha (Vila Sakuramura fica no tema padrão)
   if (G.map.name === 'overworld') {
     const rg = regionAt(ptx, pty);
-    if (rg && rg !== G.region) { G.region = rg; toast(rg); }
+    if (rg && rg !== G.region) { G.region = rg; toast(rg); AU.setTrack(REGION_TRACKS[rg] || AU.WORLD); }
   }
 
   // interação (Z)
