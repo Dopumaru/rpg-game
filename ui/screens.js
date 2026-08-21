@@ -72,6 +72,11 @@ function updatePesca(dt) {
       AU.sfx('victory');
       addFloater(P.x + 8, P.y - 4, '+' + PEIXES[peixe.sp].nome, RARITY[PEIXES[peixe.sp].rar].color);
       burst(P.x + 8, P.y + 4, 20, { color: ['#8ec6f0', '#c6e2f8', RARITY[PEIXES[peixe.sp].rar].color], spdMax: 60, lifeMax: 0.9, size: 2, lift: 40, g: 60 });
+      if (Math.random() < 0.04) awardPet('ameko');
+      if (varaAtual().tier >= 4) {
+        if (Math.random() < 0.03) awardPet('amabie');
+        if (Math.random() < 0.008) awardPet('suzaku');
+      }
       G.pesca = null; G.state = 'world';
       saveGame();
       return;
@@ -696,7 +701,7 @@ function drawTitle() {
   g.fillText('o caminho é a arma que você empunha', VW / 2, 84);
 
   // ---- menu num painel laqueado
-  const opts = hasSave() ? ['Continuar', 'Novo Jogo'] : ['Novo Jogo'];
+  const opts = titleOpts();
   const ph = opts.length * 13 + 9, py3 = 122 - (opts.length - 1) * 6, pw = 112, px3 = (VW - pw) / 2;
   const lac = g.createLinearGradient(0, py3, 0, py3 + ph);
   lac.addColorStop(0, 'rgba(30,16,38,0.9)');
@@ -728,17 +733,181 @@ function drawTitle() {
   g.lineWidth = 1;
 }
 
+function titleOpts() { return hasSave() ? ['Continuar', 'Novo Jogo', 'Codex'] : ['Novo Jogo', 'Codex']; }
 function updateTitle() {
-  const n = hasSave() ? 2 : 1;
+  const opts = titleOpts();
+  const n = opts.length;
   if (tap('up')) { G.titleIdx = (G.titleIdx + n - 1) % n; AU.sfx('menu'); }
   if (tap('down')) { G.titleIdx = (G.titleIdx + 1) % n; AU.sfx('menu'); }
   if (tap('ok')) {
     AU.sfx('ok');
-    const isContinue = hasSave() && G.titleIdx === 0;
-    if (isContinue && loadGame()) return;
+    const escolha = opts[G.titleIdx];
+    if (escolha === 'Codex') { G.state = 'codex'; G.codexTab = 0; G.codexIdx = 0; return; }
+    if (escolha === 'Continuar' && loadGame()) return;
     startNewGame();
   }
 }
+// ---------- Codex: catálogo acessível pelo título ----------
+// Deliberadamente NÃO diz onde/como conseguir cada coisa (nada de
+// youkai-que-solta, região, missão ou % de chance) — só o que já é
+// visível de cara (nome, raridade, status, uma linha de clima). A
+// descoberta de origem fica por conta do jogador jogar e reparar.
+const CODEX_TABS = ['Itens', 'Pets', 'Classes', 'Youkai', 'NPCs'];
+const CODEX_CLASSES = [
+  { nome: 'Samurai',  arma: 'Katana',  frase: 'Corte e postura — a lâmina fala primeiro.' },
+  { nome: 'Onmyoji',  arma: 'Shakujo', frase: 'Domina o elemento antes do golpe.' },
+  { nome: 'Shinobi',  arma: 'Tanto',   frase: 'Rápido, certeiro, quase invisível.' },
+  { nome: 'Kyudoka',  arma: 'Yumi',    frase: 'Um só tiro, uma só verdade.' },
+  { nome: 'Ronin',    arma: '—',       frase: 'Um caminho ainda não escolhido.' }
+];
+const CODEX_YOUKAI_FLAVOR = {
+  slime: 'Alma errante que não descansou.',
+  morcego: 'Sombra que bate as asas no crepúsculo.',
+  lobo: 'Segue viajantes solitários pela trilha.',
+  esqueleto: 'Ossos que se recusam a descansar.',
+  goblin: "Vive perto d'água, sempre travesso.",
+  aranha: 'Tece ilusões tão bem quanto teias.',
+  zumbi: 'Faminto além da morte.',
+  fantasma: 'Chora um pesar que ninguém mais lembra.',
+  orc: 'Força bruta com raiva antiga.',
+  harpia: 'Vento e orgulho nas montanhas.',
+  golem: 'Barro que ganhou forma e teimosia.',
+  elemental: 'Chama que pensa por si mesma.',
+  reislime: 'Entra em casas como se fossem suas.',
+  necromante: 'Um onmyoji que se perdeu no próprio ritual.',
+  dragao: 'Oito cabeças, uma fúria só.'
+};
+const NPC_TIPO_LABEL = { quest: 'Figura importante', aldeao: 'Morador', pesca: 'Pescador', viajante: 'Mascate' };
+function codexList(tab) {
+  if (tab === 0) return Object.keys(EQUIP);
+  if (tab === 1) return Object.keys(PETS);
+  if (tab === 2) return CODEX_CLASSES.map((_, i) => i);
+  if (tab === 3) return Object.keys(ENEMIES);
+  return NPC_DEFS.map((_, i) => i);
+}
+function drawCodex() {
+  ctx.fillStyle = '#0b0714';
+  ctx.fillRect(0, 0, VW, VH);
+  const x = 26, y = 10, w = VW - 52, h = VH - 20;
+  ctx.fillStyle = 'rgba(24,18,44,0.97)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#5a4a8a';
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 8px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('CODEX', x + 8, y + 12);
+  ctx.font = '7px monospace';
+  CODEX_TABS.forEach((t, i) => {
+    const tx = x + w - 190 + i * 38;
+    ctx.fillStyle = i === G.codexTab ? '#ffd94e' : '#705a80';
+    ctx.fillText(i === G.codexTab ? '[' + t + ']' : ' ' + t, tx, y + 12);
+  });
+
+  const list = codexList(G.codexTab);
+  const maxShow = 9;
+  const start = clamp(G.codexIdx - 4, 0, Math.max(0, list.length - maxShow));
+  list.slice(start, start + maxShow).forEach((key, j) => {
+    const i = start + j;
+    const oy = y + 26 + j * 11;
+    const sel = G.codexIdx === i;
+    if (sel) { ctx.fillStyle = 'rgba(255,217,78,0.12)'; ctx.fillRect(x + 6, oy - 8, 140, 10); }
+    ctx.fillStyle = sel ? '#ffd94e' : '#705a80';
+    ctx.fillText(sel ? '▶' : ' ', x + 8, oy);
+    let nome, cor;
+    if (G.codexTab === 0) { nome = EQUIP[key].name; cor = RARITY[EQUIP[key].rar].color; }
+    else if (G.codexTab === 1) { nome = PETS[key].name; cor = RARITY[PETS[key].rar].color; }
+    else if (G.codexTab === 2) { nome = CODEX_CLASSES[key].nome; cor = '#c8c0dc'; }
+    else if (G.codexTab === 3) { nome = ENEMIES[key].name; cor = ENEMIES[key].boss ? '#ffa726' : '#c8c0dc'; }
+    else { nome = NPC_DEFS[key].nome; cor = '#c8c0dc'; }
+    ctx.fillStyle = sel ? '#fff' : cor;
+    ctx.fillText(nome, x + 16, oy);
+  });
+  if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 150, y + 26); }
+  if (start + maxShow < list.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 150, y + 26 + (maxShow - 1) * 11); }
+
+  // detalhe do selecionado
+  const sel = list[G.codexIdx];
+  if (sel !== undefined) drawCodexDetail(x, y, sel);
+
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('◀ ▶ categoria · ↑↓ navegar · X volta', x + 8, y + h - 6);
+}
+function drawCodexDetail(x, y, sel) {
+  const dx = x + 164, dw = 96;
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  if (G.codexTab === 0) {
+    const eq = EQUIP[sel];
+    ctx.fillStyle = RARITY[eq.rar].color;
+    ctx.fillText(eq.name, dx, y + 30);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText(RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot], dx, y + 40);
+    let dyy = y + 52;
+    for (const [k, v] of Object.entries(eq.bonus)) {
+      ctx.fillStyle = '#a89ac0';
+      ctx.fillText(k === 'crit' ? '+' + Math.round(v * 100) + '% crítico' : '+' + v + ' ' + k.toUpperCase(), dx, dyy);
+      dyy += 9;
+    }
+  } else if (G.codexTab === 1) {
+    const pet = PETS[sel];
+    const spr = petSprite(sel);
+    ctx.drawImage(spr, dx, y + 24, spr.width * 2.5, spr.height * 2.5);
+    ctx.fillStyle = RARITY[pet.rar].color;
+    ctx.fillText(pet.name, dx, y + 76);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText(RARITY[pet.rar].name, dx, y + 86);
+    ctx.fillStyle = '#a89ac0';
+    ctx.fillText(pet.desc, dx, y + 96);
+    const ab = PET_ABILITY[sel];
+    if (ab) { ctx.fillStyle = '#ffb04e'; ctx.fillText(ab.name, dx, y + 108); }
+  } else if (G.codexTab === 2) {
+    const c = CODEX_CLASSES[sel];
+    ctx.fillStyle = '#ffd94e';
+    ctx.fillText(c.nome, dx, y + 30);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText('Arma: ' + c.arma, dx, y + 40);
+    ctx.fillStyle = '#a89ac0';
+    wrapText(c.frase, dx, y + 54, dw, 9);
+  } else if (G.codexTab === 3) {
+    const e = ENEMIES[sel];
+    const spr = enemySprite(sel);
+    const esc = Math.min(2.5, 40 / spr.width);
+    ctx.drawImage(spr, dx, y + 24, spr.width * esc, spr.height * esc);
+    ctx.fillStyle = e.boss ? '#ffa726' : '#c8c0dc';
+    ctx.fillText(e.name, dx, y + 76);
+    if (e.boss) { ctx.fillStyle = '#e05050'; ctx.fillText('Um dos grandes chefes', dx, y + 86); }
+    ctx.fillStyle = '#a89ac0';
+    wrapText(CODEX_YOUKAI_FLAVOR[sel] || '', dx, y + (e.boss ? 98 : 88), dw, 9);
+  } else {
+    const n = NPC_DEFS[sel];
+    const spr = npcSprite(n, 'down', 0);
+    ctx.drawImage(spr, dx, y + 24, spr.width * 2.5, spr.height * 2.5);
+    ctx.fillStyle = '#ffd94e';
+    ctx.fillText(n.nome, dx, y + 76);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText(NPC_TIPO_LABEL[n.tipo] || '', dx, y + 86);
+    if (n.linha) { ctx.fillStyle = '#a89ac0'; wrapText(n.linha.split('\n')[0], dx, y + 98, dw, 9); }
+  }
+  ctx.restore();
+}
+// quebra de linha simples por largura medida — usado só aqui no Codex
+function wrapText(txt, x0, y0, maxW, lineH) {
+  let ln = '', dy = y0;
+  for (const palavra of txt.split(' ')) {
+    const teste = ln ? ln + ' ' + palavra : palavra;
+    if (ctx.measureText(teste).width > maxW && ln) { ctx.fillText(ln, x0, dy); dy += lineH; ln = palavra; }
+    else ln = teste;
+  }
+  if (ln) ctx.fillText(ln, x0, dy);
+}
+function updateCodex() {
+  const list = codexList(G.codexTab);
+  if (tap('left')) { G.codexTab = (G.codexTab + CODEX_TABS.length - 1) % CODEX_TABS.length; G.codexIdx = 0; AU.sfx('menu'); }
+  if (tap('right')) { G.codexTab = (G.codexTab + 1) % CODEX_TABS.length; G.codexIdx = 0; AU.sfx('menu'); }
+  if (tap('up')) { G.codexIdx = (G.codexIdx + list.length - 1) % list.length; AU.sfx('menu'); }
+  if (tap('down')) { G.codexIdx = (G.codexIdx + 1) % list.length; AU.sfx('menu'); }
+  if (tap('back') || tap('ok')) { G.state = 'title'; AU.sfx('back'); }
+}
+
 function startNewGame() {
   P = newPlayer();
   G.flags = { reislime: false, necromante: false, dragao: false };
@@ -1062,9 +1231,22 @@ function drawPauseMenu() {
       ctx.fillText(RARITY[pet.rar].name, x + 176, y + 56);
       ctx.fillStyle = '#a89ac0';
       ctx.fillText('Passivo: ' + pet.desc, x + 176, y + 66);
-      ctx.fillText('Ataque: ' + petDmg(selPet) + ' por turno', x + 176, y + 76);
-      ctx.fillStyle = '#705a80';
-      ctx.fillText('Ataca junto com você', x + 176, y + 86);
+      const ab = PET_ABILITY[selPet];
+      if (ab) {
+        ctx.fillStyle = '#ffb04e';
+        ctx.fillText(ab.name, x + 176, y + 76);
+        ctx.fillStyle = '#a89ac0';
+        let ln = '', dy = y + 86;
+        for (const palavra of ab.desc.split(' ')) {
+          const teste = ln ? ln + ' ' + palavra : palavra;
+          if (ctx.measureText(teste).width > 80 && ln) { ctx.fillText(ln, x + 176, dy); dy += 9; ln = palavra; }
+          else ln = teste;
+        }
+        if (ln) ctx.fillText(ln, x + 176, dy);
+      } else {
+        ctx.fillStyle = '#705a80';
+        ctx.fillText('Só concede o passivo acima', x + 176, y + 76);
+      }
     }
   } else {
     // ---- ITENS: só os que o jogador tem, com ilustração do selecionado ----

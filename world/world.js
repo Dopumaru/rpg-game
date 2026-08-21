@@ -287,6 +287,17 @@ const SIGNS = {
 };
 
 function updateWorld(dt) {
+  // Konoha-ko: acompanha quantas das 7 regiões o jogador já pisou
+  if (G.map && G.map.name === 'overworld') {
+    const rg = regionAt(Math.floor(P.x / TILE), Math.floor(P.y / TILE));
+    if (rg) {
+      if (!P.regioesVistas) P.regioesVistas = [];
+      if (!P.regioesVistas.includes(rg)) {
+        P.regioesVistas.push(rg);
+        if (P.regioesVistas.length >= REGIONS.length) awardPet('konohako');
+      }
+    }
+  }
   // movimento do jogador: aceleração suave + corrida (Shift)
   let dx = 0, dy = 0;
   if (keys.up) dy -= 1;
@@ -375,6 +386,7 @@ function updateWorld(dt) {
         G.chests[cid] = true;
         G.map.tiles[f.ty][f.tx] = 17;
         AU.sfx('chest');
+        if (Math.random() < 0.06) awardPet('tsukiusagi');
         burst(f.tx * TILE + 8, f.ty * TILE + 6, 26, {
           color: ['#ffd94e', '#f0d878', '#fff0a0'], spdMax: 70, lifeMax: 1, size: 2, lift: 40, g: 110
         });

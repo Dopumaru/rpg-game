@@ -1327,6 +1327,255 @@ const PET_ART = {
       '.ORRrrRRO...',
       '..ORrrRO....',
       '..OYO.OYO...']
+  },
+  // --- comum ---
+  tsukiusagi: {
+    pal: { O: '#2a1c30', W: '#f4f0f8', P: '#f0a8c0', R: '#c8506a' },
+    rows: [
+      '.OO....OO...',
+      '.OWO..OWO...',
+      '.OWO..OWO...',
+      '.OPO..OPO...',
+      '..OOOOOO....',
+      '.OWWWWWWO...',
+      '.OWRWWRWO...',
+      '.OWWWWWWO...',
+      '..OWWWWO....',
+      '...OOOO.....']
+  },
+  ameko: {
+    pal: { O: '#0e2438', B: '#3a7ac8', b: '#6ab0e8', W: '#e8f4ff' },
+    rows: [
+      '.....OO.....',
+      '....OBBO....',
+      '...OBbbBO...',
+      '..OBbbbbBO..',
+      '.OBbbWbbbO..',
+      '.OBbbbbbBO..',
+      '..OBBBBBO...',
+      '...OOOOO....']
+  },
+  ishiko: {
+    pal: { O: '#2a2a30', C: '#8a8a92', c: '#a8a8b0', E: '#1a1a1e' },
+    rows: [
+      '............',
+      '...OOOOO....',
+      '..OCCCCCO...',
+      '.OCcCCCcCO..',
+      '.OCECOCECO..',
+      '.OCCCCCCCO..',
+      '..OCCCCCO...',
+      '...OOOOO....']
+  },
+  konohako: {
+    pal: { O: '#12280f', G: '#4a8a34', g: '#78c058', V: '#2a5a1e' },
+    rows: [
+      '.....O......',
+      '....OGO.....',
+      '...OGgGO....',
+      '..OGgVgGO...',
+      '.OGgggVgGO..',
+      '.OGgVgggGO..',
+      '..OGgggGO...',
+      '...OGGGO....',
+      '....OOO.....']
+  },
+  // --- incomum ---
+  jiangko: {
+    pal: { O: '#1a1420', W: '#e8e0d0', R: '#c03030', B: '#1e1e2a' },
+    rows: [
+      '..OOOOOO....',
+      '.OWWWWWWO...',
+      '.OWRWWWWO...',
+      '.OWOWWOWO...',
+      '.OWWWWWWO...',
+      '..OBBBBO....',
+      '.OBBBBBBO...',
+      '.OB.OO.BO...']
+  },
+  onizinho: {
+    pal: { O: '#2a0808', R: '#c03838', r: '#e05848', Y: '#f0d858', F: '#ffffff' },
+    rows: [
+      '.....OY.....',
+      '....ORRO....',
+      '...ORrrRO...',
+      '..ORrFrFrO..',
+      '..ORrrrrRO..',
+      '..ORRrrRRO..',
+      '...ORRRRO...',
+      '....OOOO....']
+  },
+  tenguko: {
+    pal: { O: '#1a1420', R: '#c8402a', W: '#ffffff', N: '#e8a848' },
+    rows: [
+      '....OO.O....',
+      '...ORRO.....',
+      '..ORRRRO....',
+      '.OWRRRRWO...',
+      '.OWRRRRWO...',
+      '..ORNNRO....',
+      '...ORRRO....',
+      '....OOO.....']
+  },
+  kodama: {
+    pal: { O: '#241c14', W: '#f0ece0', T: '#8a6a44', t: '#a8845c' },
+    rows: [
+      '...OOOOO....',
+      '..OWWWWWO...',
+      '.OWWOWOWWO..',
+      '.OWWWWWWWO..',
+      '..OWWWWWO...',
+      '...OTTTO....',
+      '..OTttTO....',
+      '..OTTTTO....',
+      '...OO.OO....']
+  },
+  // --- raro ---
+  ubume: {
+    pal: { O: '#0e1420', P: '#6a84b8', p: '#96b0e0', W: '#e8f0ff' },
+    rows: [
+      '...OOOOO....',
+      '..OPPPPPO...',
+      '.OPWPPWPPO..',
+      '.OPpppppPO..',
+      '.OPPPPPPPO..',
+      '.OPpPPPpPO..',
+      '..OPPPPPO...',
+      '...O.O.O....']
+  },
+  nekomatinha: {
+    pal: { O: '#1a1208', C: '#d88a3a', c: '#f0b060', W: '#ffffff' },
+    rows: [
+      '.O..OO..O...',
+      '.OO.OO.OO...',
+      '..OCOOCO....',
+      '.OCCCCCCO...',
+      '.OCWCCWCO...',
+      '.OCCCCCCO...',
+      '..OCCCCO....',
+      '.OC.OO.CO...']
+  },
+  yamawaro: {
+    pal: { O: '#0e2210', G: '#4a8a3a', g: '#78c058', B: '#5a3a20' },
+    rows: [
+      '..OBBBBO....',
+      '.OBBBBBBO...',
+      '.OGGGGGGO...',
+      '.OGgGGgGO...',
+      '..OGGGGO....',
+      '..OGGGGO....',
+      '.OGG..GGO...']
+  },
+  amabie: {
+    pal: { O: '#0a2028', T: '#3a9a8a', t: '#6ac0b0', Y: '#f0d060' },
+    rows: [
+      '...OOOOO....',
+      '..OTTTTTO...',
+      '.OTtTTtTTO..',
+      '.OTTTTTTTO..',
+      '..OTYYTO....',
+      '..OTtttTO...',
+      '...OTTTO....',
+      '....O.O.....']
+  },
+  // --- épico (com habilidade exclusiva, ver PET_ABILITY) ---
+  nekomata: {
+    pal: { O: '#12081a', P: '#6a3a8a', p: '#9868c0', W: '#ffffff', R: '#e04040' },
+    rows: [
+      '.O...OO...O.',
+      '.OO..OO..OO.',
+      '..OPO..OPO..',
+      '.OPPOOOPPO..',
+      '.OPPPPPPPO..',
+      '.OPRPPPRPO..',
+      '.OPPPPPPPO..',
+      '..OPPPPPO...',
+      '.OP.OOOO.PO.']
+  },
+  tanuki: {
+    pal: { O: '#1c1408', B: '#8a6438', b: '#c89858', D: '#2a1c10' },
+    rows: [
+      '..OOOOOO....',
+      '.OBBBBBBO...',
+      '.OBDBBDBO...',
+      '.OBBBBBBO...',
+      'OBbbbbbbBO..',
+      'OBbbbbbbBO..',
+      '.OBBBBBBO...',
+      '..OO..OO....']
+  },
+  kitsune: {
+    pal: { O: '#2a1c10', W: '#f4ecd8', R: '#e08040' },
+    rows: [
+      '.O.....O....',
+      '.OR....RO...',
+      '.ORW..WRO...',
+      '..OWWWWO....',
+      '.OWWWWWWO...',
+      '.OWWWWWWO...',
+      '..OWWWWO....',
+      '.OW.OO.WO...']
+  },
+  baku: {
+    pal: { O: '#101010', W: '#f0f0f0', B: '#181818', N: '#8a8a8a' },
+    rows: [
+      '..OOOOOOO...',
+      '.OWWWBBBWO..',
+      '.OWWWBBBWO..',
+      '.OWWWWWWWO..',
+      '.OBBWWWBBO..',
+      '..ONNNNO....',
+      '...OOOO.....']
+  },
+  // --- lendário: os Quatro Guardiões + o dragão já existente ---
+  byakko: {
+    pal: { O: '#141414', W: '#f4f4f4', S: '#1a1a1a', R: '#e05050' },
+    rows: [
+      '.O.....O....',
+      '.OO....OO...',
+      '.OWSWWSWO...',
+      '.OWWWWWWO...',
+      '.OWRWWRWO...',
+      '.OWSWWSWO...',
+      '.OWWWWWWO...',
+      '..OWWWWO....',
+      '...OO.OO....']
+  },
+  suzaku: {
+    pal: { O: '#2a0e08', R: '#e04a28', r: '#f08040', Y: '#f8d048' },
+    rows: [
+      '.....OY.....',
+      '....ORRO....',
+      '...ORrrRO...',
+      '.OYORrrRO...',
+      '.ORrrrrrRO..',
+      '.OYORrrROY..',
+      '...ORrrRO...',
+      '....ORRO....',
+      '.....OYO....']
+  },
+  genbu: {
+    pal: { O: '#0a0a0e', S: '#1c2a1c', s: '#3a5a3a', G: '#2a6a3a' },
+    rows: [
+      '..OSSSSSO...',
+      '.OSssssssO..',
+      'OSssSSssssO.',
+      'OSsssssssO..',
+      '.OSsssssO...',
+      '..OSSSSSO...',
+      '.OG..O..GO..']
+  },
+  kotodama: {
+    pal: { O: '#2a1c00', Y: '#f8d048', y: '#fff0a0', W: '#ffffff' },
+    rows: [
+      '....OYO.....',
+      '...OYyYO....',
+      '..OYyWyYO...',
+      '.OYyWWWyYO..',
+      '..OYyWyYO...',
+      '...OYyYO....',
+      '....OYO.....',
+      '.....O......']
   }
 };
 function petSprite(id) {

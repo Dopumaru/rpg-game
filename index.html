@@ -4229,29 +4229,102 @@ const EQUIP = {
 };
 
 // ---------- Pets ----------
-// Companheiros com status: bônus passivo + ataque próprio em batalha
+// Companheiros 100% passivos: só concedem status (nunca atacam em
+// batalha — essa mecânica foi removida). A partir de épico, também
+// trazem uma habilidade exclusiva (PET_ABILITY) além do bônus de status.
+// Cada pet tem uma fonte própria (drop de youkai, pesca, mascate,
+// missão, marco de progresso...) que NUNCA é exposta na UI — faz parte
+// do jogo o jogador descobrir sozinho.
 const PETS = {
-  slimezinho:  { name: 'Mitama',        rar: 'comum',    atk: 3,  passive: { hp: 5 },                    desc: '+5 HP' },
-  morceguinho: { name: 'Kobato',        rar: 'comum',    atk: 3,  passive: { spd: 1 },                   desc: '+1 VEL' },
-  lobinho:     { name: 'Inugami',       rar: 'incomum',  atk: 6,  passive: { atk: 2 },                   desc: '+2 ATQ' },
-  caveirinha:  { name: 'Hone-ko',       rar: 'incomum',  atk: 5,  passive: { atk: 1, mag: 1 },           desc: '+1 ATQ, +1 MAG' },
-  golenzinho:  { name: 'Tsuchi-ko',     rar: 'raro',     atk: 8,  passive: { def: 4, hp: 10 },           desc: '+4 DEF, +10 HP' },
-  slimereal:   { name: 'Tama-hime',     rar: 'raro',     atk: 8,  passive: { hp: 12, def: 2 },           desc: '+12 HP, +2 DEF' },
-  goblinzinho: { name: 'Kappa-ko',      rar: 'incomum',  atk: 6,  passive: { spd: 2, atk: 1 },           desc: '+2 VEL, +1 ATQ' },
-  aranhinha:   { name: 'Kumo-ko',       rar: 'incomum',  atk: 7,  passive: { crit: 0.04 },               desc: '+4% crítico' },
-  fantasminha: { name: 'Hitodama',      rar: 'raro',     atk: 9,  passive: { mag: 3, mp: 8 },            desc: '+3 MAG, +8 MP' },
-  chaminha:    { name: 'Onibi-ko',      rar: 'raro',     atk: 11, passive: { atk: 3 },                   desc: '+3 ATQ' },
-  corvo:       { name: 'Karasu-tengu',  rar: 'epico',    atk: 10, passive: { mag: 4, crit: 0.05 },       desc: '+4 MAG, +5% crit' },
-  dragaozinho: { name: 'Ryu-ko',        rar: 'lendario', atk: 14, passive: { atk: 3, mag: 3, hp: 15 },   desc: '+3 ATQ, +3 MAG, +15 HP' }
+  // comum
+  slimezinho:  { name: 'Mitama',          rar: 'comum',    passive: { hp: 8 },                     desc: '+8 HP' },
+  morceguinho: { name: 'Kobato',          rar: 'comum',    passive: { spd: 2 },                    desc: '+2 VEL' },
+  tsukiusagi:  { name: 'Tsuki-usagi',     rar: 'comum',    passive: { spd: 1, hp: 4 },             desc: '+1 VEL, +4 HP' },
+  ameko:       { name: 'Ame-ko',          rar: 'comum',    passive: { mp: 6 },                     desc: '+6 MP' },
+  ishiko:      { name: 'Ishi-ko',         rar: 'comum',    passive: { atk: 2 },                    desc: '+2 ATQ' },
+  konohako:    { name: 'Konoha-ko',       rar: 'comum',    passive: { def: 2 },                    desc: '+2 DEF' },
+  // incomum
+  lobinho:     { name: 'Inugami',         rar: 'incomum',  passive: { atk: 3 },                    desc: '+3 ATQ' },
+  caveirinha:  { name: 'Hone-ko',         rar: 'incomum',  passive: { atk: 2, mag: 2 },            desc: '+2 ATQ, +2 MAG' },
+  goblinzinho: { name: 'Kappa-ko',        rar: 'incomum',  passive: { spd: 3, atk: 2 },            desc: '+3 VEL, +2 ATQ' },
+  aranhinha:   { name: 'Kumo-ko',         rar: 'incomum',  passive: { crit: 0.06 },                desc: '+6% crítico' },
+  jiangko:     { name: 'Jiang-ko',        rar: 'incomum',  passive: { def: 4, hp: 8 },             desc: '+4 DEF, +8 HP' },
+  onizinho:    { name: 'Oni-ko',          rar: 'incomum',  passive: { atk: 4 },                    desc: '+4 ATQ' },
+  tenguko:     { name: 'Tengu-ko',        rar: 'incomum',  passive: { spd: 3, crit: 0.03 },        desc: '+3 VEL, +3% crítico' },
+  kodama:      { name: 'Kodama',          rar: 'incomum',  passive: { mag: 2, mp: 8 },             desc: '+2 MAG, +8 MP' },
+  // raro
+  golenzinho:  { name: 'Tsuchi-ko',       rar: 'raro',     passive: { def: 6, hp: 14 },            desc: '+6 DEF, +14 HP' },
+  slimereal:   { name: 'Tama-hime',       rar: 'raro',     passive: { hp: 16, def: 4 },            desc: '+16 HP, +4 DEF' },
+  fantasminha: { name: 'Hitodama',        rar: 'raro',     passive: { mag: 5, mp: 12 },            desc: '+5 MAG, +12 MP' },
+  chaminha:    { name: 'Onibi-ko',        rar: 'raro',     passive: { atk: 5, mag: 2 },            desc: '+5 ATQ, +2 MAG' },
+  ubume:       { name: 'Ubume',           rar: 'raro',     passive: { def: 7, mp: 12 },            desc: '+7 DEF, +12 MP' },
+  nekomatinha: { name: 'Nekomata Jovem',  rar: 'raro',     passive: { spd: 6, crit: 0.04 },        desc: '+6 VEL, +4% crítico' },
+  yamawaro:    { name: 'Yamawaro',        rar: 'raro',     passive: { atk: 6, def: 6 },            desc: '+6 ATQ, +6 DEF' },
+  amabie:      { name: 'Amabie',          rar: 'raro',     passive: { hp: 18, mp: 10 },            desc: '+18 HP, +10 MP' },
+  // épico — todos com habilidade exclusiva (ver PET_ABILITY)
+  corvo:       { name: 'Karasu-tengu',    rar: 'epico',    passive: { mag: 5, crit: 0.06 },        desc: '+5 MAG, +6% crítico' },
+  nekomata:    { name: 'Nekomata',        rar: 'epico',    passive: { spd: 5, crit: 0.05 },        desc: '+5 VEL, +5% crítico' },
+  tanuki:      { name: 'Tanuki Ancião',   rar: 'epico',    passive: { def: 8, hp: 14 },            desc: '+8 DEF, +14 HP' },
+  kitsune:     { name: 'Kitsune Menor',   rar: 'epico',    passive: { mag: 6, mp: 10 },            desc: '+6 MAG, +10 MP' },
+  baku:        { name: 'Baku',            rar: 'epico',    passive: { mp: 12, mag: 4 },            desc: '+12 MP, +4 MAG' },
+  // lendário — os Quatro Guardiões + o dragão + a palavra que sela tudo
+  dragaozinho: { name: 'Ryu-ko',          rar: 'lendario', passive: { atk: 4, mag: 4, hp: 18 },    desc: '+4 ATQ, +4 MAG, +18 HP' },
+  byakko:      { name: 'Byakko-ko',       rar: 'lendario', passive: { atk: 9, spd: 6 },            desc: '+9 ATQ, +6 VEL' },
+  suzaku:      { name: 'Suzaku-ko',       rar: 'lendario', passive: { mag: 11, mp: 16 },           desc: '+11 MAG, +16 MP' },
+  genbu:       { name: 'Genbu-ko',        rar: 'lendario', passive: { def: 13, hp: 22 },           desc: '+13 DEF, +22 HP' },
+  kotodama:    { name: 'Kotodama',        rar: 'lendario', passive: { atk: 7, def: 7, mag: 7, spd: 7 }, desc: '+7 em tudo' }
 };
-// chance de mob deixar um filhote; chefes sempre dão o seu
+// habilidade exclusiva de cada pet épico/lendário — só o pet ATIVO
+// concede a habilidade, igual ao bônus passivo. Cada efeito é aplicado
+// no ponto do código correspondente (battle.js, shop.js), checando
+// diretamente `P.activePet === id`.
+const PET_ABILITY = {
+  corvo:       { name: 'Augúrio Sombrio',           desc: '+8% de chance de a raridade do drop subir um degrau' },
+  nekomata:    { name: 'Sorte do Gato de Duas Caudas', desc: '+10% de ouro ganho em batalha' },
+  tanuki:      { name: 'Bolso Sem Fundo',           desc: '-15% no preço de qualquer loja ou mascate' },
+  kitsune:     { name: 'Ilusão da Raposa',          desc: 'fuga sempre garantida (exceto contra chefe)' },
+  baku:        { name: 'Devorador de Pesadelos',    desc: 'recupera 20% do MP máximo ao vencer uma batalha' },
+  dragaozinho: { name: 'Fúria do Dragão Selado',    desc: '+12% de todo dano causado' },
+  byakko:      { name: 'Fúria do Tigre Branco',     desc: '+20% de dano em acertos críticos' },
+  suzaku:      { name: 'Bênção da Fênix',           desc: 'cura 10% do HP máximo no início de cada turno' },
+  genbu:       { name: 'Casco de Jade',             desc: '-12% de todo dano recebido' },
+  kotodama:    { name: 'Palavra de Poder',          desc: '+20% de XP ganho em batalha' }
+};
+// chance de um youkai comum deixar um filhote (vários podem soltar mais
+// de um pet, cada um com sua chance independente); chefes sempre dão o
+// seu (BOSS_PETS). Os demais pets (comum de baú/pesca/marco, raro de
+// mascate/missão, épico de missão, lendário de missão/pesca/marco) são
+// concedidos por awardPet() nos pontos correspondentes de cada sistema.
 const PET_DROPS = {
-  slime: ['slimezinho', 0.05], morcego: ['morceguinho', 0.05], lobo: ['lobinho', 0.04],
-  esqueleto: ['caveirinha', 0.04], golem: ['golenzinho', 0.03], goblin: ['goblinzinho', 0.05],
-  aranha: ['aranhinha', 0.04], fantasma: ['fantasminha', 0.035], elemental: ['chaminha', 0.03]
+  slime: [['slimezinho', 0.05]], morcego: [['morceguinho', 0.05]],
+  lobo: [['lobinho', 0.04]], esqueleto: [['caveirinha', 0.04]],
+  golem: [['golenzinho', 0.03]], goblin: [['goblinzinho', 0.05]],
+  aranha: [['aranhinha', 0.04]],
+  fantasma: [['fantasminha', 0.035], ['ubume', 0.02]],
+  elemental: [['chaminha', 0.03]],
+  zumbi: [['jiangko', 0.04]], orc: [['onizinho', 0.04]], harpia: [['tenguko', 0.04]]
 };
 const BOSS_PETS = { reislime: 'slimereal', necromante: 'corvo', dragao: 'dragaozinho' };
-function petDmg(petId) { return PETS[petId].atk + Math.floor(P.lvl / 2); }
+// entrega um pet ao jogador com feedback visual; ignora se ele já tem
+function awardPet(id) {
+  if (!id || !PETS[id] || !P.pets || P.pets.includes(id)) return false;
+  P.pets.push(id);
+  if (!P.activePet) P.activePet = id;
+  toast('Novo companheiro: ' + PETS[id].name + '!');
+  burstScreen(VW / 2, VH / 2, 28, {
+    color: [RARITY[PETS[id].rar].color, '#fff0a0', '#ffffff'], spdMax: 100, lifeMax: 1, size: 2, drag: 2.4
+  });
+  AU.sfx('level');
+  saveGame();
+  return true;
+}
+// marcos de progresso que não vêm de matar um youkai específico —
+// checados depois de batalha e depois de equipar
+function checaMarcosPets() {
+  if (G.stats.kills >= 30) awardPet('ishiko');
+  if (G.flags.reislime && G.flags.necromante && G.flags.dragao) awardPet('genbu');
+  if (SLOTS.every(s => P.equip[s] && RAR_KEYS.indexOf(EQUIP[P.equip[s]].rar) >= RAR_KEYS.indexOf('epico'))) awardPet('kotodama');
+}
 
 // pontos de status por nível e o que cada ponto dá
 const PTS_PER_LEVEL = 3;
@@ -4471,6 +4544,7 @@ function equipFromInv(idx) {
   if (old) P.equipInv.push(old);
   clampVitals();
   spriteCache.clear();   // o visual acompanha o equipamento
+  checaMarcosPets();
 }
 
 function gainXP(amt) {
@@ -4945,6 +5019,7 @@ function frame(now) {
     } else {
       switch (G.state) {
         case 'title': updateTitle(); break;
+        case 'codex': updateCodex(); break;
         case 'world': if (G.fadeDir === 0) updateWorld(dt); break;
         case 'battle': updateBattle(dt); break;
         case 'menu': updatePauseMenu(); break;
@@ -4980,6 +5055,7 @@ function frame(now) {
   if (G.shake > 0.5) ctx.translate(irnd(-G.shake, G.shake) * 0.5, irnd(-G.shake, G.shake) * 0.5);
   switch (G.state) {
     case 'title': drawTitle(); break;
+    case 'codex': drawCodex(); break;
     case 'world': drawWorld(); break;
     case 'battle': drawBattle(); break;
     case 'menu': drawPauseMenu(); break;
