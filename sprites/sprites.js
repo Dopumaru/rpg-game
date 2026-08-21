@@ -1171,6 +1171,133 @@ const ENEMY_ART = {
       '................',
       '................']
   },
+  // Yuki-onna (mulher da neve)
+  yukionna: {
+    pal: { O: '#0a1c2e', H: '#eef8ff', p: '#cfe9ff', E: '#16324a', W: '#eaffff', P: '#8fd0ff' },
+    rows: [
+      '................',
+      '....HHHHHHHH....',
+      '...HHHHHHHHHH...',
+      '..OHHpppppHHO...',
+      '..OHppppppppO...',
+      '..OpEWppppEWpO..',
+      '..OpEEppppEEpO..',
+      '..OppppppppppO..',
+      '..OpppWWWWpppO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '..OPPPPPPPPPPO..',
+      '...OPPPPPPPPO...',
+      '....OPOPPOPO....',
+      '.....O.OO.O.....',
+      '................']
+  },
+  // Rokurokubi (pescoço extensível)
+  rokuro: {
+    pal: { O: '#170f22', W: '#f2e2d2', w: '#3a2050', Y: '#ff6060', R: '#c02020', E: '#170f22' },
+    rows: [
+      '................',
+      '....OOOOOOOO....',
+      '...OWWWWWWWWO...',
+      '..OWWWWWWWWWWO..',
+      '..OWEYWWWWEYWO..',
+      '..OWERWWWWERWO..',
+      '..OWWWWWWWWWWO..',
+      '..OWWWwwwwWWWO..',
+      '...OWWwYYwWWO...',
+      '....OwwwwwwO....',
+      '...OwwOwwOwwO...',
+      '..OwwOwwwwOwwO..',
+      '..OO..OwwO..OO..',
+      '.....OwOOwO.....',
+      '.....OO..OO.....',
+      '................']
+  },
+  // Nue (quimera)
+  nue: {
+    pal: { O: '#1c1408', c: '#d8b878', C: '#8a6a34', R: '#ff7a2a', W: '#fff4d8' },
+    rows: [
+      '................',
+      '..OO.......OO...',
+      '..OcO.....OcO...',
+      '..OccO...OccO...',
+      '..OcccOOOccccO..',
+      '..OccccccccccO..',
+      '.OcRWccccccRWcO.',
+      '.OccccccccccccO.',
+      '.OcccWWWWcccccO.',
+      '..OCCCCCCCCCCCO.',
+      '..OCCCCCCCCCCO..',
+      '..OCCOCCOCCCO...',
+      '..OCO.OCO.OCO...',
+      '..OO..OO..OO....',
+      '................',
+      '................']
+  },
+  // MINI-CHEFES
+  // Aranha-Rainha
+  aranharainha: {
+    pal: { O: '#1a0a24', D: '#4a1f5c', d: '#8a4aa8', R: '#ff3a5a', W: '#ffffff', S: '#f0d080' },
+    rows: [
+      '................',
+      '.O.O......O.O...',
+      '..OdO....OdO....',
+      '.OdddO..OdddO...',
+      '.OddOOOOOOddO...',
+      '..OdOSSSSOdO....',
+      '.OddOSSSSSOddO..',
+      '.OddSRWSSRWSddO.',
+      '.OddSSSSSSSSddO.',
+      '.OddDDDDDDDDddO.',
+      '.OdDDDWWWWDDDdO.',
+      '..ODDDDDDDDDDO..',
+      '.OdO.OOOOOO.OdO.',
+      '.OdO........OdO.',
+      '.OO..........OO.',
+      '................']
+  },
+  // Tengu Veterano
+  tenguveterano: {
+    pal: { O: '#200a08', B: '#5a1a1a', b: '#c83030', S: '#e0a878', Y: '#e8c050', R: '#ff3030', W: '#ffffff', H: '#241414' },
+    rows: [
+      '................',
+      '......HHHH......',
+      '.....HbbbbH.....',
+      '.O..OHSSSSHO..O.',
+      'OBO.OSRWWRSO.OBO',
+      'OBBO.OSYYSO.OBBO',
+      'OBbBOOSSSSOOBbBO',
+      'OBbbBObbbbOBbbBO',
+      'OBbbbBbbbbBbbbBO',
+      '.OBbbBbbbbBbbBO.',
+      '..OBbBbbbbBbBO..',
+      '...OBObbbbOBO...',
+      '....OObbbbOO....',
+      '.....ObbbbO.....',
+      '.....OYOOYO.....',
+      '.....OO..OO.....']
+  },
+  // General Oni
+  onigeneral: {
+    pal: { O: '#0a0a0a', G: '#7a1818', g: '#b83030', B: '#141414', W: '#fff8e0', E: '#0a0a0a', Y: '#f0c050' },
+    rows: [
+      '................',
+      '..Y..OOOOOO..Y..',
+      '..YOOGGGGGGOOY..',
+      '..OGGGGGGGGGGO..',
+      '.OGgGGGGGGGGgGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGGGGGGGGGGGO.',
+      '.OGGWWWWWWWWGGO.',
+      '.OGGWOWOOWOWGGO.',
+      '..OGGGGGGGGGGO..',
+      '..OGBBBBBBBBGO..',
+      '.OGgBBBBBBBBgGO.',
+      '.OGGBBOOOOBBGGO.',
+      '..OOBBO..OBBOO..',
+      '...OOO....OOO...']
+  },
   // CHEFES
   // Rei Slime → Nurarihyon (mestre dos youkai)
   reislime: {
@@ -1250,6 +1377,69 @@ const ENEMY_ART = {
       '.....OYYRRO..ORRYYO.....',
       '......OOOO....OOOO......',
       '........................']
+  },
+  // Amanojaku (espírito da contrariedade)
+  amanojaku: {
+    pal: { O: '#0a0e22', B: '#1a2a6a', Y: '#e8c050', G: '#3a5adb', g: '#6a8aff', W: '#fff8e0', E: '#0a0e22' },
+    rows: [
+      '................',
+      '.....OOOOOO.....',
+      '....OBBBBBBO....',
+      '...OBYYYYYYBO...',
+      '..OOGGGGGGGGOO..',
+      '.OGgGGGGGGGGgGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGGGGGGGGGGGO.',
+      '..OGGGWWWWGGGO..',
+      '..OGgGGGGGGgGO..',
+      '...OGGBBBBGGO...',
+      '...OGgBBBBgGO...',
+      '....OOBBBBOO....',
+      '.....OBOOBO.....',
+      '.....OO..OO.....']
+  },
+  // Yamauba (bruxa da montanha)
+  yamauba: {
+    pal: { O: '#1a1008', W: '#d8d0c0', w: '#3a2818', E: '#1a1008', R: '#c03030' },
+    rows: [
+      '................',
+      '....OOOOOOOO....',
+      '...OWWWWWWWWO...',
+      '..OWWWWWWWWWWO..',
+      '..OWEEWWWWEEWO..',
+      '..OWERWWWWERWO..',
+      '..OWEEWWWWEEWO..',
+      '..OWWWWWWWWWWO..',
+      '...OWWEWWEWWO...',
+      '....OWWWWWWO....',
+      '.....OwwwwO.....',
+      '...OwwOwwOww O..',
+      '..OwOOwwwwOOwO..',
+      '..OO..OwwO..OO..',
+      '.....OwOOwO.....',
+      '.....OO..OO.....']
+  },
+  // Tsuchigumo (aranha da terra)
+  tsuchigumo: {
+    pal: { O: '#0a0605', D: '#4a1410', d: '#8a2a1c', R: '#ff2020', W: '#fff0e0', S: '#c89060' },
+    rows: [
+      '................',
+      '.O.O......O.O...',
+      '..OdO....OdO....',
+      '.OdddO..OdddO...',
+      '.OddOOOOOOddO...',
+      '..OdOSSSSOdO....',
+      '.OddOSSSSSOddO..',
+      '.OddSRWSSRWSddO.',
+      '.OddSSSSSSSSddO.',
+      '.OddDDDDDDDDddO.',
+      '.OdDDDWWWWDDDdO.',
+      '..ODDDDDDDDDDO..',
+      '.OdO.OOOOOO.OdO.',
+      '.OdO........OdO.',
+      '.OO..........OO.',
+      '................']
   }
 };
 
