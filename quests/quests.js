@@ -44,6 +44,15 @@ const QUESTS = {
     ouro: 120, xp: 110,
     oferta: 'Ancião Genzo:\nOs Kappa arrastam quem chega perto\nda água. Cinco a menos já ajuda.',
     fim: 'Ancião Genzo:\nAs crianças podem voltar ao rio.\nVocê tem o agradecimento da vila.',
+    proxima: 'q_lobos'
+  },
+  q_lobos: {
+    nome: 'Lobos do planalto', npc: 'anciao', nivel: 3,
+    tipo: 'matar', alvo: 'lobo', qtd: 5,
+    local: [90, 35], dica: 'Planalto do Norte, na trilha alta',
+    ouro: 95, xp: 85,
+    oferta: 'Ancião Genzo:\nOs Okuri-inu cercam quem sobe\nsozinho a trilha do norte. Ajude\nquem ainda precisa subir.',
+    fim: 'Ancião Genzo:\nA trilha está mais segura agora.\nBoa caçada, jovem guerreiro.',
     proxima: 'q_nurarihyon'
   },
   q_nurarihyon: {
@@ -52,7 +61,16 @@ const QUESTS = {
     local: [28, 74], dica: 'Bosque de Bambu, a oeste',
     ouro: 300, xp: 260, item: 'elixir',
     oferta: 'Ancião Genzo:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono.\nExpulse-o do bambuzal.',
-    fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.'
+    fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.',
+    proxima: 'q_bounty_arrozal'
+  },
+  q_bounty_arrozal: {
+    nome: 'Caça-recompensa: Arrozal', npc: 'anciao', nivel: 4, repetivel: true,
+    tipo: 'matar', alvo: 'goblin', qtd: 8,
+    local: [72, 90], dica: 'Campos de Arroz — sempre há mais um Kappa',
+    ouro: 90, xp: 70,
+    oferta: 'Ancião Genzo:\nOs Kappa voltam sempre. Enquanto\nhouver rio, haverá trabalho pra\nquem tem coragem.',
+    fim: 'Ancião Genzo:\nMais alguns dias de paz. Volte\nquando quiser — o rio não seca.'
   },
   q_ferro: {
     nome: 'Ferro para a forja', npc: 'ferreira', nivel: 3,
@@ -69,7 +87,16 @@ const QUESTS = {
     local: [116, 36], dica: 'Planalto do Norte',
     ouro: 240, xp: 220, item: 'pocaoG',
     oferta: 'Ferreira Sae:\nOs Tengu levam o minério que\nsobe pela trilha. Cinco penas\nmenos no céu resolvem.',
-    fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.'
+    fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.',
+    proxima: 'q_bounty_minerio'
+  },
+  q_bounty_minerio: {
+    nome: 'Encomenda: Ferro Extra', npc: 'ferreira', nivel: 5, repetivel: true,
+    tipo: 'coletar', alvo: 'ferro', qtd: 6,
+    local: [140, 60], dica: 'Oni e Doro-ningyo sempre soltam mais',
+    ouro: 110, xp: 90,
+    oferta: 'Ferreira Sae:\nA forja nunca para. Sempre que\ntrouxer ferro, eu compenso.',
+    fim: 'Ferreira Sae:\nBoa remessa. Volte quando quiser\n— o fole segue aceso.'
   },
   q_yurei: {
     nome: 'O choro do templo', npc: 'monge', nivel: 6,
@@ -86,7 +113,25 @@ const QUESTS = {
     local: [164, 110], dica: 'Templo Abandonado, a leste',
     ouro: 460, xp: 420, item: 'elixir',
     oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nO que ele virou já não é irmão\nde ninguém. Termine isso.',
-    fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir.'
+    fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir.',
+    proxima: 'q_orochi'
+  },
+  q_orochi: {
+    nome: 'A serpente das oito cabeças', npc: 'monge', nivel: 9,
+    tipo: 'matar', alvo: 'dragao', qtd: 1,
+    local: [96, 19], dica: 'Caverna de Orochi, no covil final',
+    ouro: 700, xp: 650, item: 'elixir',
+    oferta: 'Monge Eikan:\nKagemaru só invocou a sombra.\nA fonte dorme na caverna do norte.\nSele-a, ou tudo isso se repete.',
+    fim: 'Monge Eikan:\nYamata-no-Orochi caiu. Que este\nvale durma em paz, enfim.',
+    proxima: 'q_bounty_exorcismo'
+  },
+  q_bounty_exorcismo: {
+    nome: 'Rito contínuo: Exorcismo', npc: 'monge', nivel: 8, repetivel: true,
+    tipo: 'matar', alvo: 'fantasma', qtd: 8,
+    local: [160, 105], dica: 'Templo Abandonado — os Yurei sempre voltam',
+    ouro: 160, xp: 140,
+    oferta: 'Monge Eikan:\nAs almas inquietas não têm fim.\nCada exorcismo é um alívio, ainda\nque temporário.',
+    fim: 'Monge Eikan:\nMais uma alma em paz. Sempre\nhaverá outra, infelizmente.'
   }
 };
 function questsDoNPC(npcId) { return Object.keys(QUESTS).filter(q => QUESTS[q].npc === npcId); }
@@ -120,7 +165,9 @@ const QUEST_PET_REWARD = { q_ferro: 'yamawaro', q_nurarihyon: 'nekomata', q_teng
 function entregaQuest(id) {
   const q = QUESTS[id];
   delete P.quests.ativas[id];
-  P.quests.feitas.push(id);
+  // repetível nunca entra em "feitas" — assim volta a ser oferecida
+  // sempre que o jogador quiser (farm), sem se contar como concluída
+  if (!q.repetivel) P.quests.feitas.push(id);
   P.gold += q.ouro;
   const itemCheio = q.item && (P.items[q.item] || 0) >= ITEM_CAP;
   if (q.item && !itemCheio) P.items[q.item] = (P.items[q.item] || 0) + 1;
@@ -132,7 +179,8 @@ function entregaQuest(id) {
   if (ups.length) txt += '\nNÍVEL ' + ups[ups.length - 1] + '!';
   showMsg(txt);
   if (QUEST_PET_REWARD[id]) awardPet(QUEST_PET_REWARD[id]);
-  if (P.quests.feitas.length >= Object.keys(QUESTS).length) awardPet('byakko');
+  const principais = Object.keys(QUESTS).filter(k => !QUESTS[k].repetivel);
+  if (principais.every(k => P.quests.feitas.includes(k))) awardPet('byakko');
   saveGame();
 }
 // avanço por tipo de objetivo
@@ -165,12 +213,35 @@ function questFoco() {
   const pronta = ids.find(id => questCompleta(id));
   return pronta || ids[0];
 }
-// para onde a seta aponta: o alvo da missão ou o NPC, quando já está pronta
+// youkai vivo mais próximo do jogador entre os tipos dados (mapa atual);
+// null se nenhum estiver de pé agora — usado pra apontar a seta pro alvo
+// individual mais perto, não pra um ponto fixo do mapa
+function mobVivoMaisPerto(tipos) {
+  let melhor = null, melhorD2 = Infinity;
+  for (const e of G.entities || []) {
+    if (!tipos.includes(e.type)) continue;
+    const d2 = (e.x - P.x) ** 2 + (e.y - P.y) ** 2;
+    if (d2 < melhorD2) { melhorD2 = d2; melhor = e; }
+  }
+  return melhor;
+}
+// quais youkai soltam este material — usado pra guiar missões de coleta
+function mobsQueDropam(mat) { return Object.keys(ENEMIES).filter(k => ENEMIES[k].mat === mat && !ENEMIES[k].boss); }
+// para onde a seta aponta: o youkai vivo mais próximo (missão de matar/
+// coletar), o NPC quando já está pronta pra entregar, ou o ponto fixo da
+// região como último recurso (nenhum alvo vivo por perto agora)
 function alvoDaQuest(id) {
   const q = QUESTS[id];
   if (questCompleta(id)) {
     const n = (G.npcs || []).find(v => v.id === q.npc);
-    if (n) return [n.x / TILE, n.y / TILE];
+    return n ? [n.x / TILE, n.y / TILE] : q.local;
+  }
+  if (q.tipo === 'matar') {
+    const alvo = mobVivoMaisPerto([q.alvo]);
+    if (alvo) return [alvo.x / TILE, alvo.y / TILE];
+  } else if (q.tipo === 'coletar') {
+    const alvo = mobVivoMaisPerto(mobsQueDropam(q.alvo));
+    if (alvo) return [alvo.x / TILE, alvo.y / TILE];
   }
   return q.local;
 }
