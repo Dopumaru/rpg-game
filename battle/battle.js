@@ -100,6 +100,7 @@ function equipSkill(id, replaceIdx) {
   if (replaceIdx !== undefined && replaceIdx !== null && s[replaceIdx]) s[replaceIdx] = id;
   else if (s.length < MAX_SKILLS) s.push(id);
   else return false;
+  marcaTutorial('tecnica');
   return true;
 }
 // ações disponíveis em batalha: ataque básico + técnicas equipadas
@@ -262,6 +263,7 @@ function startTurnHeal(b) {
 }
 function endBattleWin(b) {
   G.stats.kills++;
+  marcaTutorial('batalha');
   const e = b.enemy;
   const xpGain = Math.round(e.xp * (P.activePet === 'kotodama' ? 1.2 : 1));   // Palavra de Poder
   const ups = gainXP(xpGain);

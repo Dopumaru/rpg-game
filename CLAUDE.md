@@ -766,6 +766,90 @@ pós-extração
 - Decisão do usuário: instalar mesmo assim (`graphify claude install`,
   modo padrão/não-strict).
 
+### 2026-08-21 — Missão principal (tutorial) + diário de missões (J) +
+limite de uma missão secundária por vez; investigação de flakiness
+recorrente em `pesca-mapa` sob suíte completa
+
+- Implementado por pedido explícito do usuário: uma cadeia `q_main`
+  sempre ativa desde o início (12 passos cobrindo movimento/corrida,
+  falar com NPC, aceitar missão, menu, equipar, mapa, pescar,
+  encantar, pet, técnica, loja, batalha), com recompensa simbólica por
+  passo (15–25 ouro/XP) e sem NPC dono — não ocupa a vaga de missão
+  secundária. 5 dos 12 passos são detectados por estado já existente
+  sem gancho novo (`P.peixes.length`, `Object.keys(P.ench).length`,
+  `P.pets.length`, `P.quests.ativas`/`feitas`); os outros 7 precisam
+  de `marcaTutorial(id)` no ponto exato da ação (`world.js`,
+  `quests.js:conversaNPC`, `index.html:equipFromInv`,
+  `battle.js:equipSkill`, `shop.js:updateShop`,
+  `battle.js:endBattleWin`). Novo estado `questlog` (tecla J) mostra a
+  missão principal e a secundária ativa, com `desistirQuest()` (Q)
+  liberando a vaga sem contar como feita. `conversaNPC()` agora
+  bloqueia oferecer uma nova missão secundária enquanto outra está
+  ativa (`questAtivas().length > 0`) — mudança de comportamento real:
+  antes o jogador podia acumular várias ativas ao mesmo tempo (o HUD
+  chegou a ter um badge "+N" pra isso, removido nesta mudança por
+  ficar morto com o novo limite).
+- **Bug real encontrado e corrigido durante o teste**: o passo
+  'batalha' tentou usar `G.stats.kills > 0` como sinal derivado (sem
+  gancho), mas `G.stats` não é reiniciado por `newPlayer()`/
+  `DBG.start()` — só por `loadGame()`. Numa suíte completa (unidades
+  rodando em sequência na mesma aba, sem reload entre elas),
+  `G.stats.kills` de uma unidade anterior (`cadeia-progressao`, cheia
+  de batalhas) vazava para `npcs-missoes`, fazendo o teste "tutorial
+  começa com nenhum passo feito" falhar com 'batalha' já `true` antes
+  de qualquer ação. Corrigido trocando para gancho explícito
+  (`marcaTutorial('batalha')` em `endBattleWin()`), consistente com os
+  outros 7 passos não-derivados. Confirmado por 2 execuções seletivas
+  limpas depois da correção.
+- **Investigação de flakiness em `--only=pesca-mapa` sob suíte
+  completa** (não confirmada como causada por este pedido, mas
+  bloqueava o gate): "encarar a água e apertar Z inicia a pesca"
+  falhou em 4 de 5 execuções da suíte completa nesta sessão, sempre
+  como a única ou principal falha, mas **nunca** falhou em 3
+  execuções isoladas de `--only=pesca-mapa` (32/32 todas as vezes,
+  com o mesmo código). Hipóteses eliminadas por evidência direta: (1)
+  processo/memória vazando entre execuções — `ps aux`/`free -m` logo
+  após uma falha mostraram 0 processos Chromium remanescentes e
+  ~14.5GB livres de 16GB, descartando vazamento de recursos entre
+  chamadas de Bash; (2) sobreposição de código com as mudanças desta
+  sessão — o teto de tutorial (`P.quests.mainPaid`) foi
+  proativamente zerado nesse ponto via `DBG.skipTutorial()` (ver
+  abaixo), então `updateMainQuest()` não faz nada nessa unidade;
+  câmera/movimento de mob não têm relação com a lógica de
+  `facingTile()`/`iniciaPesca()`, que lê `P.x/P.y/P.dir` setados
+  diretamente por `DBG.teleport()`. Conclusão (confiança
+  moderada-alta, não 100% confirmada por não ter isolado a causa
+  exata dentro do motor): degradação de timing acumulada dentro de
+  uma única sessão longa de Chromium com WebGL por software (a mesma
+  causa-raiz já documentada para outras flakiness deste projeto),
+  agravada por rodar a unidade tarde na sequência (5ª e mais pesada em
+  frames renderizados até então), não por vazamento de processo entre
+  chamadas. Ação tomada: adicionado um `ateQue` de assentamento
+  (`state==='world' && fadeDir===0`) depois do teleporte e antes do
+  Z, mais um retry único de Z se o primeiro não registrar dentro de
+  800ms — mesma técnica já recomendada (mas nunca implementada) no
+  achado de 2026-08-19 sobre a cascata de pesca, aplicada aqui pela
+  primeira vez. Não enfraquece a asserção: o estado final continua
+  checado normalmente, só a entrega do input ficou tolerante a um
+  frame perdido. Confirmado com suíte completa 100% limpa
+  (210/210, 0 erros de JS) na execução seguinte.
+- **Harness**: `DBG.skipTutorial()` novo — marca todos os 12 passos
+  como já pagos sem conceder ouro/XP, chamado logo após cada
+  `clearSave()+start()` (5 pontos: os 4 já existentes +
+  criação de personagem real em `cadeia-progressao`) pra isolar os
+  200 checks pré-existentes do novo sistema de tutorial, que também
+  paga ouro em segundo plano. Sem essa isolação, "entregar a missão
+  paga ouro" (assert de delta exato de ouro) quebrava por causa do
+  bônus de "aceitar" do tutorial (+20) somando ao valor esperado.
+  8 checks novos dedicados ao tutorial/diário adicionados em
+  `npcs-missoes`, com reset próprio e sem `skipTutorial()` (é
+  exatamente o que testam).
+- Contagem de checks da suíte completa: 202 → 210 (+8, todos na nova
+  seção do tutorial/diário dentro de `npcs-missoes`).
+- **Compêndio Youkai**: esta mudança adiciona uma missão nova
+  (`q_main`) — lembrete de que o compêndio publicado ainda não reflete
+  isso; oferecido ao usuário, atualização pendente de pedido.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

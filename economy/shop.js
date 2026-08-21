@@ -278,11 +278,11 @@ function updateShop() {
     const e = shopEntry(stock[G.shopIdx]);
     if (P.gold >= e.price) {
       if (e.kind === 'item') {
-        if (P.items[e.id] < ITEM_CAP) { P.gold -= e.price; P.items[e.id]++; AU.sfx('coin'); saveGame(); }
+        if (P.items[e.id] < ITEM_CAP) { P.gold -= e.price; P.items[e.id]++; AU.sfx('coin'); marcaTutorial('loja'); saveGame(); }
         else { toast('Mochila de itens cheia!'); AU.sfx('back'); }
       } else {
         if (P.equipInv.length < 18) {
-          P.gold -= e.price; P.equipInv.push(e.id); AU.sfx('coin'); saveGame();
+          P.gold -= e.price; P.equipInv.push(e.id); AU.sfx('coin'); marcaTutorial('loja'); saveGame();
           if (G.shopId === 'mascate' && G.shopNPC) {
             if (G.shopNPC.id === 'merc_sanzo' && Math.random() < 0.05) awardPetChance('nekomatinha');
             if (EQUIP[e.id].rar === 'raro' && Math.random() < 0.04) awardPetChance('kodama');
