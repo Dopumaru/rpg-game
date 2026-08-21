@@ -4721,16 +4721,33 @@ function drawParticles(screenLayer) {
 // ---------- Fade / efeitos ----------
 function fadeTo(cb) {
   if (G.fadeDir !== 0) return;
-  G.fadeDir = 1; G.fadeCb = cb;
+  G.fadeDir = 1; G.fadeCb = cb; G.fadeT = 0;
 }
+// suaviza a curva (ease-in-out) sem mudar a duração real da transição —
+// G.fadeT é o progresso linear (o que decide quando o callback dispara),
+// G.fade é só o alfa desenhado, derivado dele
+const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 function updateFade(dt) {
   if (G.fadeDir === 1) {
-    G.fade += dt * 3;
-    if (G.fade >= 1) { G.fade = 1; if (G.fadeCb) G.fadeCb(); G.fadeCb = null; G.fadeDir = -1; }
+    G.fadeT = Math.min(1, (G.fadeT || 0) + dt * 3);
+    G.fade = easeInOutCubic(G.fadeT);
+    if (G.fadeT >= 1) { if (G.fadeCb) G.fadeCb(); G.fadeCb = null; G.fadeDir = -1; G.fadeT = 0; }
   } else if (G.fadeDir === -1) {
-    G.fade -= dt * 3;
-    if (G.fade <= 0) { G.fade = 0; G.fadeDir = 0; }
+    G.fadeT = Math.min(1, (G.fadeT || 0) + dt * 3);
+    G.fade = 1 - easeInOutCubic(G.fadeT);
+    if (G.fadeT >= 1) { G.fade = 0; G.fadeDir = 0; }
   }
+}
+// telas de UI (menu, loja, altar, diálogos) ganham um véu curto ao abrir,
+// em vez de aparecer instantaneamente — puramente visual, não atrasa a
+// troca de estado em si (G.state já mudou no mesmo frame do input)
+const VEIL_STATES = new Set(['menu', 'shop', 'enchant', 'confirm', 'quest', 'learn']);
+const VEIL_DUR = 0.18;
+function drawStateVeil() {
+  if (!VEIL_STATES.has(G.state) || G.stateT >= VEIL_DUR) return;
+  const k = 1 - easeInOutCubic(clamp(G.stateT / VEIL_DUR, 0, 1));
+  ctx.fillStyle = 'rgba(6,4,12,' + (k * 0.55) + ')';
+  ctx.fillRect(0, 0, VW, VH);
 }
 function addFloater(x, y, txt, color) {
   G.floaters.push({ x, y, txt, color, t: 0 });
@@ -5044,6 +5061,8 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000 || 0.016);
   lastT = now;
   G.time += dt;
+  if (G.state !== G._prevState) { G.stateT = 0; G._prevState = G.state; }
+  else G.stateT = (G.stateT || 0) + dt;
   AU.update(dt);
   updateFade(dt);
 
@@ -5119,6 +5138,7 @@ function frame(now) {
     }
   }
   if (G.msgQueue.length && G.state === 'world') drawDialog();
+  drawStateVeil();
   // toasts
   if (G.state !== 'battle') G.toasts.forEach((t, i) => {
     ctx.font = '7px monospace';
