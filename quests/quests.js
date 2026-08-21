@@ -62,6 +62,24 @@ const QUESTS = {
     ouro: 300, xp: 260, item: 'elixir',
     oferta: 'Ancião Genzo:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono.\nExpulse-o do bambuzal.',
     fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.',
+    proxima: 'q_aranharainha'
+  },
+  q_aranharainha: {
+    nome: 'A rainha do bambuzal', npc: 'anciao', nivel: 5,
+    tipo: 'matar', alvo: 'aranharainha', qtd: 1,
+    local: [42, 78], dica: 'Bosque de Bambu, no fundo da teia',
+    ouro: 200, xp: 170,
+    oferta: 'Ancião Genzo:\nUma rainha teceu sua teia no\nfundo do bambuzal. Ninguém que\nentra lá volta com a roupa limpa.',
+    fim: 'Ancião Genzo:\nA teia caiu com ela. O bambuzal\nrespira sem fios agora.',
+    proxima: 'q_amanojaku'
+  },
+  q_amanojaku: {
+    nome: 'O espírito da contrariedade', npc: 'anciao', nivel: 6,
+    tipo: 'matar', alvo: 'amanojaku', qtd: 1,
+    local: [100, 108], dica: 'Campos de Arroz, onde a colheita desandou',
+    ouro: 340, xp: 300, item: 'pocaoG',
+    oferta: 'Ancião Genzo:\nAmanojaku virou nossa colheita\nde cabeça para baixo só por\nteimosia. Ensine-o o contrário.',
+    fim: 'Ancião Genzo:\nO arroz volta a crescer para cima.\nVocê fez o impossível parecer fácil.',
     proxima: 'q_bounty_arrozal'
   },
   q_bounty_arrozal: {
@@ -88,6 +106,24 @@ const QUESTS = {
     ouro: 240, xp: 220, item: 'pocaoG',
     oferta: 'Ferreira Sae:\nOs Tengu levam o minério que\nsobe pela trilha. Cinco penas\nmenos no céu resolvem.',
     fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.',
+    proxima: 'q_tenguveterano'
+  },
+  q_tenguveterano: {
+    nome: 'O senhor do ninho alto', npc: 'ferreira', nivel: 6,
+    tipo: 'matar', alvo: 'tenguveterano', qtd: 1,
+    local: [120, 34], dica: 'Planalto do Norte, no ninho alto',
+    ouro: 260, xp: 230,
+    oferta: 'Ferreira Sae:\nUm Tengu veterano lidera os que\nroubam minério do meu ninho. Corte\na cabeça e o resto se dispersa.',
+    fim: 'Ferreira Sae:\nO ninho está quieto. O minério\nvolta a descer a trilha em paz.',
+    proxima: 'q_yamauba'
+  },
+  q_yamauba: {
+    nome: 'A bruxa da montanha', npc: 'ferreira', nivel: 9,
+    tipo: 'matar', alvo: 'yamauba', qtd: 1,
+    local: [150, 80], dica: 'Floresta de Aokigahara, na cabana torta',
+    ouro: 420, xp: 380, item: 'elixir',
+    oferta: 'Ferreira Sae:\nUma bruxa da montanha amaldiçoa\nquem sobe até a Aokigahara.\nMinhas peças mais finas esperam\nquem quebrar essa maldição.',
+    fim: 'Ferreira Sae:\nA maldição se foi com ela.\nEssa forja te deve muito.',
     proxima: 'q_bounty_minerio'
   },
   q_bounty_minerio: {
@@ -105,6 +141,15 @@ const QUESTS = {
     ouro: 280, xp: 250,
     oferta: 'Monge Eikan:\nOs Yurei não descansam porque\nninguém rezou por eles. Se a reza\nnão serve, sirva a lâmina.',
     fim: 'Monge Eikan:\nO templo silenciou.\nQue eles encontrem o caminho.',
+    proxima: 'q_onigeneral'
+  },
+  q_onigeneral: {
+    nome: 'O portão de ossos', npc: 'monge', nivel: 7,
+    tipo: 'matar', alvo: 'onigeneral', qtd: 1,
+    local: [160, 102], dica: 'Templo Abandonado, no portão quebrado',
+    ouro: 300, xp: 260,
+    oferta: 'Monge Eikan:\nUm general Oni ergueu um portão\nde ossos no templo. Enquanto ele\nrespirar, os Yurei não descansam.',
+    fim: 'Monge Eikan:\nO portão caiu em pó.\nOs mortos agradecem, em silêncio.',
     proxima: 'q_kagemaru'
   },
   q_kagemaru: {
@@ -123,6 +168,15 @@ const QUESTS = {
     ouro: 700, xp: 650, item: 'elixir',
     oferta: 'Monge Eikan:\nKagemaru só invocou a sombra.\nA fonte dorme na caverna do norte.\nSele-a, ou tudo isso se repete.',
     fim: 'Monge Eikan:\nYamata-no-Orochi caiu. Que este\nvale durma em paz, enfim.',
+    proxima: 'q_tsuchigumo'
+  },
+  q_tsuchigumo: {
+    nome: 'A última teia', npc: 'monge', nivel: 10,
+    tipo: 'matar', alvo: 'tsuchigumo', qtd: 1,
+    local: [10, 15], dica: 'Caverna de Orochi, na teia mais profunda',
+    ouro: 550, xp: 500, item: 'elixir',
+    oferta: 'Monge Eikan:\nOrochi caiu, mas algo maior ainda\ntece na escuridão da caverna.\nTsuchigumo. Termine o que\ncomeçamos.',
+    fim: 'Monge Eikan:\nA última teia se rompeu.\nEste vale finalmente descansa.',
     proxima: 'q_bounty_exorcismo'
   },
   q_bounty_exorcismo: {

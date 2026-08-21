@@ -195,11 +195,17 @@ function enterMap(name, px, py) {
   spawnEnemies(true);
   if (name === 'cave') {
     if (!G.flags.dragao) G.entities.push(makeEntity('dragao', 18 * TILE, 4 * TILE, 12, true));
+    if (!G.flags.tsuchigumo) G.entities.push(makeEntity('tsuchigumo', 10 * TILE, 15 * TILE, 11, true));
     G.region = 'Caverna de Orochi';
     toast('Caverna de Orochi');
   } else {
     if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 28 * TILE, 74 * TILE, 5, true));
     if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 164 * TILE, 110 * TILE, 8, true));
+    if (!G.flags.amanojaku) G.entities.push(makeEntity('amanojaku', 100 * TILE, 108 * TILE, 6, true));
+    if (!G.flags.yamauba) G.entities.push(makeEntity('yamauba', 150 * TILE, 80 * TILE, 9, true));
+    if (!G.flags.aranharainha) G.entities.push(makeEntity('aranharainha', 42 * TILE, 78 * TILE, 5, true));
+    if (!G.flags.tenguveterano) G.entities.push(makeEntity('tenguveterano', 120 * TILE, 34 * TILE, 6, true));
+    if (!G.flags.onigeneral) G.entities.push(makeEntity('onigeneral', 160 * TILE, 102 * TILE, 7, true));
     G.region = null;
   }
   AU.setTrack(name === 'cave' ? AU.CAVE : AU.WORLD);
@@ -210,10 +216,10 @@ const SPAWN_ZONES = {
   overworld: [
     { x1: 12, y1: 64, x2: 140, y2: 122, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 8,
       exclude: [{ x1: 22, y1: 86, x2: 58, y2: 114 }, { x1: 10, y1: 62, x2: 54, y2: 86 }] },
-    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin'], lv: [3, 5], count: 6 },
-    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia'], lv: [4, 6], count: 8,
+    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin', 'rokuro'], lv: [3, 5], count: 6 },
+    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 8,
       exclude: [{ x1: 130, y1: 24, x2: 170, y2: 50 }] },
-    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia'], lv: [5, 7], count: 7 },
+    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 7 },
     { x1: 148, y1: 100, x2: 180, y2: 120, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 6 }
   ],
   cave: [

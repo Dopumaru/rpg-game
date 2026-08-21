@@ -4370,9 +4370,21 @@ const ENEMIES = {
   harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, mat: 'seda', loot: ['arc7', 'arc8', 'bot7', 'arc9', 'bot8', 'luv9', 'arc10', 'bot9', 'elm7'], skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
   golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, mat: 'ferro', loot: ['arm13', 'bot6', 'luv7', 'bot3', 'arm16', 'elm11', 'luv3', 'amu12'], skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
   elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, mat: 'jade', loot: ['caj8', 'caj9', 'caj10', 'ada9', 'amu11', 'caj11', 'ada10', 'elm12'], skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
+  // mobs comuns novos (escalam com o nível como os demais)
+  yukionna:   { name: 'Yuki-onna',      hp: 44, atk: 15, def: 7,  spd: 6,  xp: 34, gold: [15, 26], drop: 0.35, tier: 3, mat: 'jade', loot: ['caj9', 'amu11', 'bot8', 'elm3'], skill: { name: 'Sopro Glacial', mult: 1.5, chance: 0.3 } },
+  rokuro:     { name: 'Rokurokubi',     hp: 28, atk: 11, def: 3,  spd: 9,  xp: 22, gold: [10, 18], drop: 0.32, tier: 2, mat: 'seda', loot: ['amu9', 'luv9', 'elm4', 'arm17'], skill: { name: 'Pescoço Extensível', mult: 1.4, chance: 0.3 } },
+  nue:        { name: 'Nue',            hp: 48, atk: 16, def: 6,  spd: 10, xp: 42, gold: [18, 30], drop: 0.36, tier: 3, mat: 'osso', loot: ['arc9', 'bot9', 'caj9', 'ada9', 'elm7'], skill: { name: 'Grito da Quimera', mult: 1.6, chance: 0.32 } },
+  // mini-chefes (stats fixos como os chefes, mas sem item-assinatura
+  // garantido — só ouro/material bônus em endBattleWin — e não bloqueiam fuga)
+  aranharainha:   { name: 'Aranha-Rainha',       hp: 130, atk: 20, def: 9,  spd: 10, xp: 150, gold: [45, 65], drop: 0.55, tier: 3, mat: 'seda', mini: true, loot: ['ada4', 'arm17', 'arc9', 'luv9'], skill: { name: 'Fiada Mortal', mult: 1.6, chance: 0.35, poison: true } },
+  tenguveterano:  { name: 'Tengu Veterano',      hp: 150, atk: 23, def: 8,  spd: 14, xp: 170, gold: [50, 72], drop: 0.55, tier: 3, mat: 'seda', mini: true, loot: ['arc10', 'bot9', 'luv9', 'elm7'], skill: { name: 'Rajada do Tengu-ō', mult: 1.7, chance: 0.35 } },
+  onigeneral:     { name: 'General Oni',         hp: 190, atk: 26, def: 12, spd: 8,  xp: 200, gold: [60, 85], drop: 0.58, tier: 3, mat: 'ferro', mini: true, loot: ['esp11', 'arm16', 'elm11', 'luv3'], skill: { name: 'Investida do Kanabo', mult: 1.8, chance: 0.35 } },
   // chefes (stats fixos, drop assinatura garantido)
   reislime:   { name: 'Nurarihyon',     hp: 95,  atk: 15, def: 5,  spd: 4, xp: 120, gold: [70, 90],   drop: 1, tier: 3, mat: 'seda', boss: true, sig: 'elm5', skill: { name: 'Ordem dos Youkai', mult: 1.6, chance: 0.3 } },
+  amanojaku:  { name: 'Amanojaku',      hp: 130, atk: 22, def: 9,  spd: 9, xp: 180, gold: [100, 130], drop: 1, tier: 3, mat: 'jade', boss: true, sig: 'luv5', skill: { name: 'Espírito da Contrariedade', mult: 1.7, chance: 0.35 } },
   necromante: { name: 'Kagemaru, o Onmyoji Negro', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, mat: 'jade', boss: true, sig: 'amu4', skill: { name: 'Shikigami Sombrio', mult: 1.8, chance: 0.4 } },
+  yamauba:    { name: 'Yamauba',        hp: 230, atk: 27, def: 11, spd: 7, xp: 280, gold: [150, 190], drop: 1, tier: 4, mat: 'osso', boss: true, sig: 'arm7', skill: { name: 'Maldição da Bruxa da Montanha', mult: 1.9, chance: 0.4 } },
+  tsuchigumo: { name: 'Tsuchigumo',     hp: 300, atk: 30, def: 14, spd: 6, xp: 340, gold: [190, 230], drop: 1, tier: 4, mat: 'seda', boss: true, sig: 'luv10', skill: { name: 'Teia de Aço', mult: 2.0, chance: 0.4, poison: true } },
   dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, mat: 'ferro', boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } }
 };
 // ---------- Materiais de forja ----------
@@ -4423,7 +4435,7 @@ const G = {
   pesca: null, pescaTab: 0, pescaIdx: 0, pescaNPC: null, mapaHover: null, mouse: null,
   shopIdx: 0,
   titleIdx: 0,
-  flags: { reislime: false, necromante: false, dragao: false },
+  flags: { reislime: false, necromante: false, dragao: false, amanojaku: false, yamauba: false, tsuchigumo: false, aranharainha: false, tenguveterano: false, onigeneral: false },
   chests: {},         // id -> true (abertos)
   region: null,
   shopId: 'aldeia',
@@ -4641,7 +4653,7 @@ function loadGame() {
       // saves antigos não tinham arco inicial
       if (P.equipInv.length < 18) P.equipInv.push('arc1');
     }
-    G.flags = d.flags || { reislime: false, necromante: false, dragao: false };
+    G.flags = d.flags || { reislime: false, necromante: false, dragao: false, amanojaku: false, yamauba: false, tsuchigumo: false, aranharainha: false, tenguveterano: false, onigeneral: false };
     G.chests = d.chests || {};
     G.stats = d.stats || { kills: 0, battles: 0 };
     G.victoryShown = !!d.victoryShown;

@@ -110,14 +110,14 @@ function battleActions() {
 // ---------- Batalha ----------
 function enemyStats(type, lvl) {
   const d = ENEMIES[type];
-  // chefes já têm stats de chefe definidos; mobs comuns escalam com o nível
-  const f = d.boss ? 1 : 1 + (lvl - 1) * 0.22;
+  // chefes e mini-chefes já têm stats fixos definidos; mobs comuns escalam com o nível
+  const f = (d.boss || d.mini) ? 1 : 1 + (lvl - 1) * 0.22;
   return {
     type, lvl, name: d.name,
     hp: Math.round(d.hp * f), maxHp: Math.round(d.hp * f),
     atk: Math.round(d.atk * f), def: Math.round(d.def * f), spd: d.spd,
     xp: Math.round(d.xp * f), gold: irnd(Math.round(d.gold[0] * f), Math.round(d.gold[1] * f)),
-    drop: d.drop, skill: d.skill, boss: !!d.boss
+    drop: d.drop, skill: d.skill, boss: !!d.boss, mini: !!d.mini
   };
 }
 function startBattle(ent) {
@@ -265,7 +265,11 @@ function endBattleWin(b) {
   const e = b.enemy;
   const xpGain = Math.round(e.xp * (P.activePet === 'kotodama' ? 1.2 : 1));   // Palavra de Poder
   const ups = gainXP(xpGain);
-  const goldGain = Math.round(e.gold * (P.activePet === 'nekomata' ? 1.1 : 1));   // Sorte do Gato de Duas Caudas
+  let goldGain = Math.round(e.gold * (P.activePet === 'nekomata' ? 1.1 : 1));   // Sorte do Gato de Duas Caudas
+  // mini-chefes não têm item-assinatura garantido, mas pagam um bônus de
+  // ouro e material fixo — uma recompensa notável sem ser tão forte quanto
+  // a garantia de item dos chefes de verdade
+  if (e.mini) goldGain += Math.round(e.gold * 0.5);
   P.gold += goldGain;
   if (P.activePet === 'baku') {   // Devorador de Pesadelos
     const Emp = eff();
@@ -295,6 +299,7 @@ function endBattleWin(b) {
   const frags = rollFrags(e.type, e.lvl);
   if (frags) P.frags += frags;
   const mats = rollMats(e.type, e.lvl);
+  if (e.mini) { const m = ENEMIES[e.type].mat; mats[m] = (mats[m] || 0) + 2; }
   addMats(mats);
   questMatou(e.type);
   questColetou();
@@ -331,7 +336,7 @@ function endBattleWin(b) {
   // remove do mapa
   const i = G.entities.indexOf(b.ent);
   if (i >= 0) G.entities.splice(i, 1);
-  if (e.boss) G.flags[e.type] = true;
+  if (e.boss || e.mini) G.flags[e.type] = true;
   checaMarcosPets();
   saveGame();
 }

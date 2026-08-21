@@ -45,7 +45,7 @@ function addEquipToInv(id) {
 
 // ---------- Loot por raridade ----------
 // peças exclusivas de chefe/loja: nunca caem no sorteio comum
-const NO_DROP = ['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'elm8', 'amu4', 'amu5', 'arm8', 'bot5', 'luv6'];
+const NO_DROP = ['esp5', 'caj5', 'ada5', 'arc5', 'elm5', 'elm8', 'amu4', 'amu5', 'arm8', 'bot5', 'luv6', 'luv5', 'arm7', 'luv10'];
 function rollRarity(maxTier) {
   let total = 0;
   for (let i = 0; i <= maxTier; i++) total += RARITY[RAR_KEYS[i]].w;
@@ -87,7 +87,7 @@ function rollLoot(type) {
 // fragmentos arcanos: moeda de encantamento dropada por mobs
 function rollFrags(type, lvl) {
   const d = ENEMIES[type];
-  if (d.boss) return { reislime: 8, necromante: 12, dragao: 20 }[type] || 8;
+  if (d.boss) return { reislime: 8, amanojaku: 10, necromante: 12, yamauba: 15, tsuchigumo: 17, dragao: 20 }[type] || 8;
   if (Math.random() < 0.4) return 1 + Math.floor(lvl / 3);
   return 0;
 }
