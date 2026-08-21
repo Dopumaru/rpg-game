@@ -301,6 +301,22 @@ obrigatória antes de considerar qualquer alteração pronta para PR:
   `if (alvoNPC && !TILES_INTERATIVOS.includes(f.t))`. Se um NPC algum
   dia ficar posicionado de forma que o jogador o encare através de uma
   tile de água, a conversa é silenciosamente pulada em favor da pesca.
+- **Compêndio Youkai** — catálogo navegável (artifact HTML, gerado sob
+  pedido, não faz parte do repositório) com todo o conteúdo de
+  gameplay atual lido direto das tabelas de dados reais: aparência,
+  classes, raridade, equipamento (103 itens), materiais/itens, pets,
+  técnicas, youkai, regiões, NPCs e a cadeia de missões. Publicado em
+  2026-08-21: https://claude.ai/code/artifact/638af77e-7c67-41b9-b540-6122a7a5444b
+  (fonte, se precisar regenerar: layout/estilo em
+  `scratchpad/compendio-youkai.html` da sessão que o criou — não
+  persiste entre sessões, só o link publicado persiste). Nessa data o
+  usuário revisou e decidiu manter tudo como está por enquanto, mas
+  pediu explicitamente para ser **sempre lembrado dele quando surgir
+  possibilidade de mudança de conteúdo/gameplay** (itens, pets,
+  youkai, regiões, NPCs, missões, aparência) — não é preciso que o
+  usuário peça de novo. Regra permanente: ao propor ou discutir esse
+  tipo de mudança, mencionar o compêndio (linkar a versão publicada
+  mais recente) e oferecer atualizá-lo/republicá-lo antes de decidir.
 
 ## 8. Histórico de achados
 
