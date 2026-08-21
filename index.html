@@ -4078,13 +4078,20 @@ const COR_OLHOS = [
   { name: 'Cinza',    I: '#6a7a8a' }, { name: 'Rubro', I: '#a83a3a' }
 ];
 const ESTILO_CABELO = [
-  { name: 'Espetado' }, { name: 'Topete' }, { name: 'Longo' },
-  { name: 'Curto' },    { name: 'Rabo' },   { name: 'Franja' }
+  { name: 'Espetado' }, { name: 'Topete' },  { name: 'Longo' },
+  { name: 'Curto' },    { name: 'Rabo' },    { name: 'Franja' },
+  { name: 'Moicano' },  { name: 'Rapado' },  { name: 'Chiquinhas' },
+  { name: 'Coque' }
 ];
 const CORPO = [{ name: 'Esbelto' }, { name: 'Robusto' }];
+// barba/bigode: acessório facial opcional, independente do cabelo
+const BARBA = [
+  { name: 'Nenhuma' }, { name: 'Bigode' }, { name: 'Cheia' }
+];
+const BARBA_KEY = ['nenhuma', 'bigode', 'cheia'];
 
 function defaultLook() {
-  return { corpo: 0, pele: 0, cabelo: 0, corCabelo: 0, olhos: 0 };
+  return { corpo: 0, pele: 0, cabelo: 0, corCabelo: 0, olhos: 0, barba: 0 };
 }
 
 
@@ -4617,6 +4624,7 @@ function loadGame() {
     if (!P.varas) { P.varas = ['junco']; P.vara = 'junco'; }
     if (!P.peixes) P.peixes = [];
     if (!P.look) P.look = defaultLook();
+    if (P.look.barba === undefined) P.look.barba = 0;
     if (!P.skillSets) {
       // save antigo: monta o conjunto de cada caminho pelo nível alcançado
       P.skillSets = {};

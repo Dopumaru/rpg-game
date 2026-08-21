@@ -53,7 +53,7 @@ const HEADS = {
       '..OHhHHHHHHhHO..',
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
-      '..OSEWSSSSEWSO..',
+      '..OSEISSSSEISO..',
       '..OSEESSSSEESO..',
       '..OSsSSmmSSsSO..',
       '...OSSSSSSSSO...',
@@ -79,7 +79,7 @@ const HEADS = {
       '.OHhHHHHHHHHSO..',
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
-      '.OHHHSWESSSSSO..',
+      '.OHHHSIESSSSSO..',
       '.OHHHSEESSSSO...',
       '.OHHHSSSSmSO....',
       '..OHHSSsSSO.....',
@@ -94,7 +94,7 @@ const HEADS = {
       '..OHhHHHHHHhHO..',
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
-      '..OSEWSSSSEWSO..',
+      '..OSEISSSSEISO..',
       '..OSEESSSSEESO..',
       '..OSsSSmmSSsSO..',
       '..HOSSSSSSSSOH..',
@@ -120,7 +120,7 @@ const HEADS = {
       '.OHhHHHHHHHHSO..',
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
-      '.OHHHSWESSSSSO..',
+      '.OHHHSIESSSSSO..',
       '.OHHHSEESSSSO...',
       '.OHHHSSSSmSO....',
       '.HOHHSSsSSO.....',
@@ -135,7 +135,7 @@ const HEADS = {
       '..OHhHHHHHHhHO..',
       '..OAAAAAAAAAAO..',
       '..OASSSSSSSSAO..',
-      '..OASEWSSEWSAO..',
+      '..OASEISSEISAO..',
       '..OASEESSEESAO..',
       '..OASSSSSSSSAO..',
       '...OAAAAAAAAO...',
@@ -161,7 +161,7 @@ const HEADS = {
       '..OHhHHHHHHHhO..',
       '..OAAAAAAAAO....',
       '..OASSSSSSAO....',
-      '..OASSSWEAO.....',
+      '..OASSSIEAO.....',
       '..OASSSEEAO.....',
       '..OAAAAAAAO.....',
       '...OAAAAAO......',
@@ -176,7 +176,7 @@ const HEADS = {
       '..OHhHHHHHHhHO..',
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
-      '..OSEWSSSSEWSO..',
+      '..OSEISSSSEISO..',
       '..OSEESSSSEESO..',
       '..OSsSSmmSSsSO..',
       '..HOSSSSSSSSOH..',
@@ -202,7 +202,7 @@ const HEADS = {
       '.OHhHHHHHHHHSO..',
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
-      '.OHHHSWESSSSSO..',
+      '.OHHHSIESSSSSO..',
       '.OHHHSEESSSSO...',
       '.OHHHSSSSmSO....',
       '.HOHHSSsSSO.....',
@@ -301,12 +301,23 @@ function mapHeadKind() {
   // longo e rabo caem dos lados; os demais ficam presos ao alto
   return (est === 2 || est === 4) ? 'kyudoka' : 'samurai';
 }
+// arminha simplificada pro sprite do mundo (16px de largura, não dá pra
+// reaproveitar o WEAPON_ART da batalha — aquele é desenhado pro sprite
+// grande de 32px). Só a lâmina/haste na mão, sem quadro de ataque —
+// vira uma pista visual de qual arma está equipada, olhando de cima.
+const WEAPON_HERO_ART = {
+  katana:  { cor: 'P', down: ['..............P.', '.............P..', '............P...'] },
+  shakujo: { cor: 'G', down: ['..............G.', '..............G.', '..............G.'] },
+  tanto:   { cor: 'P', down: ['..............P.', '.............P..'] },
+  yumi:    { cor: 'G', down: ['.............GG.', '............G..G', '............G..G', '.............GG.'] }
+};
 function heroSprite(cls, dir, frame) {
   const step = WALK_CYCLE[(frame | 0) % WALK_CYCLE.length];
   const lk = (P && P.look) || defaultLook();
   const kind = mapHeadKind();
   const corpoId = P && P.equip && P.equip.corpo;
-  const id = `hero_${kind}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${corpoId || 'x'}_${dir}_${step}`;
+  const wt = weaponType();
+  const id = `hero_${kind}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${corpoId || 'x'}_${wt || 'x'}_${dir}_${step}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
   const pal = lookPal();
   const heads = HEADS[kind] || HEADS.samurai;
@@ -314,6 +325,15 @@ function heroSprite(cls, dir, frame) {
   const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
   const rows = heads[headDir].concat(BODIES[bodyDir + step]);
   let spr = makeSprite(rows, pal);
+  // arma equipada, visível de frente/lado — de costas fica atrás do corpo
+  const arma = wt && WEAPON_HERO_ART[wt];
+  if (arma && dir !== 'up') {
+    const g = spr.getContext('2d');
+    g.fillStyle = pal[arma.cor];
+    arma.down.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) if (row[x] !== '.') g.fillRect(x, 12 + y, 1, 1);
+    });
+  }
   if (dir === 'left') spr = flipSprite(spr);
   spriteCache.set(id, spr);
   return spr;
@@ -529,7 +549,70 @@ const HAIR_ART = {
     '.....OHH.O..O..O..HHO...........',
     '.....OH...........HHO...........',
     '.....OH............HO...........',
-    '......O............O............']
+    '......O............O............'],
+  moicano: [
+    '.............OOOO................',
+    '.............OHHO................',
+    '............OHhHHO...............',
+    '............OHHHHO...............',
+    '............OHHHHO...............',
+    '............OHHHHO...............',
+    '............OHHHHO...............',
+    '............OHHHHO...............',
+    '............OOOOOO...............'],
+  rapado: [
+    '.........OOOOOOOO...............',
+    '........OHHHHHHHHO..............',
+    '.......OHHhHHHHHHHO.............',
+    '......OHHhHHHHHHHHHO............',
+    '......OHHHHHHHHHHHHO............',
+    '.......OO........OO.............'],
+  chiquinhas: [
+    '.........OOOOOOOO...............',
+    '.......OOHHHHHHHHOO.............',
+    '......OHHhHHHHHHHHHO............',
+    '.....OHHhHHHHHHHHHHHOO..........',
+    'OO...OHHHHHHHHHHHHHHHHO.........',
+    'OHHO..OHH........HHHHHHHO.......',
+    '.OHHO..OH..........OHHHHO.......',
+    '..OHO...O...........OHHHO.......',
+    '..OHO................OHHO.......',
+    '..OO..................OO........'],
+  coque: [
+    '..........OOOO...................',
+    '.........OHHHHO..................',
+    '.........OHhHHO..................',
+    '..........OOOO...................',
+    '.........OOOOOOOO................',
+    '........OHHHHHHHHO...............',
+    '.......OHHhHHHHHHHO..............',
+    '......OHHhHHHHHHHHHO.............',
+    '......OHHHHHHHHHHHHO.............',
+    '.......OO........OO..............']
+};
+// --- barba/bigode (opcional, por cima do rosto) ---
+const BARBA_ART = {
+  bigode: [
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '.......OOO....OOO........',
+    '......OHHHOOOOHHHO.......'],
+  cheia: [
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '.......OOO....OOO........',
+    '......OHHHOOOOHHHO.......',
+    '......OHHHHHHHHHHHO......',
+    '.......OHHHHHHHHHO.......',
+    '........OHHHHHHHO........',
+    '.........OHHHHHO.........',
+    '..........OOOOO..........']
 };
 
 // --- peitorais por tipo (define as cores A/a/c/B/L da paleta) ---
@@ -792,7 +875,7 @@ function composeSprite(pose) {
   const atype = corpoId ? (EQUIP[corpoId].atype || 'none') : 'none';
   const elmoId = P && P.equip && P.equip.elmo;
   const helm = elmoId ? HELM_OF[elmoId] : null;
-  const key = ['bt', pose, lk.corpo, lk.pele, lk.cabelo, lk.corCabelo, lk.olhos, wt, atype, helm || '-'].join('_');
+  const key = ['bt', pose, lk.corpo, lk.pele, lk.cabelo, lk.corCabelo, lk.olhos, lk.barba, wt, atype, helm || '-'].join('_');
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const pal = lookPal();
@@ -821,6 +904,9 @@ function composeSprite(pose) {
   // 3. cabelo
   const estilo = ESTILO_CABELO[lk.cabelo % ESTILO_CABELO.length].name.toLowerCase();
   stamp(HAIR_ART[estilo] || HAIR_ART.espetado, pose === 'atk' ? 1 : 0);
+  // 3b. barba/bigode, por cima do rosto (opcional)
+  const barbaKey = BARBA_KEY[lk.barba % BARBA_KEY.length];
+  if (barbaKey !== 'nenhuma' && BARBA_ART[barbaKey]) stamp(BARBA_ART[barbaKey], pose === 'atk' ? 3 : 4);
   // 4. elmo/chapéu
   if (helm && HELM_ART[helm]) stamp(HELM_ART[helm], pose === 'atk' ? 1 : 0, HELM_PAL[helm]);
   // 5. arma

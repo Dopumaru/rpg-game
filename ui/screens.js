@@ -1398,7 +1398,8 @@ const CRIA_OPCOES = [
   { key: 'pele',      label: 'Pele',          lista: () => PELE },
   { key: 'cabelo',    label: 'Cabelo',        lista: () => ESTILO_CABELO },
   { key: 'corCabelo', label: 'Cor do cabelo', lista: () => COR_CABELO },
-  { key: 'olhos',     label: 'Olhos',         lista: () => COR_OLHOS }
+  { key: 'olhos',     label: 'Olhos',         lista: () => COR_OLHOS },
+  { key: 'barba',     label: 'Barba',         lista: () => BARBA }
 ];
 function drawCreate() {
   const grd = ctx.createLinearGradient(0, 0, 0, VH);
