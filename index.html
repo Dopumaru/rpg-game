@@ -3957,6 +3957,7 @@ const KEYMAP = {
   x: 'back', X: 'back', Escape: 'back',
   c: 'menu', C: 'menu', n: 'mute', N: 'mute',
   m: 'mapa', M: 'mapa',
+  j: 'log', J: 'log',
   q: 'alt', Q: 'alt',
   t: 'vendertudo', T: 'vendertudo',
   Shift: 'run'
@@ -4461,7 +4462,7 @@ function newPlayer() {
     equipInv: ['caj1', 'ada1', 'arc1'],
     ench: {},
     pets: [], activePet: null,
-    quests: { ativas: {}, feitas: [] },
+    quests: { ativas: {}, feitas: [], mainFlags: {}, mainPaid: {} },
     mercSeed: {},
     varas: ['junco'], vara: 'junco', peixes: [],
     look: defaultLook(),
@@ -4579,6 +4580,7 @@ function equipFromInv(idx) {
   clampVitals();
   spriteCache.clear();   // o visual acompanha o equipamento
   checaMarcosPets();
+  marcaTutorial('equipar');
 }
 
 function gainXP(amt) {
@@ -4631,7 +4633,9 @@ function loadGame() {
     else for (const k of MAT_KEYS) if (P.mats[k] === undefined) P.mats[k] = 0;
     if (!P.ench) P.ench = {};
     if (!P.pets) { P.pets = []; P.activePet = null; }
-    if (!P.quests) P.quests = { ativas: {}, feitas: [] };
+    if (!P.quests) P.quests = { ativas: {}, feitas: [], mainFlags: {}, mainPaid: {} };
+    if (!P.quests.mainFlags) P.quests.mainFlags = {};
+    if (!P.quests.mainPaid) P.quests.mainPaid = {};
     if (!P.mercSeed) P.mercSeed = {};
     if (!P.varas) { P.varas = ['junco']; P.vara = 'junco'; }
     if (!P.peixes) P.peixes = [];
@@ -4741,7 +4745,7 @@ function updateFade(dt) {
 // telas de UI (menu, loja, altar, diálogos) ganham um véu curto ao abrir,
 // em vez de aparecer instantaneamente — puramente visual, não atrasa a
 // troca de estado em si (G.state já mudou no mesmo frame do input)
-const VEIL_STATES = new Set(['menu', 'shop', 'enchant', 'confirm', 'quest', 'learn']);
+const VEIL_STATES = new Set(['menu', 'shop', 'enchant', 'confirm', 'quest', 'learn', 'questlog']);
 const VEIL_DUR = 0.18;
 function drawStateVeil() {
   if (!VEIL_STATES.has(G.state) || G.stateT >= VEIL_DUR) return;
@@ -4932,7 +4936,7 @@ function desenhaPersonagens2D(sx, sy) {
 
 // telas que aparecem por cima do mundo 3D; as demais (título, criação,
 // game over) são puramente 2D e escondem a cena
-const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'quest', 'battle', 'pescando', 'peixaria']);
+const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'quest', 'questlog', 'battle', 'pescando', 'peixaria']);
 // marcador flutuante do NPC: ◈ missão nova, ✓ pronta para entregar, $ mascate
 function desenhaMarcaNPC(n, sx, sy, dist) {
   let marca = null, cor = '#a89ac0';
@@ -5063,6 +5067,7 @@ function frame(now) {
   G.time += dt;
   if (G.state !== G._prevState) { G.stateT = 0; G._prevState = G.state; }
   else G.stateT = (G.stateT || 0) + dt;
+  if (P) updateMainQuest();
   AU.update(dt);
   updateFade(dt);
 
@@ -5081,6 +5086,7 @@ function frame(now) {
         case 'enchant': updateEnchant(); break;
         case 'confirm': updateConfirm(); break;
         case 'quest': updateQuestOferta(); break;
+        case 'questlog': updateQuestLog(); break;
         case 'pescando': updatePesca(dt); break;
         case 'peixaria': updatePeixaria(); break;
         case 'mapa': updateMapa(); break;
@@ -5117,6 +5123,7 @@ function frame(now) {
     case 'enchant': drawEnchant(); break;
     case 'confirm': drawConfirm(); break;
     case 'quest': drawQuestOferta(); break;
+    case 'questlog': drawQuestLog(); break;
     case 'pescando': drawPesca(); break;
     case 'peixaria': drawPeixaria(); break;
     case 'mapa': drawMapa(); break;
@@ -5244,7 +5251,15 @@ window.DBG = {
   questFeitas() { return P.quests.feitas; },
   questOferecida(id) { return questOferecida(id); },
   aceitaQuest(id) { aceitaQuest(id); },
+  desistirQuest(id) { desistirQuest(id); },
   questMatou(t) { questMatou(t); },
+  mainQuest() { return MAIN_QUEST_STEPS.map(s => ({ id: s.id, nome: s.nome, done: mainStepDone(s.id) })); },
+  marcaTutorial(id) { marcaTutorial(id); },
+  // marca todos os passos do tutorial como já pagos, sem conceder ouro/XP —
+  // usado pelo harness de testes pra isolar checks de recompensa (ex.:
+  // "entregar a missão paga ouro") do sistema de tutorial, que também paga
+  // ouro em segundo plano conforme o jogador usa cada sistema do jogo
+  skipTutorial() { for (const s of MAIN_QUEST_STEPS) P.quests.mainPaid[s.id] = true; },
   questFoco() { return questFoco(); },
   alvoDaQuest(id) { return alvoDaQuest(id); },
   estoqueMascate(id) { const n = G.npcs.find(v => v.id === id); return n ? estoqueMascate(n) : null; },

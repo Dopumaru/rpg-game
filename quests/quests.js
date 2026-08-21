@@ -237,6 +237,72 @@ function entregaQuest(id) {
   if (principais.every(k => P.quests.feitas.includes(k))) awardPet('byakko');
   saveGame();
 }
+// desiste de uma missão secundária ativa (não conta como feita — pode ser
+// oferecida de novo depois). A missão principal (tutorial) nunca aparece
+// aqui: ela não ocupa a única vaga de missão secundária.
+function desistirQuest(id) {
+  if (!P.quests.ativas[id]) return;
+  delete P.quests.ativas[id];
+  toast('Missão abandonada: ' + QUESTS[id].nome);
+  AU.sfx('back');
+  saveGame();
+}
+
+// ---------- Missão principal (tutorial) ----------
+// Um guia opcional, sempre ativo desde o início, cobrindo todos os sistemas
+// do jogo. Paga pouco de propósito — é ensino, não é a missão de verdade.
+// Ao contrário das missões normais, não ocupa a vaga de missão secundária
+// (P.quests.ativas) nem tem NPC dono: fica sempre visível no diário (J).
+const MAIN_QUEST_STEPS = [
+  { id: 'mover',    nome: 'Primeiros passos',     desc: 'Mova-se e corra (Shift) pelo mundo.',        ouro: 15, xp: 15 },
+  { id: 'falar',    nome: 'Um rosto amigo',       desc: 'Converse com alguém (Z).',                   ouro: 15, xp: 15 },
+  { id: 'aceitar',  nome: 'Trabalho a fazer',     desc: 'Aceite uma missão de um mestre de missão.',  ouro: 20, xp: 20 },
+  { id: 'menu',     nome: 'O que você carrega',   desc: 'Abra o menu de status (C).',                 ouro: 15, xp: 15 },
+  { id: 'equipar',  nome: 'Vestindo a armadura',  desc: 'Equipe um item na aba de Equipamento.',      ouro: 20, xp: 20 },
+  { id: 'mapa',     nome: 'Conhecendo o terreno', desc: 'Abra o mapa interativo (M).',                ouro: 15, xp: 15 },
+  { id: 'pescar',   nome: 'Paciência de pescador',desc: 'Pesque em qualquer água.',                   ouro: 20, xp: 20 },
+  { id: 'encantar', nome: 'Poder oculto',         desc: 'Encante um equipamento no altar.',           ouro: 25, xp: 25 },
+  { id: 'pet',      nome: 'Um companheiro',       desc: 'Consiga um pet.',                            ouro: 25, xp: 25 },
+  { id: 'tecnica',  nome: 'Novos golpes',         desc: 'Aprenda ou troque uma técnica equipada.',    ouro: 20, xp: 20 },
+  { id: 'loja',     nome: 'Moedas em movimento',  desc: 'Compre algo numa loja.',                     ouro: 15, xp: 15 },
+  { id: 'batalha',  nome: 'Primeira vitória',     desc: 'Vença uma batalha.',                         ouro: 20, xp: 20 }
+];
+// alguns passos são detectáveis por estado já existente (sem precisar de um
+// gancho novo espalhado pelo código); os demais dependem de marcaTutorial()
+// chamada no ponto exato da ação (ver world.js, battle.js, shop.js, index.html)
+function mainStepDone(id) {
+  switch (id) {
+    case 'pescar':   return P.peixes.length > 0;
+    case 'encantar': return Object.keys(P.ench).length > 0;
+    case 'pet':      return P.pets.length > 0;
+    case 'aceitar':  return Object.keys(P.quests.ativas).length > 0 || P.quests.feitas.length > 0;
+    // 'batalha' não usa G.stats.kills como os outros derivados: G.stats
+    // não é reiniciado por newPlayer()/DBG.start() (só por loadGame()), então
+    // sobrevive entre partidas na mesma aba/sessão — marcado por gancho
+    // explícito em endBattleWin() em vez de depender dele.
+    default:         return !!P.quests.mainFlags[id];
+  }
+}
+function marcaTutorial(id) {
+  if (!P || !P.quests) return;
+  P.quests.mainFlags[id] = true;
+}
+// roda a cada quadro: paga a recompensa (uma única vez por passo) assim que
+// ele é detectado como concluído, seja por gancho explícito ou por estado
+function updateMainQuest() {
+  if (!P || !P.quests) return;
+  for (const s of MAIN_QUEST_STEPS) {
+    if (P.quests.mainPaid[s.id]) continue;
+    if (!mainStepDone(s.id)) continue;
+    P.quests.mainPaid[s.id] = true;
+    P.gold += s.ouro;
+    gainXP(s.xp);
+    AU.sfx('coin');
+    toast('Tutorial: ' + s.nome + ' (+' + s.ouro + ' ouro)');
+    saveGame();
+  }
+}
+function mainQuestProgress() { return MAIN_QUEST_STEPS.filter(s => mainStepDone(s.id)).length; }
 // avanço por tipo de objetivo
 function questMatou(tipo) {
   if (!P.quests) return;
@@ -325,10 +391,6 @@ function drawQuestHUD() {
   ctx.fillRect(x + 5, y + 23, bw, 3);
   ctx.fillStyle = pronta ? '#ffd94e' : '#6ee86e';
   ctx.fillRect(x + 5, y + 23, Math.round(bw * clamp(a.prog / q.qtd, 0, 1)), 3);
-  if (questAtivas().length > 1) {
-    ctx.fillStyle = '#6a5a8a';
-    ctx.fillText('+' + (questAtivas().length - 1), x + w - 12, y + 10);
-  }
 }
 // seta apontando para o objetivo, girando em volta do jogador
 function drawSetaGuia() {
@@ -372,6 +434,7 @@ function drawSetaGuia() {
 function conversaNPC(n) {
   P.dir = n.y < P.y - 4 ? 'up' : n.y > P.y + 4 ? 'down' : (n.x < P.x ? 'left' : 'right');
   AU.sfx('menu');
+  marcaTutorial('falar');
   if (n.tipo === 'quest') {
     // 1) alguma missão dele já está pronta para entregar?
     const pronta = questAtivas().find(id => QUESTS[id].npc === n.id && questCompleta(id));
@@ -387,6 +450,11 @@ function conversaNPC(n) {
     // 3) tem missão nova para oferecer?
     const nova = questOferecida(n.id);
     if (nova) {
+      // só uma missão secundária por vez — termine ou desista pelo diário (J)
+      if (questAtivas().length > 0) {
+        showMsg(n.nome + ':\nVocê já tem uma missão em andamento.\nTermine-a ou desista dela no diário (J).');
+        return;
+      }
       const q = QUESTS[nova];
       if (P.lvl < q.nivel) {
         showMsg(n.nome + ':\nVocê ainda é verde para o que preciso.\nVolte com nível ' + q.nivel + '.');
@@ -446,4 +514,70 @@ function updateQuestOferta() {
     G.state = 'world'; G.questIdx = 0;
   }
   if (tap('back')) { G.state = 'world'; G.questIdx = 0; AU.sfx('back'); }
+}
+
+// ---------- Diário de missões (tecla J) ----------
+// Mostra a missão principal (tutorial, sempre visível, cobre todos os
+// sistemas do jogo) e a missão secundária ativa, se houver — só uma pode
+// estar ativa por vez, então não há mais que isso pra mostrar aqui.
+function drawQuestLog() {
+  drawWorld(true);
+  ctx.fillStyle = 'rgba(8,6,16,0.86)';
+  ctx.fillRect(0, 0, VW, VH);
+  const x = 8, y = 8, w = VW - 16, h = VH - 16;
+  ctx.fillStyle = 'rgba(26,20,42,0.98)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#ffd94e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('◈ DIÁRIO DO AVENTUREIRO', x + 8, y + 12);
+  ctx.font = '7px monospace';
+  const feitos = mainQuestProgress();
+  ctx.fillStyle = '#8a7ab0';
+  ctx.fillText('Missão principal — ' + feitos + '/' + MAIN_QUEST_STEPS.length, x + 8, y + 24);
+  // checklist em 2 colunas de 6
+  const colW = (w - 16) / 2;
+  MAIN_QUEST_STEPS.forEach((s, i) => {
+    const col = Math.floor(i / 6), row = i % 6;
+    const done = mainStepDone(s.id);
+    const sx = x + 8 + col * colW, sy = y + 36 + row * 10;
+    ctx.fillStyle = done ? '#6ee86e' : '#5a4a70';
+    ctx.fillText(done ? '✓' : '·', sx, sy);
+    ctx.fillStyle = done ? '#c8e8c8' : '#a89ac0';
+    ctx.fillText(s.nome, sx + 9, sy);
+  });
+  // dica do próximo passo pendente
+  const proximo = MAIN_QUEST_STEPS.find(s => !mainStepDone(s.id));
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText(proximo ? 'Próximo: ' + proximo.desc : 'Tutorial completo — você já viu tudo!', x + 8, y + 36 + 60 + 8);
+  // missão secundária
+  const sy2 = y + 36 + 60 + 20;
+  ctx.strokeStyle = '#3a2e52';
+  ctx.beginPath(); ctx.moveTo(x + 8, sy2 - 6); ctx.lineTo(x + w - 8, sy2 - 6); ctx.stroke();
+  const id = questAtivas()[0];
+  if (id) {
+    const q = QUESTS[id], a = P.quests.ativas[id];
+    const alvoNome = q.tipo === 'coletar' ? MATS[q.alvo].name : ENEMIES[q.alvo].name;
+    ctx.fillStyle = '#ffd94e';
+    ctx.fillText('◈ ' + q.nome + (questCompleta(id) ? ' (pronta!)' : ''), x + 8, sy2 + 8);
+    ctx.fillStyle = '#a89ac0';
+    ctx.fillText(alvoNome + '  ' + a.prog + '/' + q.qtd + '  ·  ' + q.dica, x + 8, sy2 + 18);
+    ctx.fillStyle = '#6a5a8a';
+    ctx.fillText('Q desistir', x + 8, y + h - 8);
+  } else {
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText('Nenhuma missão secundária ativa.', x + 8, sy2 + 8);
+    ctx.fillText('Fale com um mestre de missão pra pegar uma.', x + 8, sy2 + 18);
+  }
+  ctx.fillStyle = '#6a5a8a';
+  ctx.fillText('X fechar', x + w - 46, y + h - 8);
+}
+function updateQuestLog() {
+  if (tap('back') || tap('log')) { G.state = 'world'; AU.sfx('back'); }
+  if (tap('alt')) {
+    const id = questAtivas()[0];
+    if (id) desistirQuest(id);
+  }
 }

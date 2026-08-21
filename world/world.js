@@ -330,6 +330,7 @@ function updateWorld(dt) {
   P.moving = speed > 6;
   if (P.moving) {
     tryMove(P, P.vx * dt, P.vy * dt);
+    if (running) marcaTutorial('mover');
     // ciclo de 4 frames: passo, neutro, passo oposto, neutro
     P.animT += dt * (running ? 1.5 : 1);
     if (P.animT > 0.14) { P.animT = 0; P.frame = (P.frame + 1) % 4; }
@@ -420,8 +421,9 @@ function updateWorld(dt) {
       showMsg('A porta shoji está fechada.\nOs aldeões se escondem\ndos youkai...');
     }
   }
-  if (tap('menu')) { G.state = 'menu'; G.menuIdx = 0; G.menuTab = 0; AU.sfx('menu'); }
-  if (tap('mapa')) { G.state = 'mapa'; AU.sfx('menu'); }
+  if (tap('menu')) { G.state = 'menu'; G.menuIdx = 0; G.menuTab = 0; AU.sfx('menu'); marcaTutorial('menu'); }
+  if (tap('mapa')) { G.state = 'mapa'; AU.sfx('menu'); marcaTutorial('mapa'); }
+  if (tap('log')) { G.state = 'questlog'; AU.sfx('menu'); }
 
   // inimigos
   for (const e of G.entities) {
