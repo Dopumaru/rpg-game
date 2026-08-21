@@ -4305,6 +4305,11 @@ const PET_DROPS = {
   zumbi: [['jiangko', 0.04]], orc: [['onizinho', 0.04]], harpia: [['tenguko', 0.04]]
 };
 const BOSS_PETS = { reislime: 'slimereal', necromante: 'corvo', dragao: 'dragaozinho' };
+// teto da mochila de pets — só vale para fontes de sorte (drop de mob,
+// baú, pesca, mascate). Fontes garantidas (chefe, missão, encantamento,
+// marco de progresso) usam awardPet() direto e ignoram o teto de
+// propósito, pra nunca travar o jogador fora de um pet ligado à história.
+const PET_CAP = 20;
 // entrega um pet ao jogador com feedback visual; ignora se ele já tem
 function awardPet(id) {
   if (!id || !PETS[id] || !P.pets || P.pets.includes(id)) return false;
@@ -4317,6 +4322,13 @@ function awardPet(id) {
   AU.sfx('level');
   saveGame();
   return true;
+}
+// mesma coisa, mas para fontes de sorte: se a mochila de pets já está
+// no teto, avisa em vez de dar silenciosamente
+function awardPetChance(id) {
+  if (!id || !PETS[id] || !P.pets || P.pets.includes(id)) return false;
+  if (P.pets.length >= PET_CAP) { toast('Mochila de pets cheia — um filhote fugiu!'); AU.sfx('back'); return false; }
+  return awardPet(id);
 }
 // marcos de progresso que não vêm de matar um youkai específico —
 // checados depois de batalha e depois de equipar
@@ -4379,6 +4391,9 @@ const ITEMS = {
   pergaminho:{ name: 'Ofuda',      desc: 'Dobra o ATQ por 3 turnos',   price: 45, battleOnly: true },
   pao:      { name: 'Mochi',       desc: 'Recupera 20% de HP e MP',    price: 9 }
 };
+// limite por tipo de consumível na mochila — ao bater nele, o jogador
+// para de receber cópias novas (loot, missão, baú, compra) e é avisado
+const ITEM_CAP = 9;
 const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
 
 // ---------- Mapas ----------
