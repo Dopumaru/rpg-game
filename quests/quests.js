@@ -122,12 +122,13 @@ function entregaQuest(id) {
   delete P.quests.ativas[id];
   P.quests.feitas.push(id);
   P.gold += q.ouro;
-  if (q.item) P.items[q.item] = Math.min(9, (P.items[q.item] || 0) + 1);
+  const itemCheio = q.item && (P.items[q.item] || 0) >= ITEM_CAP;
+  if (q.item && !itemCheio) P.items[q.item] = (P.items[q.item] || 0) + 1;
   const ups = gainXP(q.xp);
   AU.sfx('victory');
   burstScreen(VW / 2, VH / 2, 34, { color: ['#ffd94e', '#fff0a0', '#6ee86e'], spdMax: 110, lifeMax: 1.1, size: 2, drag: 2.4 });
   let txt = q.fim + '\n\n+' + q.ouro + ' ouro   +' + q.xp + ' XP';
-  if (q.item) txt += '\n+ ' + ITEMS[q.item].name;
+  if (q.item) txt += itemCheio ? '\n(mochila cheia — ' + ITEMS[q.item].name + ' perdido)' : '\n+ ' + ITEMS[q.item].name;
   if (ups.length) txt += '\nNÍVEL ' + ups[ups.length - 1] + '!';
   showMsg(txt);
   if (QUEST_PET_REWARD[id]) awardPet(QUEST_PET_REWARD[id]);

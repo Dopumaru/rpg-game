@@ -277,9 +277,14 @@ function endBattleWin(b) {
   if (loot) {
     if (loot.startsWith('c:')) {
       const it = loot.slice(2);
-      P.items[it] = Math.min(9, P.items[it] + 1);
-      dropTxt = ITEMS[it].name;
-      dropColor = '#c8c8d0';
+      if (P.items[it] >= ITEM_CAP) {
+        dropTxt = 'Mochila cheia — ' + ITEMS[it].name + ' perdido';
+        dropColor = '#e07070';
+      } else {
+        P.items[it]++;
+        dropTxt = ITEMS[it].name;
+        dropColor = '#c8c8d0';
+      }
     } else {
       const r = addEquipToInv(loot);
       const eq = EQUIP[loot];
@@ -297,11 +302,14 @@ function endBattleWin(b) {
   // pets: chefes sempre dão o seu; mobs têm chance pequena e independente
   // de deixar cada um dos filhotes ligados a eles
   let petTxt = null, petColor = null;
-  let newPet = null;
+  let newPet = null, petCapado = false;
   const bp = BOSS_PETS[e.type];
-  if (bp && !P.pets.includes(bp)) newPet = bp;
+  if (bp && !P.pets.includes(bp)) newPet = bp;   // chefe sempre garante, ignora o teto
   else for (const [id, chance] of (PET_DROPS[e.type] || [])) {
-    if (!P.pets.includes(id) && Math.random() < chance) { newPet = id; break; }
+    if (!P.pets.includes(id) && Math.random() < chance) {
+      if (P.pets.length < PET_CAP) newPet = id; else petCapado = true;
+      break;
+    }
   }
   if (newPet) {
     P.pets.push(newPet);
@@ -309,7 +317,7 @@ function endBattleWin(b) {
     petTxt = PETS[newPet].name;
     petColor = RARITY[PETS[newPet].rar].color;
   }
-  b.rewards = { xp: xpGain, gold: goldGain, ups, dropTxt, dropColor, frags, matTxt, petTxt, petColor, newSkill: ups.newSkill };
+  b.rewards = { xp: xpGain, gold: goldGain, ups, dropTxt, dropColor, frags, matTxt, petTxt, petColor, petCapado, newSkill: ups.newSkill };
   b.phase = 'result'; b.t = 0;
   if (ups.length) {
     AU.sfx('level');
@@ -1163,6 +1171,9 @@ function drawBattle() {
     if (r.petTxt) {
       ctx.fillStyle = r.petColor;
       ctx.fillText('♥ Novo espírito: ' + r.petTxt + '!', 10, 171);
+    } else if (r.petCapado) {
+      ctx.fillStyle = '#e07070';
+      ctx.fillText('Mochila de pets cheia — um filhote fugiu', 10, 171);
     }
     if (b.t > 0.6 && Math.floor(G.time * 2) % 2) {
       ctx.fillStyle = '#a89ac0';

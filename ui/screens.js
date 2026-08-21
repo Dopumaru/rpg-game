@@ -72,10 +72,10 @@ function updatePesca(dt) {
       AU.sfx('victory');
       addFloater(P.x + 8, P.y - 4, '+' + PEIXES[peixe.sp].nome, RARITY[PEIXES[peixe.sp].rar].color);
       burst(P.x + 8, P.y + 4, 20, { color: ['#8ec6f0', '#c6e2f8', RARITY[PEIXES[peixe.sp].rar].color], spdMax: 60, lifeMax: 0.9, size: 2, lift: 40, g: 60 });
-      if (Math.random() < 0.04) awardPet('ameko');
+      if (Math.random() < 0.04) awardPetChance('ameko');
       if (varaAtual().tier >= 4) {
-        if (Math.random() < 0.03) awardPet('amabie');
-        if (Math.random() < 0.008) awardPet('suzaku');
+        if (Math.random() < 0.03) awardPetChance('amabie');
+        if (Math.random() < 0.008) awardPetChance('suzaku');
       }
       G.pesca = null; G.state = 'world';
       saveGame();
@@ -1202,7 +1202,7 @@ function drawPauseMenu() {
     if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 260, rowY0 + (maxShow - 1) * rowStep); }
   } else if (G.menuTab === 4) {
     // ---- PETS ----
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)', x + 8, y + 26);
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)  ' + P.pets.length + '/' + PET_CAP, x + 8, y + 26);
     if (!P.pets.length) {
       ctx.fillStyle = '#705a80';
       ctx.fillText('Nenhum espírito ainda.', x + 8, y + 40);
@@ -1210,9 +1210,12 @@ function drawPauseMenu() {
       ctx.fillText('ao serem derrotados. Chefes', x + 8, y + 60);
       ctx.fillText('sempre dão um companheiro!', x + 8, y + 70);
     }
-    P.pets.forEach((id, i) => {
+    const maxShowPets = 7;
+    const startPets = clamp(G.menuIdx - 3, 0, Math.max(0, P.pets.length - maxShowPets));
+    P.pets.slice(startPets, startPets + maxShowPets).forEach((id, j) => {
+      const i = startPets + j;
       const pet = PETS[id];
-      const oy = y + 40 + i * 14;
+      const oy = y + 40 + j * 14;
       const sel = G.menuIdx === i;
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
       const spr = petSprite(id);
@@ -1221,6 +1224,8 @@ function drawPauseMenu() {
       ctx.fillText(pet.name, x + 32, oy);
       if (P.activePet === id) { ctx.fillStyle = '#6ee86e'; ctx.fillText('★ ativo', x + 96, oy); }
     });
+    if (startPets > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 140, y + 40); }
+    if (startPets + maxShowPets < P.pets.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 140, y + 40 + (maxShowPets - 1) * 14); }
     // detalhes do pet selecionado
     const selPet = P.pets[G.menuIdx];
     if (selPet) {
@@ -1268,8 +1273,9 @@ function drawPauseMenu() {
           ctx.fillStyle = 'rgba(255,217,78,0.12)'; ctx.fillRect(x + 6, oy - 8, 158, 10);
           ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy);
         }
-        ctx.fillStyle = sel ? '#fff' : '#a89ac0';
-        ctx.fillText(it.name + ' x' + P.items[k], x + 16, oy);
+        const cheio = P.items[k] >= ITEM_CAP;
+        ctx.fillStyle = cheio ? '#e07070' : (sel ? '#fff' : '#a89ac0');
+        ctx.fillText(it.name + ' x' + P.items[k] + (cheio ? '/' + ITEM_CAP : ''), x + 16, oy);
         if (it.battleOnly) { ctx.fillStyle = '#6a5a80'; ctx.fillText('(só em batalha)', x + 110, oy); }
       });
       // ilustração e descrição do item em foco

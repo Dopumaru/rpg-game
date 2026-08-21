@@ -386,7 +386,7 @@ function updateWorld(dt) {
         G.chests[cid] = true;
         G.map.tiles[f.ty][f.tx] = 17;
         AU.sfx('chest');
-        if (Math.random() < 0.06) awardPet('tsukiusagi');
+        if (Math.random() < 0.06) awardPetChance('tsukiusagi');
         burst(f.tx * TILE + 8, f.ty * TILE + 6, 26, {
           color: ['#ffd94e', '#f0d878', '#fff0a0'], spdMax: 70, lifeMax: 1, size: 2, lift: 40, g: 110
         });
@@ -401,7 +401,13 @@ function updateWorld(dt) {
           const r = addEquipToInv(loot.eq);
           showMsg('Você encontrou:\n' + EQUIP[loot.eq].name + ' [' + RARITY[EQUIP[loot.eq].rar].name + ']' + (r.full ? '\n(inventário cheio: +' + r.gold + ' ouro)' : ''));
         }
-        else { const n = loot.n || 1; P.items[loot.item] += n; showMsg('Você encontrou ' + (n > 1 ? n + 'x ' : '') + ITEMS[loot.item].name + '!'); }
+        else {
+          const n = loot.n || 1;
+          const dado = Math.min(n, Math.max(0, ITEM_CAP - P.items[loot.item]));
+          P.items[loot.item] += dado;
+          if (dado === 0) showMsg('Havia ' + ITEMS[loot.item].name + ' no baú, mas a mochila já está cheia.');
+          else showMsg('Você encontrou ' + (dado > 1 ? dado + 'x ' : '') + ITEMS[loot.item].name + '!' + (dado < n ? '\n(mochila cheia — só coube ' + dado + ')' : ''));
+        }
         saveGame();
       }
     } else if (f.t === 19) {
