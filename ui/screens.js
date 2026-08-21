@@ -750,6 +750,90 @@ function startNewGame() {
   G.state = 'create';   // primeiro a criação do personagem
 }
 
+// ---------- Menu de pausa: helpers visuais de status/equipamento ----------
+const STAT_LABEL = { atk: 'ATQ', def: 'DEF', mag: 'MAG', spd: 'VEL', crit: 'CRIT', maxHp: 'HP', maxMp: 'MP' };
+// diferença completa de status ao trocar o item do slot dele pelo candidato —
+// simula eff() antes/depois (cobre até ligar/desligar bônus de conjunto)
+function equipDelta(candId) {
+  const slot = EQUIP[candId].slot;
+  const before = eff();
+  const old = P.equip[slot];
+  P.equip[slot] = candId;
+  const after = eff();
+  P.equip[slot] = old;
+  const out = {};
+  for (const k in STAT_LABEL) {
+    const d = k === 'crit' ? after[k] - before[k] : Math.round(after[k] - before[k]);
+    if (Math.abs(d) > (k === 'crit' ? 0.001 : 0)) out[k] = d;
+  }
+  return out;
+}
+function deltaStr(k, v) {
+  if (k === 'crit') return (v > 0 ? '+' : '') + Math.round(v * 100) + '%CRIT';
+  return (v > 0 ? '+' : '') + v + STAT_LABEL[k];
+}
+// desenha os tokens de delta coloridos (ganho em verde, perda em vermelho),
+// quebrando linha ao ultrapassar maxW; devolve o y da próxima linha livre
+function drawDeltaTokens(delta, x0, y0, maxW, lineH) {
+  const keys = Object.keys(delta);
+  if (!keys.length) { ctx.fillStyle = '#705a80'; ctx.fillText('sem mudança de status', x0, y0); return y0 + lineH; }
+  let dx = x0, dy = y0;
+  for (const k of keys) {
+    const t = deltaStr(k, delta[k]) + ' ';
+    const w = ctx.measureText(t).width;
+    if (dx + w > x0 + maxW && dx > x0) { dx = x0; dy += lineH; }
+    ctx.fillStyle = delta[k] > 0 ? '#6ee86e' : '#e05050';
+    ctx.fillText(t, dx, dy);
+    dx += w;
+  }
+  return dy + lineH;
+}
+// só os consumíveis que o jogador já tem — nada de poluir a lista com o
+// catálogo inteiro de itens nunca vistos
+function ownedItemKeys() { return Object.keys(ITEMS).filter(k => P.items[k] > 0); }
+// ilustrações pequenas (16x16) para os consumíveis, desenhadas por primitivas
+// e cacheadas — não existe arte pixel dedicada para eles como há para
+// equipamento (ARMOR_ART/WEAPON_ART/HELM_ART), então compomos aqui mesmo
+const ITEM_ICON_CACHE = new Map();
+function itemIcon(id) {
+  if (ITEM_ICON_CACHE.has(id)) return ITEM_ICON_CACHE.get(id);
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 16;
+  const g = c.getContext('2d');
+  const px = (px_, py_, w, h, color) => { g.fillStyle = color; g.fillRect(px_, py_, w, h); };
+  if (id === 'pocao' || id === 'pocaoG') {
+    px(4, 3, 8, 9, '#f4ead0');
+    px(3, 9, 10, 3, '#1a2f1a');
+    px(7, 5, 2, 2, '#e05050');
+    if (id === 'pocaoG') { g.fillStyle = 'rgba(255,217,78,0.28)'; g.fillRect(2, 2, 12, 12); }
+  } else if (id === 'eter') {
+    px(5, 3, 6, 2, '#3a2f18');
+    px(5, 5, 6, 7, '#c8a060');
+    px(6, 6, 4, 4, '#4ec065');
+    px(11, 6, 2, 3, '#c8a060');
+  } else if (id === 'elixir') {
+    px(6, 2, 4, 3, '#8a6a30');
+    px(4, 5, 8, 9, '#2a1f10');
+    px(5, 7, 6, 5, '#ffd94e');
+  } else if (id === 'antidoto') {
+    px(7, 2, 2, 10, '#3a6a2a');
+    px(3, 4, 4, 4, '#4ec065'); px(9, 4, 4, 4, '#4ec065'); px(5, 8, 6, 4, '#6ee86e');
+  } else if (id === 'bomba') {
+    g.beginPath(); g.arc(8, 10, 5, 0, Math.PI * 2); g.fillStyle = '#1a1420'; g.fill();
+    px(7, 2, 2, 4, '#8a6a30');
+    px(6, 1, 2, 2, '#e05050');
+  } else if (id === 'pergaminho') {
+    px(3, 3, 10, 10, '#e8dcc0');
+    px(3, 3, 10, 2, '#c8a060'); px(3, 11, 10, 2, '#c8a060');
+    px(5, 6, 6, 1, '#8a3a1a'); px(5, 8, 6, 1, '#8a3a1a');
+  } else {
+    g.beginPath(); g.arc(8, 9, 6, 0, Math.PI * 2); g.fillStyle = '#f8f0e8'; g.fill();
+    px(6, 7, 2, 2, 'rgba(255,255,255,0.6)');
+  }
+  ITEM_ICON_CACHE.set(id, c);
+  return c;
+}
+
 function drawPauseMenu() {
   drawWorld(true);
   ctx.fillStyle = 'rgba(8,6,16,0.85)';
@@ -781,24 +865,43 @@ function drawPauseMenu() {
       const sel = G.menuIdx === i;
       if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
       ctx.fillStyle = sel ? '#fff' : '#a89ac0';
-      const baseV = a.key === 'maxHp' || a.key === 'maxMp' ? P[a.key] : P[a.key];
+      const baseV = P[a.key];
       const effV = E[a.key];
       const bonus = effV - baseV;
-      ctx.fillText(a.name + '  ' + baseV + (bonus ? ' +' + bonus : ''), x + 16, oy);
+      const label = a.name + '  ' + baseV + (bonus ? '  ' : '');
+      ctx.fillText(label, x + 16, oy);
+      if (bonus) {
+        ctx.fillStyle = bonus > 0 ? '#6ee86e' : '#e05050';
+        ctx.fillText((bonus > 0 ? '+' : '') + bonus, x + 16 + ctx.measureText(label).width, oy);
+      }
       ctx.fillStyle = '#705a80';
       ctx.fillText(a.desc, x + 76, oy);
     });
-    // resumo à direita
-    const st = [
-      ['HP', P.hp + '/' + E.maxHp], ['MP', P.mp + '/' + E.maxMp],
-      ['ATQ', E.atk], ['DEF', E.def], ['MAG', E.mag], ['VEL', E.spd],
-      ['Crítico', Math.round(E.crit * 100) + '%'],
-      ['XP', P.xp + '/' + XP_NEXT(P.lvl)],
-      ['Ouro', P.gold], ['Vitórias', G.stats.kills]
-    ];
-    st.forEach(([nm, v], i) => {
-      ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, y + 26 + i * 10);
-      ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 206, y + 26 + i * 10);
+    // resumo à direita — ATQ/DEF/MAG/VEL/Crítico mostram o quanto de
+    // equipamento/pet/conjunto está somando, em verde (ou vermelho se tirar)
+    let sy = y + 26;
+    [['HP', P.hp + '/' + E.maxHp], ['MP', P.mp + '/' + E.maxMp]].forEach(([nm, v]) => {
+      ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, sy);
+      ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 206, sy);
+      sy += 10;
+    });
+    [['ATQ', P.atk, E.atk], ['DEF', P.def, E.def], ['MAG', P.mag, E.mag],
+     ['VEL', P.spd, E.spd], ['Crítico', P.crit, E.crit]].forEach(([nm, base, effV]) => {
+      ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, sy);
+      const isCrit = nm === 'Crítico';
+      const baseTxt = isCrit ? Math.round(base * 100) + '%' : '' + base;
+      ctx.fillStyle = '#e8e0f0'; ctx.fillText(baseTxt, x + 206, sy);
+      const d = isCrit ? Math.round((effV - base) * 100) : effV - base;
+      if (d) {
+        ctx.fillStyle = d > 0 ? '#6ee86e' : '#e05050';
+        ctx.fillText((d > 0 ? '+' : '') + d + (isCrit ? '%' : ''), x + 206 + ctx.measureText(baseTxt).width + 2, sy);
+      }
+      sy += 10;
+    });
+    [['XP', P.xp + '/' + XP_NEXT(P.lvl)], ['Ouro', P.gold], ['Vitórias', G.stats.kills]].forEach(([nm, v]) => {
+      ctx.fillStyle = '#8a7ab0'; ctx.fillText(nm, x + 158, sy);
+      ctx.fillStyle = '#e8e0f0'; ctx.fillText('' + v, x + 206, sy);
+      sy += 10;
     });
     // técnicas equipadas (resumo; a aba Técnicas gerencia)
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Técnicas equipadas:', x + 8, y + 114);
@@ -859,51 +962,75 @@ function drawPauseMenu() {
       ctx.fillText(SKILLS[foco].desc, x + 8, y + 148);
     }
   } else if (G.menuTab === 2) {
-    // ---- EQUIPAR ----
-    // equipados (6 slots, coluna esquerda)
+    // ---- EQUIPAR: boneco no centro, um card por slot ao redor, mochila
+    // como cards navegáveis e o delta de status (verde/vermelho) do item
+    // em foco contra o que está equipado ali ----
+    const SLOT_ABBR = { arma: 'Arma', corpo: 'Peito', elmo: 'Elmo', luvas: 'Luvas', botas: 'Botas', amuleto: 'Amul.' };
+    // coluna esquerda: um card por slot, mostrando se tem algo equipado
     SLOTS.forEach((s, i) => {
-      const oy = y + 24 + i * 9;
-      ctx.fillStyle = '#8a7ab0'; ctx.fillText(SLOT_NAMES[s] + ':', x + 8, oy);
+      const oy = y + 24 + i * 11;
       const id = P.equip[s];
-      if (id) { ctx.fillStyle = RARITY[EQUIP[id].rar].color; ctx.fillText(eqName(id), x + 52, oy); }
-      else { ctx.fillStyle = '#4a3a5a'; ctx.fillText('—', x + 52, oy); }
+      ctx.fillStyle = id ? 'rgba(110,232,110,0.08)' : 'rgba(255,255,255,0.03)';
+      ctx.fillRect(x + 6, oy - 8, 82, 10);
+      ctx.fillStyle = id ? RARITY[EQUIP[id].rar].color : '#4a3a5a';
+      ctx.fillRect(x + 6, oy - 8, 2, 10);
+      ctx.fillStyle = '#8a7ab0';
+      ctx.fillText(SLOT_ABBR[s] + ':', x + 12, oy);
+      ctx.fillStyle = id ? RARITY[EQUIP[id].rar].color : '#4a3a5a';
+      const nome = id ? eqName(id) : 'vazio';
+      ctx.fillText(nome.length > 13 ? nome.slice(0, 12) + '…' : nome, x + 40, oy);
     });
-    // bônus de conjunto + fragmentos e materiais
-    if (setActive()) { ctx.fillStyle = '#6ee86e'; ctx.fillText('Conjunto ' + className() + ' ativo!', x + 8, y + 80); }
-    else { ctx.fillStyle = '#705a80'; ctx.fillText('Sem bônus de conjunto', x + 8, y + 80); }
-    drawMatBar(x + 8, y + 90);
-    // inventário de equipamentos
-    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila  ' + P.equipInv.length + '/18', x + 8, y + 101);
-    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 112); }
-    const maxShow = 5;
-    const start = clamp(G.menuIdx - 2, 0, Math.max(0, P.equipInv.length - maxShow));
-    P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
-      const i = start + j;
-      const oy = y + 112 + j * 9;
-      const sel = G.menuIdx === i;
-      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
-      ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
-      ctx.fillText(eqName(id) + ' [' + SLOT_NAMES[EQUIP[id].slot] + ']', x + 16, oy);
-    });
-    if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 166, y + 112); }
-    if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 166, y + 148); }
-    // detalhes do item selecionado (coluna direita)
+    // boneco central com o equipamento visível
+    const spr = battleSprite(null, 'idle');
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    const sw = spr.width * 1.3, sh = spr.height * 1.3;
+    ctx.drawImage(spr, x + 96 + (72 - sw) / 2, y + 24 + (66 - sh) / 2, sw, sh);
+    ctx.restore();
+    // coluna direita: item em foco na mochila — nome, raridade e o que
+    // muda no status (delta) se ele for equipado no lugar do atual
     const selId = P.equipInv[G.menuIdx];
     if (selId) {
       const eq = EQUIP[selId];
       ctx.fillStyle = RARITY[eq.rar].color;
-      ctx.fillText(RARITY[eq.rar].name, x + 178, y + 101);
-      let dy = y + 112;
-      for (const [k, v] of Object.entries(enchBonus(selId))) {
-        ctx.fillStyle = '#a89ac0';
-        ctx.fillText(k === 'crit' ? '+' + Math.round(v * 100) + '% crit'
-          : '+' + v + ' ' + k.toUpperCase().replace('MAXHP', 'HP'), x + 178, dy);
-        dy += 9;
-      }
+      ctx.fillText(eqName(selId), x + 174, y + 24);
       ctx.fillStyle = '#8a7ab0';
-      if (eq.wtype) ctx.fillText('Estilo: ' + CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 178, dy);
-      else if (eq.atype) ctx.fillText('Conjunto: ' + eq.atype, x + 178, dy);
+      ctx.fillText(RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot], x + 174, y + 34);
+      let dy = drawDeltaTokens(equipDelta(selId), x + 174, y + 46, 84, 9);
+      ctx.fillStyle = '#705a80';
+      if (eq.wtype) ctx.fillText(CLASS_NAMES[CLASS_BY_WEAPON[eq.wtype]], x + 174, dy + 2);
+      else if (eq.atype) ctx.fillText('conjunto: ' + eq.atype, x + 174, dy + 2);
+    } else {
+      ctx.fillStyle = '#705a80';
+      ctx.fillText('Mochila vazia', x + 174, y + 24);
     }
+    // conjunto ativo + materiais de forja, na mesma linha para não gastar
+    // altura à toa (o painel é baixo — só 130px úteis)
+    ctx.fillStyle = setActive() ? '#6ee86e' : '#5a4a70';
+    ctx.fillText(setActive() ? 'Conjunto ' + className() + ' ativo!' : 'sem bônus de conjunto', x + 8, y + 94);
+    drawMatBar(x + 150, y + 94);
+    // mochila — cards navegáveis (Z equipa, Q desmonta)
+    ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila  ' + P.equipInv.length + '/18', x + 8, y + 104);
+    if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 116); }
+    const maxShow = 4;
+    const rowY0 = y + 114, rowStep = 9;
+    const start = clamp(G.menuIdx - 2, 0, Math.max(0, P.equipInv.length - maxShow));
+    P.equipInv.slice(start, start + maxShow).forEach((id, j) => {
+      const i = start + j;
+      const oy = rowY0 + j * rowStep;
+      const sel = G.menuIdx === i;
+      ctx.fillStyle = sel ? 'rgba(255,217,78,0.12)' : 'rgba(255,255,255,0.03)';
+      ctx.fillRect(x + 6, oy - 7, 252, 8);
+      if (sel) { ctx.strokeStyle = '#ffd94e'; ctx.lineWidth = 0.6; ctx.strokeRect(x + 6.5, oy - 6.5, 251, 7); }
+      ctx.fillStyle = RARITY[EQUIP[id].rar].color;
+      ctx.fillRect(x + 8, oy - 5, 2, 5);
+      ctx.fillStyle = sel ? '#fff' : RARITY[EQUIP[id].rar].color;
+      ctx.fillText(eqName(id), x + 14, oy);
+      ctx.fillStyle = '#6a5a8a';
+      ctx.fillText('[' + SLOT_ABBR[EQUIP[id].slot] + ']', x + 108, oy);
+      drawDeltaTokens(equipDelta(id), x + 140, oy, 116, 9);
+    });
+    if (start > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + 260, rowY0); }
+    if (start + maxShow < P.equipInv.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + 260, rowY0 + (maxShow - 1) * rowStep); }
   } else if (G.menuTab === 4) {
     // ---- PETS ----
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Pets (Z ativa/guarda)', x + 8, y + 26);
@@ -940,22 +1067,42 @@ function drawPauseMenu() {
       ctx.fillText('Ataca junto com você', x + 176, y + 86);
     }
   } else {
-    // ---- ITENS ----
+    // ---- ITENS: só os que o jogador tem, com ilustração do selecionado ----
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Consumíveis (Z usa)', x + 8, y + 26);
-    const keys = Object.keys(ITEMS);
-    const showI = 8;
-    const firstI = clamp(G.menuIdx - 4, 0, Math.max(0, keys.length - showI));
-    keys.slice(firstI, firstI + showI).forEach((k, j) => {
-      const i = firstI + j;
-      const oy = y + 38 + j * 11;
-      const sel = G.menuIdx === i;
-      const it = ITEMS[k];
-      if (sel) { ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy); }
-      ctx.fillStyle = sel ? '#fff' : (P.items[k] > 0 ? '#a89ac0' : '#5a4a70');
-      ctx.fillText(it.name + ' x' + P.items[k], x + 16, oy);
-      ctx.fillStyle = it.battleOnly ? '#6a5a80' : '#705a80';
-      ctx.fillText(it.battleOnly ? '(só em batalha)' : it.desc, x + 110, oy);
-    });
+    const posse = ownedItemKeys();
+    if (!posse.length) {
+      ctx.fillStyle = '#705a80';
+      ctx.fillText('Nenhum item ainda.', x + 8, y + 40);
+      ctx.fillText('Compre na loja ou receba de missões.', x + 8, y + 50);
+    } else {
+      const showI = 6;
+      const firstI = clamp(G.menuIdx - 3, 0, Math.max(0, posse.length - showI));
+      posse.slice(firstI, firstI + showI).forEach((k, j) => {
+        const i = firstI + j;
+        const oy = y + 40 + j * 11;
+        const sel = G.menuIdx === i;
+        const it = ITEMS[k];
+        if (sel) {
+          ctx.fillStyle = 'rgba(255,217,78,0.12)'; ctx.fillRect(x + 6, oy - 8, 158, 10);
+          ctx.fillStyle = '#ffd94e'; ctx.fillText('▶', x + 8, oy);
+        }
+        ctx.fillStyle = sel ? '#fff' : '#a89ac0';
+        ctx.fillText(it.name + ' x' + P.items[k], x + 16, oy);
+        if (it.battleOnly) { ctx.fillStyle = '#6a5a80'; ctx.fillText('(só em batalha)', x + 110, oy); }
+      });
+      // ilustração e descrição do item em foco
+      const selK = posse[G.menuIdx];
+      if (selK) {
+        const it = ITEMS[selK];
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(itemIcon(selK), x + 190, y + 28, 36, 36);
+        ctx.restore();
+        ctx.fillStyle = '#ffd94e'; ctx.fillText(it.name, x + 178, y + 76);
+        ctx.fillStyle = '#a89ac0'; ctx.fillText(it.desc, x + 178, y + 86);
+        ctx.fillStyle = '#705a80';
+        ctx.fillText(it.price + ' ouro na loja' + (it.battleOnly ? ' · só em batalha' : ''), x + 178, y + 96);
+      }
+    }
     // materiais de forja (desmontando peças ou caçando youkai)
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Materiais de forja', x + 8, y + 128);
     MAT_KEYS.forEach((k, i) => {
@@ -977,7 +1124,7 @@ function updatePauseMenu() {
     : G.menuTab === 1 ? Math.max(1, (wt ? curSkills().length : 0) + repLen)
     : G.menuTab === 2 ? Math.max(1, P.equipInv.length)
     : G.menuTab === 4 ? Math.max(1, P.pets.length)
-    : Object.keys(ITEMS).length;
+    : Math.max(1, ownedItemKeys().length);
   if (tap('left')) { G.menuTab = (G.menuTab + 4) % 5; G.menuIdx = 0; AU.sfx('menu'); }
   if (tap('right')) { G.menuTab = (G.menuTab + 1) % 5; G.menuIdx = 0; AU.sfx('menu'); }
   // Q desmonta a peça em foco na mochila
@@ -1029,12 +1176,12 @@ function updatePauseMenu() {
         AU.sfx('ok');
       } else AU.sfx('back');
     } else {
-      const its = Object.keys(ITEMS);
+      const its = ownedItemKeys();
       const id = its[G.menuIdx];
-      const it = ITEMS[id];
+      const it = id ? ITEMS[id] : null;
       const E = eff();
       const hurt = P.hp < E.maxHp, drained = P.mp < E.maxMp;
-      if (P.items[id] > 0 && !it.battleOnly) {
+      if (it && P.items[id] > 0 && !it.battleOnly) {
         let used = true;
         if (id === 'pocao' && hurt) { P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.45)); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e'); }
         else if (id === 'pocaoG' && hurt) { P.hp = Math.min(E.maxHp, P.hp + Math.round(E.maxHp * 0.8)); addFloater(P.x + 8, P.y - 4, '+HP', '#6ee86e'); }
