@@ -50,12 +50,8 @@ function drawEnchant() {
   ctx.fillStyle = '#d8a0ff';
   ctx.fillText('ALTAR DA FORJA', x + 10, y + 13);
   ctx.font = '7px monospace';
-  // modos
-  ['Encantar', 'Desmontar'].forEach((t, i) => {
-    ctx.fillStyle = G.altarMode === i ? '#ffd94e' : '#705a80';
-    ctx.fillText(G.altarMode === i ? '[' + t + ']' : ' ' + t, x + 118 + i * 58, y + 13);
-  });
-  drawMatBar(x + 10, y + 25);
+  desenhaAbas(['Encantar', 'Desmontar'], G.altarMode, x + w - 8, y + 13);
+  drawMatBar(x + 10, y + 25, x + w - 8);
   ctx.fillStyle = '#8a7ab0';
   ctx.fillText(G.altarMode === 0
     ? 'Cada nível: +15% nos bônus do item (máx +' + ENCH_MAX + ')'

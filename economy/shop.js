@@ -19,6 +19,13 @@
    ============================================================ */
 
 function equipPrice(id) { return RARITY[EQUIP[id].rar].price; }
+// resumo compacto do que o equipamento faz (ex. "+3 ATQ +1 VEL") — sem isso
+// a loja só mostrava raridade/slot, e dava pra comprar sem saber o efeito
+function bonusResumo(eq) {
+  return Object.entries(eq.bonus)
+    .map(([k, v]) => k === 'crit' ? '+' + Math.round(v * 100) + '%CRIT' : '+' + v + ' ' + k.toUpperCase())
+    .join(' ');
+}
 
 function dismantleFromInv(idx) {
   const id = P.equipInv[idx];
@@ -226,7 +233,8 @@ function shopEntryBase(s) {
     return { kind: 'item', id, name: ITEMS[id].name, desc: ITEMS[id].desc, price: ITEMS[id].price, color: '#c8c8d0' };
   }
   const eq = EQUIP[s];
-  return { kind: 'equip', id: s, name: eq.name, desc: RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot], price: equipPrice(s), color: RARITY[eq.rar].color };
+  const desc = RARITY[eq.rar].name + ' · ' + SLOT_NAMES[eq.slot] + ' · ' + bonusResumo(eq);
+  return { kind: 'equip', id: s, name: eq.name, desc, price: equipPrice(s), color: RARITY[eq.rar].color };
 }
 function drawShop() {
   drawWorld(true);
