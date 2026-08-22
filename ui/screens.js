@@ -190,11 +190,7 @@ function drawPeixaria() {
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#6ee8c0';
   ctx.fillText('PEIXARIA DE ' + (G.pescaNPC ? G.pescaNPC.nome.toUpperCase() : ''), x + 10, y + 13);
-  ['Varas', 'Vender'].forEach((t, i) => {
-    ctx.font = '7px monospace';
-    ctx.fillStyle = G.pescaTab === i ? '#ffd94e' : '#705a80';
-    ctx.fillText(G.pescaTab === i ? '[' + t + ']' : ' ' + t, x + 120 + i * 40, y + 13);
-  });
+  desenhaAbas(['Varas', 'Vender'], G.pescaTab, x + w - 8, y + 13);
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
@@ -216,6 +212,8 @@ function drawPeixaria() {
       ctx.fillStyle = '#705a90';
       ctx.fillText(v.desc, x + 14, oy + 8);
     });
+    if (firstV > 0) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▲', x + w - 14, y + 40); }
+    if (firstV + maxShowV < VARA_ORDEM.length) { ctx.fillStyle = '#8a7ab0'; ctx.fillText('▼', x + w - 14, y + 40 + (maxShowV - 1) * 16); }
     ctx.fillStyle = '#6a5a8a';
     ctx.fillText('Z compra/equipa · ◀▶ aba · X sair', x + 10, y + h - 7);
   } else {
@@ -890,7 +888,7 @@ function updateOptions() {
 // youkai-que-solta, região, missão ou % de chance) — só o que já é
 // visível de cara (nome, raridade, status, uma linha de clima). A
 // descoberta de origem fica por conta do jogador jogar e reparar.
-const CODEX_TABS = ['Itens', 'Pets', 'Classes', 'Youkai', 'NPCs'];
+const CODEX_TABS = ['Itens', 'Pets', 'Classes', 'Youkai', 'NPCs', 'Pesca'];
 const CODEX_CLASSES = [
   { nome: 'Samurai',  arma: 'Katana',  frase: 'Corte e postura — a lâmina fala primeiro.' },
   { nome: 'Onmyoji',  arma: 'Shakujo', frase: 'Domina o elemento antes do golpe.' },
@@ -921,7 +919,8 @@ function codexList(tab) {
   if (tab === 1) return Object.keys(PETS);
   if (tab === 2) return CODEX_CLASSES.map((_, i) => i);
   if (tab === 3) return Object.keys(ENEMIES);
-  return NPC_DEFS.map((_, i) => i);
+  if (tab === 4) return NPC_DEFS.map((_, i) => i);
+  return VARA_ORDEM;
 }
 function drawCodex() {
   ctx.fillStyle = '#0b0714';
@@ -934,12 +933,7 @@ function drawCodex() {
   ctx.font = 'bold 8px monospace';
   ctx.fillStyle = '#ffd94e';
   ctx.fillText('CODEX', x + 8, y + 12);
-  ctx.font = '7px monospace';
-  CODEX_TABS.forEach((t, i) => {
-    const tx = x + w - 190 + i * 38;
-    ctx.fillStyle = i === G.codexTab ? '#ffd94e' : '#705a80';
-    ctx.fillText(i === G.codexTab ? '[' + t + ']' : ' ' + t, tx, y + 12);
-  });
+  desenhaAbas(CODEX_TABS, G.codexTab, x + w - 8, y + 12);
 
   const list = codexList(G.codexTab);
   const maxShow = 9;
@@ -956,7 +950,8 @@ function drawCodex() {
     else if (G.codexTab === 1) { nome = PETS[key].name; cor = RARITY[PETS[key].rar].color; }
     else if (G.codexTab === 2) { nome = CODEX_CLASSES[key].nome; cor = '#c8c0dc'; }
     else if (G.codexTab === 3) { nome = ENEMIES[key].name; cor = ENEMIES[key].boss ? '#ffa726' : '#c8c0dc'; }
-    else { nome = NPC_DEFS[key].nome; cor = '#c8c0dc'; }
+    else if (G.codexTab === 4) { nome = NPC_DEFS[key].nome; cor = '#c8c0dc'; }
+    else { nome = VARAS[key].nome; cor = RARITY[RAR_KEYS[VARAS[key].tier]].color; }
     ctx.fillStyle = sel ? '#fff' : cor;
     ctx.fillText(nome, x + 16, oy);
   });
@@ -1015,7 +1010,7 @@ function drawCodexDetail(x, y, sel) {
     if (e.boss) { ctx.fillStyle = '#e05050'; ctx.fillText('Um dos grandes chefes', dx, y + 86); }
     ctx.fillStyle = '#a89ac0';
     wrapText(CODEX_YOUKAI_FLAVOR[sel] || '', dx, y + (e.boss ? 98 : 88), dw, 9);
-  } else {
+  } else if (G.codexTab === 4) {
     const n = NPC_DEFS[sel];
     const spr = npcSprite(n, 'down', 0);
     ctx.drawImage(spr, dx, y + 24, spr.width * 2.5, spr.height * 2.5);
@@ -1024,10 +1019,19 @@ function drawCodexDetail(x, y, sel) {
     ctx.fillStyle = '#8a7ab0';
     ctx.fillText(NPC_TIPO_LABEL[n.tipo] || '', dx, y + 86);
     if (n.linha) { ctx.fillStyle = '#a89ac0'; wrapText(n.linha.split('\n')[0], dx, y + 98, dw, 9); }
+  } else {
+    const v = VARAS[sel];
+    ctx.fillStyle = RARITY[RAR_KEYS[v.tier]].color;
+    ctx.fillText(v.nome, dx, y + 30);
+    ctx.fillStyle = '#8a7ab0';
+    ctx.fillText('Alcança até ' + RARITY[RAR_KEYS[v.tier]].name.toLowerCase(), dx, y + 40);
+    ctx.fillStyle = '#a89ac0';
+    ctx.fillText(v.preco ? '$' + v.preco + ' na peixaria' : 'grátis, já vem equipada', dx, y + 52);
+    wrapText(v.desc, dx, y + 64, dw, 9);
   }
   ctx.restore();
 }
-// quebra de linha simples por largura medida — usado só aqui no Codex
+// quebra de linha simples por largura medida
 function wrapText(txt, x0, y0, maxW, lineH) {
   let ln = '', dy = y0;
   for (const palavra of txt.split(' ')) {
@@ -1036,6 +1040,22 @@ function wrapText(txt, x0, y0, maxW, lineH) {
     else ln = teste;
   }
   if (ln) ctx.fillText(ln, x0, dy);
+}
+// fileira de abas ([Ativa] · Inativa · Inativa) ancorada pela DIREITA, com
+// espaçamento medido de verdade em vez de um passo fixo em pixels — um passo
+// fixo estourava com nomes mais longos ('Técnicas', 'Peixaria de <nome>'),
+// deixando uma aba colada na outra ou o título por baixo dela
+function desenhaAbas(tabs, ativoIdx, xEnd, y, gap) {
+  gap = gap === undefined ? 6 : gap;
+  ctx.font = '7px monospace';
+  const rotulos = tabs.map((t, i) => i === ativoIdx ? '[' + t + ']' : ' ' + t);
+  const larguras = rotulos.map(r => ctx.measureText(r).width);
+  let tx = xEnd - larguras.reduce((a, b) => a + b, 0) - gap * (tabs.length - 1);
+  tabs.forEach((t, i) => {
+    ctx.fillStyle = i === ativoIdx ? '#ffd94e' : '#705a80';
+    ctx.fillText(rotulos[i], tx, y);
+    tx += larguras[i] + gap;
+  });
 }
 function updateCodex() {
   const list = codexList(G.codexTab);
@@ -1155,13 +1175,7 @@ function drawPauseMenu() {
   ctx.fillStyle = '#ffd94e';
   ctx.fillText(className() + ' Nv.' + P.lvl, x + 8, y + 12);
   // abas
-  const tabs = ['Status', 'Técnicas', 'Equipar', 'Itens', 'Pets'];
-  ctx.font = '7px monospace';
-  tabs.forEach((t, i) => {
-    const tx = x + w - 172 + i * 35;
-    ctx.fillStyle = i === G.menuTab ? '#ffd94e' : '#705a80';
-    ctx.fillText((i === G.menuTab ? '[' + t + ']' : ' ' + t), tx, y + 12);
-  });
+  desenhaAbas(['Status', 'Técnicas', 'Equipar', 'Itens', 'Pets'], G.menuTab, x + w - 8, y + 12);
 
   if (G.menuTab === 0) {
     // ---- STATUS: distribuir pontos ----
@@ -1314,7 +1328,7 @@ function drawPauseMenu() {
     // altura à toa (o painel é baixo — só 130px úteis)
     ctx.fillStyle = setActive() ? '#6ee86e' : '#5a4a70';
     ctx.fillText(setActive() ? 'Conjunto ' + className() + ' ativo!' : 'sem bônus de conjunto', x + 8, y + 94);
-    drawMatBar(x + 150, y + 94);
+    drawMatBar(x + 150, y + 94, x + w - 8);
     // mochila — cards navegáveis (Z equipa, Q desmonta)
     ctx.fillStyle = '#ffd94e'; ctx.fillText('Mochila  ' + P.equipInv.length + '/18', x + 8, y + 104);
     if (!P.equipInv.length) { ctx.fillStyle = '#705a80'; ctx.fillText('(vazia)', x + 8, y + 116); }
@@ -1703,15 +1717,22 @@ function updateLearn() {
 // ---------- Altar: encantar e desmontar ----------
 // Extraído para craft/altar.js (altarList, drawEnchant, encantar,
 // updateEnchant, canEnchant).
-function drawMatBar(x, y) {
+// xMax é opcional: quando informado, para de desenhar materiais antes de
+// ultrapassar a borda do painel (ou até o canvas) em vez de estourar pra
+// fora dele — acontecia com os 5 materiais de uma vez num painel estreito
+function drawMatBar(x, y, xMax) {
   ctx.fillStyle = '#b06ae8';
   ctx.fillText('◆' + P.frags, x, y);
   let mx = x + 34;
   for (const k of MAT_KEYS) {
-    ctx.fillStyle = matQty(k) > 0 ? MATS[k].color : '#4a3a5a';
-    const t = MATS[k].short + matQty(k);
+    const q = matQty(k);
+    if (q <= 0) continue;   // só ocupa espaço com o que o jogador realmente tem
+    const t = MATS[k].short + ' x' + q;
+    const tw = ctx.measureText(t).width;
+    if (xMax && mx + tw > xMax) break;
+    ctx.fillStyle = MATS[k].color;
     ctx.fillText(t, mx, y);
-    mx += t.length * 4.4 + 6;
+    mx += tw + 8;
   }
 }
 
@@ -1831,9 +1852,30 @@ function updateVictory() {
 }
 
 // ---------- Diálogo ----------
+// quebra o texto de uma caixa de diálogo: primeiro pelas quebras manuais
+// (\n já usadas em todo showMsg do jogo), depois de novo por largura medida
+// pra qualquer linha que ainda não caiba na caixa — protege contra nome de
+// equipamento/missão/inimigo concatenado dinamicamente que passe da largura
+// sem exigir que cada showMsg() seja revisado à mão. drawDialog() e
+// updateDialog() usam a mesma função pra "quantos caracteres tem a
+// mensagem" nunca divergir entre o que é desenhado e o que conta como lido
+function wrapMsg(txt) {
+  ctx.font = '8px monospace';
+  const maxW = VW - 32;
+  const lines = [];
+  for (const bruta of txt.split('\n')) {
+    let ln = '';
+    for (const palavra of bruta.split(' ')) {
+      const teste = ln ? ln + ' ' + palavra : palavra;
+      if (ctx.measureText(teste).width > maxW && ln) { lines.push(ln); ln = palavra; }
+      else ln = teste;
+    }
+    lines.push(ln);
+  }
+  return lines;
+}
 function drawDialog() {
-  const txt = G.msgQueue[0];
-  const lines = txt.split('\n');
+  const lines = wrapMsg(G.msgQueue[0]);
   const h = 16 + lines.length * 10;
   const y = VH - h - 6;
   ctx.fillStyle = 'rgba(12,10,22,0.94)';
@@ -1855,8 +1897,7 @@ function drawDialog() {
   }
 }
 function updateDialog() {
-  const txt = G.msgQueue[0];
-  const total = txt.replace(/\n/g, '').length;
+  const total = wrapMsg(G.msgQueue[0]).reduce((a, l) => a + l.length, 0);
   if (tap('ok') || tap('back')) {
     if (G.msgChar < total) G.msgChar = total;
     else { G.msgQueue.shift(); G.msgChar = 0; AU.sfx('menu'); }
