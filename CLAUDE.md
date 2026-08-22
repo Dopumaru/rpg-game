@@ -850,6 +850,83 @@ recorrente em `pesca-mapa` sob suíte completa
   (`q_main`) — lembrete de que o compêndio publicado ainda não reflete
   isso; oferecido ao usuário, atualização pendente de pedido.
 
+### 2026-08-22 — Bug real na raiz da geração de mapa: `hash2()` nunca
+retornava ≥0.5; corrigido junto com acesso garantido a chefes e
+redesenho do spawn de mobs
+
+- **Relato do usuário**: áreas do mapa inacessíveis com mobs nascendo
+  dentro delas (ex. no meio de árvores), o primeiro chefe de missão
+  (Nurarihyon/reislime) impossível de alcançar, mobs vagando livres
+  sem padrão inclusive dentro de zonas seguras (vila). Pedido: mais
+  spawn, mas contido e agrupado por tipo pra facilitar quests.
+- **Investigação**: BFS de alcançabilidade a partir do início do jogo,
+  rodado 5x contra o mapa real gerado por `genOverworld()`, confirmou
+  o relato — `reislime` inalcançável nas 5 vezes; `yamauba` e
+  `onigeneral` (adicionados na sessão de mobs/chefes) sempre em cima
+  de tile sólido (árvore/lápide); `amanojaku`/`tenguveterano`
+  intermitentes conforme a floresta aleatória da vez.
+- **Causa raiz** (não é só posicionamento de coordenada — é bem mais
+  fundo): `hash2(x,y)` em `index.html` nunca retorna ≥0.5. Os dois
+  deslocamentos (`h >> 13`, `h >> 16`) são aritméticos (com sinal) em
+  vez de lógicos (`>>>`); como `h` pode ser negativo (por causa do
+  `|0`), o bit 31 sobrevive igual ao deslocamento aritmético e ao XOR
+  final, cancelando-se sempre — o resultado final nunca passa de 0.5.
+  Confirmado empiricamente (Node puro, fora do browser): distribuição
+  em 10 baldes de 0..1 mostrou 100% das amostras nos primeiros 5
+  baldes, 0% nos últimos 5. Corrigido trocando os dois deslocamentos
+  para `>>>`; a mesma amostragem depois do fix ficou uniforme (~9%
+  por balde, média 0.50).
+- **Consequência real**: todo limiar de densidade de floresta no mapa
+  usa valores >0.5 (`<0.6` na Floresta Umbria, `<0.55` no Bosque
+  Sombrio, `<0.7` nos bolsões de árvore) — como `hash2()` nunca
+  passava de 0.5, esses limiares **sempre davam verdadeiro**,
+  virando parede sólida 100% densa em vez de floresta esparsa (medido
+  diretamente: 2100/2100 tiles solid num trecho do Bosque Sombrio
+  antes do fix). As clareiras forçadas (`rect(...,0)`) por baixo dos
+  chefes continuavam abertas, mas viravam ilhas sem nenhuma saída.
+  Efeito colateral secundário (cosmético, não bloqueante): limiares
+  de decoração (flor/arbusto/pedra/cogumelo, todos <0.1) ficavam
+  efetivamente no dobro da frequência pretendida, porque só usavam a
+  metade inferior do intervalo; depois do fix a densidade de
+  decoração cai pra a taxa real pretendida. Variantes de tile por
+  hash (`Math.floor(hash2(...)*3)%3` etc., em `render/tiles.js` e
+  `render3d/render3d.js`) também usavam menos variantes que o
+  desenhado — não investigado a fundo por ser puramente visual.
+- **Correção adicional, independente do bug do hash2** (função nova
+  `garanteAcesso()` em `world.js`, chamada no fim de `genOverworld()`
+  e `genCave()`): mesmo com floresta esparsa de verdade, não há
+  garantia de que os buracos aleatórios cheguem até cada clareira de
+  chefe — então a função roda BFS a partir de uma âncora sempre aberta
+  (centro da Aldeia Verde no overworld, perto da saída na caverna) e,
+  pra qualquer alvo isolado, limpa a área dele e escava um corredor
+  reto até o tile já alcançado mais próximo. Protege 3 baús fixos de
+  serem apagados por um corredor que passe perto. Confirmado por BFS
+  externo (Playwright, fora do jogo) 100% alcançável em 5 gerações
+  seguidas, tanto overworld (7 pontos fixos) quanto caverna (2).
+- **Redesenho do spawn de mobs** (`spawnEnemies()`/`SPAWN_ZONES`/
+  `makeEntity()` em `world.js`): cada zona agora divide sua caixa em
+  uma faixa vertical por tipo (antes todos os tipos da zona
+  sorteavam posição na caixa inteira, misturados) — agrupa cada
+  youkai no seu canto, ajuda a achar o alvo de missão de matar/
+  coletar. `count` de cada zona subiu (+50% aprox.) pra "mais spawn"
+  sem descontrolar. Nova coleira de perambulação: cada mob guarda
+  `homeX/homeY` (onde nasceu) e, se afastar mais de 5 tiles vagando
+  livre, é puxado de volta em vez de continuar à deriva — corrige
+  mobs vagando pra dentro da vila/zona segura ou de zona vizinha.
+  Chefes e mini-chefes (`isBoss:true`) não vagam (comportamento já
+  existente, sem mudança) — só perseguem dentro do raio de detecção.
+- Confiança alta no diagnóstico do `hash2()` (reproduzido fora do
+  browser, matemática do bug explicada e verificada bit a bit) e na
+  correção de acesso (BFS externo, 5/5 execuções limpas antes e
+  depois em ambos os mapas). Suíte completa: 2 execuções limpas
+  (210/210) intercaladas com 2 execuções de 1 falha cada — sempre um
+  check diferente (`correr é mais rápido que andar`; `partículas de
+  ambiente são geradas`), nenhum dos dois com sobreposição de código
+  com esta mudança, mesmo padrão de flakiness ambiental já
+  documentado nesta seção — classificado como ambiente, não regressão
+  (a 4ª execução completa, sem nenhuma mudança adicional, voltou a
+  210/210 limpo).
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
