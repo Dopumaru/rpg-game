@@ -494,5 +494,6 @@ function drawTile(t, x, y, tx, ty, map) {
     case 30: ctx.drawImage(bakeToriiBase(1), x, y); break;
     case 27: ctx.drawImage(bakeLantern(), x, y); break;
     case 28: ctx.drawImage(bakeTemplePath(Math.floor(v * 3) % 3), x, y); break;
+    case 31: ctx.drawImage(bakeDoor(), x, y); break;
   }
 }

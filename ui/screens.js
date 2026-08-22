@@ -20,13 +20,19 @@
    ============================================================ */
 
 // ---------- Pesca ----------
+// controle: reduz o quanto o peixe foge da barra e alarga a barra do jogador
+// na fisgada (ver DIFICULDADE_FISGADA/updatePesca) — cresce com o preço,
+// dando às varas mais caras uma fisgada mais fácil além de acesso a raridade
 const VARAS = {
-  junco:    { nome: 'Vara de Junco',    preco: 0,   tier: 0, janela: 0.85, desc: 'Simples, pega o comum' },
-  bambu:    { nome: 'Vara de Bambu',    preco: 60,  tier: 2, janela: 0.95, desc: 'Alcança peixe incomum e raro' },
-  laqueada: { nome: 'Vara Laqueada',    preco: 220, tier: 3, janela: 1.1,  desc: 'Aguenta até o épico' },
-  espirito: { nome: 'Vara do Espírito', preco: 650, tier: 4, janela: 1.3,  desc: 'A única que fisga o lendário' }
+  junco:    { nome: 'Vara de Junco',        preco: 0,   tier: 0, controle: 0.00, desc: 'Simples, pega só o comum' },
+  bambu:    { nome: 'Vara de Bambu',        preco: 45,  tier: 1, controle: 0.04, desc: 'Alcança peixe incomum' },
+  corda:    { nome: 'Vara de Corda Encerada', preco: 110, tier: 1, controle: 0.08, desc: 'Puxada mais firme facilita o incomum' },
+  laqueada: { nome: 'Vara Laqueada',        preco: 220, tier: 2, controle: 0.11, desc: 'Acabamento fino, chega ao raro' },
+  ferro:    { nome: 'Vara de Anzol de Ferro', preco: 380, tier: 3, controle: 0.14, desc: 'Anzol reforçado aguenta o épico' },
+  jade:     { nome: 'Vara de Jade Entalhada', preco: 520, tier: 3, controle: 0.17, desc: 'Entalhe abençoado acalma o épico' },
+  espirito: { nome: 'Vara do Espírito',     preco: 900, tier: 4, controle: 0.20, desc: 'A única que fisga o lendário' }
 };
-const VARA_ORDEM = ['junco', 'bambu', 'laqueada', 'espirito'];
+const VARA_ORDEM = ['junco', 'bambu', 'corda', 'laqueada', 'ferro', 'jade', 'espirito'];
 // pesos por raridade, no mesmo espírito da tabela RARITY de equipamentos
 const PEIXES = {
   tanago:  { nome: 'Tanago-de-lago',      rar: 'comum',    kg: [0.05, 0.2], preco: 4 },
@@ -46,14 +52,45 @@ function precoPeixe(peixe) {
 }
 function varaAtual() { return VARAS[P.vara || 'junco']; }
 
+// dificuldade base da barra de puxar, por raridade do peixe fisgado — a vara
+// só ameniza (ver controle), a raridade do peixe é quem decide o desafio
+const DIFICULDADE_FISGADA = {
+  comum:    { barra: 0.40, vel: 0.55, solavanco: 0.9 },
+  incomum:  { barra: 0.34, vel: 0.70, solavanco: 1.1 },
+  raro:     { barra: 0.28, vel: 0.85, solavanco: 1.35 },
+  epico:    { barra: 0.23, vel: 1.0,  solavanco: 1.6 },
+  lendario: { barra: 0.18, vel: 1.15, solavanco: 1.9 }
+};
+
 // ---------- Ação de pescar ----------
-// Z de frente pra água lança a linha. Depois de uma espera aleatória, o peixe
-// belisca (fase 'fisgada') e um segundo Z dentro da janela da vara fisga.
+// Z de frente pra água lança a linha. Depois de uma espera aleatória o peixe
+// belisca (fase 'fisgada'): segurar ▲ empurra a barra do jogador pra cima
+// contra a gravidade, tentando cobrir o peixe (que foge de forma errática)
+// até encher o medidor de progresso antes da paciência acabar.
 function iniciaPesca() {
   if (G.pesca && G.pesca.fase) return;
-  G.pesca = { fase: 'espera', t: 0, espera: rnd(0.8, 2.2) };
+  G.pesca = { fase: 'espera', t: 0, espera: rnd(1.2, 3.2) };
   G.state = 'pescando';
   AU.sfx('menu');
+}
+function iniciaFisgada(p) {
+  const peixe = rollPeixe(varaAtual().tier);
+  const dif = DIFICULDADE_FISGADA[PEIXES[peixe.sp].rar];
+  const controle = varaAtual().controle;
+  p.fase = 'fisgada';
+  p.t = 0;
+  p.peixe = peixe;
+  p.barraH = Math.min(0.6, dif.barra + controle * 0.35);
+  p.velFuga = Math.max(0.35, dif.vel * (1 - controle * 1.5));
+  p.solavanco = dif.solavanco;
+  p.paciencia = 5.5;
+  p.progresso = 0.32;
+  p.peixePos = 0.5;
+  p.peixeAlvo = Math.random();
+  p.peixeTrocaT = rnd(0.5, 1.1);
+  p.barraPos = 0.5;
+  p.barraVel = 0;
+  AU.sfx('level');
 }
 function updatePesca(dt) {
   const p = G.pesca;
@@ -61,12 +98,26 @@ function updatePesca(dt) {
   p.t += dt;
   if (p.fase === 'espera') {
     if (tap('back')) { G.pesca = null; G.state = 'world'; AU.sfx('back'); return; }
-    if (p.t >= p.espera) { p.fase = 'fisgada'; p.t = 0; AU.sfx('level'); }
+    if (p.t >= p.espera) iniciaFisgada(p);
     return;
   }
   if (p.fase === 'fisgada') {
-    if (tap('ok')) {
-      const peixe = rollPeixe(varaAtual().tier);
+    if (tap('back')) { toast('O peixe fugiu...'); AU.sfx('back'); G.pesca = null; G.state = 'world'; return; }
+    // peixe foge de forma errática: troca de alvo aleatório periodicamente
+    p.peixeTrocaT -= dt;
+    if (p.peixeTrocaT <= 0) { p.peixeAlvo = Math.random(); p.peixeTrocaT = rnd(0.4, 1.0); }
+    p.peixePos += (p.peixeAlvo - p.peixePos) * Math.min(1, dt * p.velFuga * p.solavanco * 3);
+    // barra do jogador: segurar ok empurra pra cima, gravidade sempre puxa pra baixo
+    p.barraVel += (keys.ok ? 2.3 : -2.0) * dt;
+    p.barraVel = clamp(p.barraVel, -1.4, 1.4);
+    p.barraPos = clamp(p.barraPos + p.barraVel * dt, 0, 1);
+    if (p.barraPos <= 0 || p.barraPos >= 1) p.barraVel = 0;
+    // progresso sobe quando a barra cobre o peixe, cai quando não cobre
+    const cobre = Math.abs(p.barraPos - p.peixePos) <= p.barraH / 2;
+    p.progresso = clamp(p.progresso + (cobre ? 0.62 : -0.34) * dt, 0, 1);
+    p.paciencia -= dt;
+    if (p.progresso >= 1) {
+      const peixe = p.peixe;
       if (P.peixes.length >= 30) { P.gold += Math.round(precoPeixe(peixe) * 0.5); toast('Cesto cheio: +' + Math.round(precoPeixe(peixe) * 0.5) + ' ouro'); }
       else P.peixes.push(peixe);
       AU.sfx('victory');
@@ -81,7 +132,7 @@ function updatePesca(dt) {
       saveGame();
       return;
     }
-    if (p.t >= varaAtual().janela) {
+    if (p.progresso <= 0 || p.paciencia <= 0) {
       toast('O peixe fugiu...');
       AU.sfx('back');
       G.pesca = null; G.state = 'world';
@@ -101,19 +152,27 @@ function drawPesca() {
     ctx.textAlign = 'left';
   } else {
     ctx.textAlign = 'center';
-    const pulso = 1 + Math.sin(G.time * 16) * 0.15;
-    ctx.font = 'bold ' + Math.round(14 * pulso) + 'px monospace';
-    ctx.fillStyle = '#ffd94e';
-    ctx.fillText('!', cx, cy);
-    const jan = varaAtual().janela;
-    const bw = 60;
+    const bh = 46, bw = 10, bx = cx - 34, by = cy - bh / 2;
+    // trilha vertical onde o peixe foge e a barra do jogador tenta cobri-lo
     ctx.fillStyle = '#0e0c16';
-    ctx.fillRect(cx - bw / 2 - 1, cy + 6, bw + 2, 5);
-    ctx.fillStyle = '#6ee8c0';
-    ctx.fillRect(cx - bw / 2, cy + 7, Math.max(0, bw * (1 - p.t / jan)), 3);
+    ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    ctx.fillStyle = 'rgba(78,138,160,0.25)';
+    ctx.fillRect(bx, by, bw, bh);
+    const barraY = by + bh * (1 - p.barraPos) - (bh * p.barraH) / 2;
+    ctx.fillStyle = 'rgba(110,232,192,0.55)';
+    ctx.fillRect(bx, clamp(barraY, by, by + bh - 2), bw, Math.max(2, bh * p.barraH));
+    const peixeY = by + bh * (1 - p.peixePos);
+    ctx.font = '9px monospace';
+    ctx.fillText('🐟', cx - 34 + bw / 2, peixeY + 3);
+    // medidor de progresso
+    const pw = 60, px2 = cx - pw / 2, py2 = by + bh + 12;
+    ctx.fillStyle = '#0e0c16';
+    ctx.fillRect(px2 - 1, py2 - 1, pw + 2, 7);
+    ctx.fillStyle = p.progresso > 0.5 ? '#6ee86e' : '#ffd94e';
+    ctx.fillRect(px2, py2, pw * p.progresso, 5);
     ctx.font = '7px monospace';
     ctx.fillStyle = '#e8e0f0';
-    ctx.fillText('Z para fisgar!', cx, cy + 20);
+    ctx.fillText('segure Z pra puxar a barra até o peixe', cx, py2 + 16);
     ctx.textAlign = 'left';
   }
 }
@@ -141,8 +200,11 @@ function drawPeixaria() {
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);
 
   if (G.pescaTab === 0) {
-    VARA_ORDEM.forEach((id, i) => {
-      const v = VARAS[id], oy = y + 40 + i * 16;
+    const maxShowV = 5;
+    const firstV = clamp(G.pescaIdx - 2, 0, Math.max(0, VARA_ORDEM.length - maxShowV));
+    VARA_ORDEM.slice(firstV, firstV + maxShowV).forEach((id, j) => {
+      const i = firstV + j;
+      const v = VARAS[id], oy = y + 40 + j * 16;
       const sel = i === G.pescaIdx;
       const tem = P.varas.includes(id);
       const equipada = P.vara === id;

@@ -23,6 +23,8 @@
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
 // 20 lápide · 21 altar · 22 arbusto · 23 pedra · 24 cogumelo (decorativos)
+// 31 saída de interior (some tiles further: 25/26 topo-torii, 27 lanterna,
+// 28 caminho-templo, 29/30 base-torii — já existiam, listados só por ordem)
 const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30]);
 const MAPS = {};
 
@@ -83,7 +85,7 @@ function genOverworld() {
   rect(28, 90, 8, 4, 18); rect(28, 94, 8, 4, 5); rect(30, 96, 2, 2, 19);
   rect(46, 90, 8, 4, 18); rect(46, 94, 8, 4, 5); rect(48, 96, 2, 2, 19);
   rect(40, 100, 2, 2, 13); // chozuya (fonte)
-  rect(46, 104, 6, 2, 18); rect(46, 106, 2, 2, 5); rect(48, 106, 2, 2, 14); rect(50, 106, 2, 2, 5); // loja
+  rect(46, 104, 6, 2, 18); rect(46, 106, 2, 2, 5); rect(48, 106, 2, 2, 19); rect(50, 106, 2, 2, 5); // loja (porta leva ao interior)
   rect(40, 88, 2, 26, 28); rect(26, 100, 30, 2, 28); // piso de pedra do templo
   rect(40, 100, 2, 2, 13);
   rect(32, 106, 2, 2, 21); // altar de encantamento
@@ -96,13 +98,15 @@ function genOverworld() {
   rect(136, 28, 8, 4, 18); rect(136, 32, 8, 4, 5); rect(138, 34, 2, 2, 19);
   rect(160, 28, 8, 4, 18); rect(160, 32, 8, 4, 5); rect(162, 34, 2, 2, 19);
   rect(148, 40, 2, 2, 13); // chozuya
-  rect(154, 42, 6, 2, 18); rect(154, 44, 2, 2, 5); rect(156, 44, 2, 2, 14); rect(158, 44, 2, 2, 5); // loja
+  rect(154, 42, 6, 2, 18); rect(154, 44, 2, 2, 5); rect(156, 44, 2, 2, 19); rect(158, 44, 2, 2, 5); // loja (porta leva ao interior)
   rect(152, 26, 2, 24, 28); rect(134, 40, 34, 2, 28);
   rect(148, 40, 2, 2, 13);
   rect(142, 44, 2, 2, 21); // altar de encantamento
   rect(150, 46, 2, 2, 25); rect(152, 46, 2, 2, 26);  // torii ao sul (topo)
   rect(150, 48, 2, 2, 29); rect(152, 48, 2, 2, 30);  // pilares
   rect(144, 36, 2, 2, 27); rect(154, 36, 2, 2, 27);  // lanternas
+  // PEIXARIA (margem leste da Lagoa Central, terreno aberto)
+  rect(76, 64, 8, 4, 18); rect(76, 68, 8, 4, 5); rect(78, 70, 2, 2, 19); // porta leva ao interior
   // CEMITÉRIO ANTIGO (sudeste)
   for (let y = 100; y < 122; y++) for (let x = 148; x < 182; x++) {
     if (t[y][x] === 1) set(x, y, 0);
@@ -131,12 +135,21 @@ function genOverworld() {
   // baús escondidos
   rect(16, 66, 2, 2, 16); rect(176, 72, 2, 2, 16); rect(178, 118, 2, 2, 16);
   // garante que os pontos fixos de mini-chefe/chefe sejam alcançáveis — a
-  // floresta aleatória (bolsões acima) podia isolar um deles sem isso
+  // floresta aleatória (bolsões acima) podia isolar um deles sem isso. o alvo
+  // da peixaria é o tile de grama logo ao sul da porta (onde o jogador
+  // precisa chegar a pé), não a porta em si — a peixaria inteira entra em
+  // `protegidos` pra um corredor de acesso nunca arrancar pedaço do prédio
+  const protPeixaria = new Set();
+  for (let y = 64; y <= 71; y++) for (let x = 76; x <= 83; x++) protPeixaria.add(x + ',' + y);
   garanteAcesso(t, W, H, [
     [28, 74], [164, 110],       // reislime, necromante
     [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
-    [100, 108], [150, 80]       // amanojaku, yamauba
-  ], [40, 100], new Set(['16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119']));
+    [100, 108], [150, 80],      // amanojaku, yamauba
+    [79, 72]                    // acesso à porta da peixaria
+  ], [40, 100], new Set([
+    '16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119',
+    ...protPeixaria
+  ]));
   return { w: W, h: H, tiles: t, name: 'overworld' };
 }
 
@@ -241,6 +254,49 @@ function garanteAcesso(t, W, H, alvos, ancora, protegidos) {
   }
 }
 
+// ---------- Interiores ----------
+// sala genérica pequena (chão de pedra, paredes de pedra, saída ao sul) usada
+// por toda estrutura interagível que vira um espaço explorável de verdade —
+// reaproveita 100% os tiles/render já existentes (piso 6, muro 5, porta 19
+// pra saída), sem nenhuma arte nova
+function genInterior(opts) {
+  const W = 22, H = 14;
+  const t = [];
+  for (let y = 0; y < H; y++) t.push(new Array(W).fill(6));
+  const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
+  const rect = (x, y, w, h, v) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(i, j, v); };
+  rect(0, 0, W, 1, 5); rect(0, H - 1, W, 1, 5); rect(0, 0, 1, H, 5); rect(W - 1, 0, 1, H, 5);
+  rect(Math.floor(W / 2) - 1, H - 1, 2, 1, 31); // saída, centro da parede sul
+  if (opts.shopId) rect(Math.floor(W / 2) - 1, 3, 2, 2, 14); // balcão da loja
+  const map = { w: W, h: H, tiles: t, name: opts.name, exitTo: opts.exitTo };
+  if (opts.shopId) map.shopId = opts.shopId;
+  return map;
+}
+// geradores de cada interior — nomes usados tanto em MAPS quanto em
+// DOORS/NPC_DEFS. ponto de entrada padrão (2 tiles ao norte da saída) só é
+// calculado dentro de função (não no topo do arquivo): script clássico
+// compartilha escopo global com index.html, e TILE só existe depois que o
+// <script> do núcleo roda — avaliar "11 * TILE" fora de função aqui em cima
+// dispararia TDZ se este arquivo carregar antes daquele const existir
+function interiorEntry() { return { x: 11 * TILE, y: 11 * TILE }; }
+const INTERIORES = {
+  loja_aldeia: () => genInterior({ name: 'loja_aldeia', shopId: 'aldeia', exitTo: { map: 'overworld', x: 48 * TILE, y: 108 * TILE } }),
+  loja_rocha:  () => genInterior({ name: 'loja_rocha',  shopId: 'rocha',  exitTo: { map: 'overworld', x: 156 * TILE, y: 46 * TILE } }),
+  peixaria:    () => genInterior({ name: 'peixaria',    exitTo: { map: 'overworld', x: 78 * TILE, y: 72 * TILE } }),
+  casa_aldeia: () => genInterior({ name: 'casa_aldeia', exitTo: { map: 'overworld', x: 30 * TILE, y: 98 * TILE } }),
+  casa_rocha:  () => genInterior({ name: 'casa_rocha',  exitTo: { map: 'overworld', x: 138 * TILE, y: 36 * TILE } })
+};
+// portas do mundo aberto que levam a um interior (as demais mostram "trancada")
+const DOORS = {};
+function registraPorta(mapName, x, y, w, h, destino) {
+  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) DOORS[mapName + ',' + i + ',' + j] = destino;
+}
+registraPorta('overworld', 48, 106, 2, 2, { to: 'loja_aldeia' });
+registraPorta('overworld', 156, 44, 2, 2, { to: 'loja_rocha' });
+registraPorta('overworld', 78, 70, 2, 2, { to: 'peixaria' });
+registraPorta('overworld', 30, 96, 2, 2, { to: 'casa_aldeia' });
+registraPorta('overworld', 138, 34, 2, 2, { to: 'casa_rocha' });
+
 // ---------- Mundo ----------
 function tileAt(map, tx, ty) {
   if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h) return 1;
@@ -249,7 +305,7 @@ function tileAt(map, tx, ty) {
 function isSolid(map, tx, ty) { return SOLID.has(tileAt(map, tx, ty)); }
 
 function enterMap(name, px, py) {
-  if (!MAPS[name]) MAPS[name] = name === 'cave' ? genCave() : genOverworld();
+  if (!MAPS[name]) MAPS[name] = name === 'cave' ? genCave() : (INTERIORES[name] ? INTERIORES[name]() : genOverworld());
   G.map = MAPS[name];
   P.mapName = name;
   P.x = px; P.y = py;
@@ -261,6 +317,10 @@ function enterMap(name, px, py) {
     if (!G.flags.tsuchigumo) G.entities.push(makeEntity('tsuchigumo', 10 * TILE, 15 * TILE, 11, true));
     G.region = 'Caverna de Orochi';
     toast('Caverna de Orochi');
+  } else if (INTERIORES[name]) {
+    // interior: sem chefe, sem mob (spawnEnemies já não gera nada aqui —
+    // SPAWN_ZONES não tem entrada pro nome do interior)
+    G.region = null;
   } else {
     if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 28 * TILE, 74 * TILE, 5, true));
     if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 164 * TILE, 110 * TILE, 8, true));
@@ -428,6 +488,9 @@ function updateWorld(dt) {
     fadeTo(() => { enterMap('cave', 18 * TILE, 21 * TILE); P.dir = 'up'; saveGame(); });
   } else if (cur === 12) { // saída caverna
     fadeTo(() => { enterMap('overworld', 48 * TILE, 10 * TILE); P.dir = 'down'; saveGame(); });
+  } else if (cur === 31 && G.map.exitTo) { // saída de um interior
+    const dest = G.map.exitTo;
+    fadeTo(() => { enterMap(dest.map, dest.x, dest.y); P.dir = 'down'; saveGame(); });
   }
   // toast de região + troca de trilha (Vila Sakuramura fica no tema padrão)
   if (G.map.name === 'overworld') {
@@ -451,8 +514,8 @@ function updateWorld(dt) {
         showMsg('A água sagrada do chozuya\nrestaurou suas forças!\n(jogo salvo)');
         saveGame();
       } else showMsg('A água do chozuya reflete\nas pétalas de sakura.');
-    } else if (f.t === 14) { // loja (estoque depende da cidade)
-      G.shopId = f.tx < 50 ? 'aldeia' : 'rocha';
+    } else if (f.t === 14) { // loja (estoque vem do interior onde o balcão está)
+      G.shopId = G.map.shopId || (f.tx < 50 ? 'aldeia' : 'rocha');
       G.state = 'shop'; G.shopIdx = 0; AU.sfx('ok');
     } else if (f.t === 21) { // altar de encantamento
       G.state = 'enchant'; G.menuIdx = 0; G.altarMode = 0; AU.sfx('magic');
@@ -492,7 +555,12 @@ function updateWorld(dt) {
         saveGame();
       }
     } else if (f.t === 19) {
-      showMsg('A porta shoji está fechada.\nOs aldeões se escondem\ndos youkai...');
+      const porta = DOORS[G.map.name + ',' + f.tx + ',' + f.ty];
+      if (porta) {
+        fadeTo(() => { const e = interiorEntry(); enterMap(porta.to, e.x, e.y); P.dir = 'up'; saveGame(); });
+      } else {
+        showMsg('A porta shoji está fechada.\nOs aldeões se escondem\ndos youkai...');
+      }
     }
   }
   if (tap('menu')) { G.state = 'menu'; G.menuIdx = 0; G.menuTab = 0; AU.sfx('menu'); marcaTutorial('menu'); }
@@ -649,9 +717,14 @@ const NPC_DEFS = [
     look: { cabeca: 'shinobi', pele: 1, corCabelo: 1, olhos: 0, roupa: 0 } },
   { id: 'ald_ken',   tipo: 'aldeao', nome: 'Ken',    x: 122, y: 100, raio: 14, tema: 'bambu',
     look: { cabeca: 'samurai', pele: 0, corCabelo: 2, olhos: 3, roupa: 1 } },
-  // --- pescador junto à Lagoa Central
-  { id: 'pescador', tipo: 'pesca', nome: 'Umi, o Pescador', x: 60, y: 78, tema: 'vila',
+  // --- pescador, agora dentro da peixaria (interior perto da Lagoa Central)
+  { id: 'pescador', tipo: 'pesca', nome: 'Umi, o Pescador', x: 11, y: 5, map: 'peixaria', tema: 'vila',
     look: { cabeca: 'kyudoka', pele: 2, corCabelo: 3, olhos: 1, roupa: 2 } },
+  // --- moradores dentro das casas "relevantes" de cada vila
+  { id: 'morador_aldeia', tipo: 'aldeao', nome: 'Obaachan Suzu', x: 11, y: 5, map: 'casa_aldeia', raio: 2, tema: 'vila',
+    look: { cabeca: 'onmyoji', pele: 1, corCabelo: 4, olhos: 2, roupa: 3 } },
+  { id: 'morador_rocha', tipo: 'aldeao', nome: 'Jiisan Taku', x: 11, y: 5, map: 'casa_rocha', raio: 2, tema: 'forja',
+    look: { cabeca: 'samurai', pele: 3, corCabelo: 4, olhos: 4, roupa: 6 } },
   // --- mascates que circulam por trechos largos
   { id: 'merc_tobei', tipo: 'viajante', nome: 'Tobei, o mascate', x: 80, y: 100, raio: 24, tema: 'mascate',
     look: { cabeca: 'kyudoka', pele: 2, corCabelo: 1, olhos: 3, roupa: 5 }, margem: 0.62 },
@@ -675,8 +748,9 @@ function tileLivrePerto(map, tx, ty) {
 }
 function spawnNPCs(map) {
   G.npcs = [];
-  if (map.name !== 'overworld') return;   // por ora, só o mundo aberto
+  if (map.name !== 'overworld' && !INTERIORES[map.name]) return;
   for (const d of NPC_DEFS) {
+    if ((d.map || 'overworld') !== map.name) continue;
     const [tx, ty] = tileLivrePerto(map, d.x, d.y);
     G.npcs.push({
       ...d,
