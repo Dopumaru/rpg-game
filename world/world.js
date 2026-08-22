@@ -130,6 +130,13 @@ function genOverworld() {
   }
   // baús escondidos
   rect(16, 66, 2, 2, 16); rect(176, 72, 2, 2, 16); rect(178, 118, 2, 2, 16);
+  // garante que os pontos fixos de mini-chefe/chefe sejam alcançáveis — a
+  // floresta aleatória (bolsões acima) podia isolar um deles sem isso
+  garanteAcesso(t, W, H, [
+    [28, 74], [164, 110],       // reislime, necromante
+    [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
+    [100, 108], [150, 80]       // amanojaku, yamauba
+  ], [40, 100], new Set(['16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119']));
   return { w: W, h: H, tiles: t, name: 'overworld' };
 }
 
@@ -175,7 +182,63 @@ function genCave() {
   set(18, 23, 12); set(17, 23, 9); set(19, 23, 9); set(18, 22, 9);
   // baús
   set(4, 4, 16); set(31, 20, 16);
+  // garante acesso ao covil do dragão e à teia do tsuchigumo
+  garanteAcesso(t, W, H, [[18, 4], [10, 15]], [17, 23], new Set(['4,4', '31,20']));
   return { w: W, h: H, tiles: t, name: 'cave' };
+}
+
+// garante que os pontos fixos de chefe/mini-chefe sejam alcançáveis a pé:
+// busca em largura a partir de um ponto sempre aberto (âncora) e, pra
+// qualquer alvo isolado pela floresta aleatória ou pousado em cima de tile
+// sólido, limpa a área dele e escava um corredor até o tile aberto já
+// alcançado mais próximo. Roda por último em cada gerador de mapa — depois
+// de toda decoração/baú — pra nada sobrescrever o corredor depois. Tiles em
+// `protegidos` (baús) nunca são limpos, mesmo se um corredor passar perto.
+function garanteAcesso(t, W, H, alvos, ancora, protegidos) {
+  const prot = protegidos || new Set();
+  const clr = (x, y) => { if (x >= 0 && y >= 0 && x < W && y < H && !prot.has(x + ',' + y)) t[y][x] = 0; };
+  const clrRect = (cx, cy, r) => { for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) clr(x, y); };
+  const solid = (x, y) => x < 0 || y < 0 || x >= W || y >= H || SOLID.has(t[y][x]);
+  const visited = Array.from({ length: H }, () => new Array(W).fill(false));
+  const q = [ancora];
+  visited[ancora[1]][ancora[0]] = true;
+  let head = 0;
+  while (head < q.length) {
+    const [x, y] = q[head++];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || visited[ny][nx] || solid(nx, ny)) continue;
+      visited[ny][nx] = true;
+      q.push([nx, ny]);
+    }
+  }
+  for (const [tx, ty] of alvos) {
+    clrRect(tx, ty, 3);
+    if (visited[ty][tx]) continue;
+    // tile já limpo agora, mas ainda isolado: acha o tile já alcançado mais
+    // próximo (anéis crescentes) e escava um corredor reto (largura 3) até lá
+    let melhor = null, melhorD = Infinity;
+    for (let ring = 1; ring < Math.max(W, H) && !melhor; ring++) {
+      for (let dy = -ring; dy <= ring; dy++) for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const nx = tx + dx, ny = ty + dy;
+        if (ny < 0 || ny >= H || nx < 0 || nx >= W || !visited[ny][nx]) continue;
+        const d = dx * dx + dy * dy;
+        if (d < melhorD) { melhorD = d; melhor = [nx, ny]; }
+      }
+    }
+    if (!melhor) continue;
+    let [cx, cy] = [tx, ty];
+    const [gx, gy] = melhor;
+    let guard = 0;
+    while ((cx !== gx || cy !== gy) && guard++ < 400) {
+      clrRect(cx, cy, 1);
+      if (cx !== gx) cx += cx < gx ? 1 : -1;
+      else if (cy !== gy) cy += cy < gy ? 1 : -1;
+    }
+    clrRect(gx, gy, 1);
+    visited[ty][tx] = true;
+  }
 }
 
 // ---------- Mundo ----------
@@ -212,43 +275,54 @@ function enterMap(name, px, py) {
   spawnNPCs(G.map);
 }
 
+// cada zona é dividida em uma faixa vertical por tipo (agrupa cada youkai
+// no seu próprio canto da zona, em vez de espalhar todos os tipos
+// misturados pela caixa inteira — ajuda a achar o alvo de uma missão)
 const SPAWN_ZONES = {
   overworld: [
-    { x1: 12, y1: 64, x2: 140, y2: 122, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 8,
+    { x1: 12, y1: 64, x2: 140, y2: 122, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 12,
       exclude: [{ x1: 22, y1: 86, x2: 58, y2: 114 }, { x1: 10, y1: 62, x2: 54, y2: 86 }] },
-    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin', 'rokuro'], lv: [3, 5], count: 6 },
-    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 8,
+    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin', 'rokuro'], lv: [3, 5], count: 9 },
+    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 12,
       exclude: [{ x1: 130, y1: 24, x2: 170, y2: 50 }] },
-    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 7 },
-    { x1: 148, y1: 100, x2: 180, y2: 120, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 6 }
+    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 10 },
+    { x1: 148, y1: 100, x2: 180, y2: 120, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 9 }
   ],
   cave: [
-    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 9 }
+    { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 13 }
   ]
 };
 function makeEntity(type, x, y, lvl, isBoss) {
   return {
     type, x, y, lvl, isBoss: !!isBoss,
     dir: pick(['up', 'down', 'left', 'right']),
-    moveT: rnd(0.5, 2), vx: 0, vy: 0, animT: 0
+    moveT: rnd(0.5, 2), vx: 0, vy: 0, animT: 0,
+    homeX: x, homeY: y
   };
 }
 function spawnEnemies(initial) {
   const zones = SPAWN_ZONES[G.map.name] || [];
   for (const z of zones) {
-    const cur = G.entities.filter(e => !e.isBoss && e.zone === z).length;
-    const want = initial ? z.count : Math.min(z.count, cur + 1);
-    for (let i = cur; i < want; i++) {
-      for (let tries = 0; tries < 30; tries++) {
-        const tx = irnd(z.x1, z.x2), ty = irnd(z.y1, z.y2);
-        if (z.exclude && z.exclude.some(ex => tx >= ex.x1 && tx <= ex.x2 && ty >= ex.y1 && ty <= ex.y2)) continue;
-        if (isSolid(G.map, tx, ty)) continue;
-        const px = tx * TILE, py = ty * TILE;
-        if (Math.hypot(px - P.x, py - P.y) < TILE * 7) continue;
-        const e = makeEntity(pick(z.types), px, py, irnd(z.lv[0], z.lv[1]));
-        e.zone = z;
-        G.entities.push(e);
-        break;
+    const nTypes = z.types.length;
+    const faixaW = (z.x2 - z.x1) / nTypes;
+    for (let ti = 0; ti < nTypes; ti++) {
+      const type = z.types[ti];
+      const fx1 = z.x1 + ti * faixaW, fx2 = z.x1 + (ti + 1) * faixaW;
+      const cur = G.entities.filter(e => !e.isBoss && e.zone === z && e.type === type).length;
+      const wantType = Math.ceil(z.count / nTypes);
+      const want = initial ? wantType : Math.min(wantType, cur + 1);
+      for (let i = cur; i < want; i++) {
+        for (let tries = 0; tries < 30; tries++) {
+          const tx = irnd(fx1, fx2), ty = irnd(z.y1, z.y2);
+          if (z.exclude && z.exclude.some(ex => tx >= ex.x1 && tx <= ex.x2 && ty >= ex.y1 && ty <= ex.y2)) continue;
+          if (isSolid(G.map, tx, ty)) continue;
+          const px = tx * TILE, py = ty * TILE;
+          if (Math.hypot(px - P.x, py - P.y) < TILE * 7) continue;
+          const e = makeEntity(type, px, py, irnd(z.lv[0], z.lv[1]));
+          e.zone = z;
+          G.entities.push(e);
+          break;
+        }
       }
     }
   }
@@ -439,9 +513,17 @@ function updateWorld(dt) {
       e.moveT -= dt;
       if (e.moveT <= 0) {
         e.moveT = rnd(0.8, 2.4);
-        const d = irnd(0, 4);
-        e.tvx = d === 0 ? espd * 0.6 : d === 1 ? -espd * 0.6 : 0;
-        e.tvy = d === 2 ? espd * 0.6 : d === 3 ? -espd * 0.6 : 0;
+        // coleira: longe demais de casa (onde nasceu), volta pra lá em vez
+        // de vagar livre — impede deriva pra dentro da vila ou de outra zona
+        const dxh = (e.homeX ?? e.x) - e.x, dyh = (e.homeY ?? e.y) - e.y;
+        const dh = Math.hypot(dxh, dyh);
+        if (dh > TILE * 5) {
+          e.tvx = dxh / dh * espd * 0.6; e.tvy = dyh / dh * espd * 0.6;
+        } else {
+          const d = irnd(0, 4);
+          e.tvx = d === 0 ? espd * 0.6 : d === 1 ? -espd * 0.6 : 0;
+          e.tvy = d === 2 ? espd * 0.6 : d === 3 ? -espd * 0.6 : 0;
+        }
       }
       tvx = e.tvx || 0; tvy = e.tvy || 0;
     }
