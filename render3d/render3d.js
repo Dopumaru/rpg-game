@@ -237,6 +237,8 @@ const MODELOS3 = {
       M3('cil', 0x0a0812, [0, .5, .42], [.66, 1.0, .3], [Math.PI / 2, 0, 0])
     ]
 };
+// saída de interior: mesmo modelo da porta shoji (19)
+MODELOS3[31] = MODELOS3[19];
 
 // ---------- Renderizador 3D ----------
 // O mundo vira geometria: cada tile é um bloco cuja face de cima usa a MESMA
@@ -248,7 +250,7 @@ const GL3 = { W: 640, H: 360 };          // atualizado no redimensionamento
 // personagem apoiar sempre na mesma cota.
 const ALT3 = {
   0: .5, 3: .5, 4: .5, 6: .5, 7: .5, 9: .5, 11: .5, 12: .5, 13: .5, 15: .5,
-  19: .5, 22: .5, 24: .5, 25: .5, 26: .5, 28: .5,
+  19: .5, 22: .5, 24: .5, 25: .5, 26: .5, 28: .5, 31: .5,
   2: .3,                                    // água, rebaixada
   1: 2.6, 5: 2.4, 8: 4.2, 10: 3.6, 14: 2.6, 18: 2.4, 20: .95, 21: 1.2,
   16: .8, 17: .8, 23: .9, 27: 1.4, 29: 3.0, 30: 3.0
@@ -256,7 +258,7 @@ const ALT3 = {
 const LADO3 = {                            // cor das laterais do bloco
   0: 0x5a4a30, 4: 0x5a4a30, 22: 0x5a4a30, 3: 0x6a5238, 28: 0x6a5238, 6: 0x6a5238,
   2: 0x2a4a6a, 7: 0x6a4a2a, 1: 0x3a2a18, 5: 0x6a6470, 8: 0x46405a, 10: 0x2a2438,
-  9: 0x3a3448, 18: 0x6a2a24, 19: 0x4a3420, 14: 0x6a2a24, 20: 0x6a6470,
+  9: 0x3a3448, 18: 0x6a2a24, 19: 0x4a3420, 31: 0x4a3420, 14: 0x6a2a24, 20: 0x6a6470,
   23: 0x5a5a66, 27: 0x4a3a2a, 21: 0x6a4a9a, 29: 0x8a2420, 30: 0x8a2420,
   11: 0x2a2438, 13: 0x4a6a8a, 16: 0x8a6a2a, 17: 0x8a6a2a, 24: 0x6a3a3a,
   25: 0x8a2420, 26: 0x8a2420, 12: 0x3a3448, 15: 0x6a5238

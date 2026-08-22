@@ -5352,11 +5352,19 @@ window.DBG = {
   iniciaPesca() { iniciaPesca(); },
   rollPeixe(tier) { return rollPeixe(tier); },
   pescaFisgar() {
-    if (G.pesca) { G.pesca.fase = 'fisgada'; G.pesca.t = 0; }
+    if (G.pesca && G.pesca.fase === 'espera') iniciaFisgada(G.pesca);
   },
   pescaEstado() { return G.pesca; },
-  // hooks só de teste: resolvem a fisgada na hora, sem depender do relógio
-  // real (o ambiente de teste roda WebGL por software e pode ficar bem lento)
+  // hooks só de teste: resolvem a fisgada (vitória ou fuga) na hora, sem
+  // depender da barra de habilidade real nem do relógio real (o ambiente de
+  // teste roda WebGL por software e pode ficar bem lento/instável pra jogar
+  // o minigame de verdade de forma determinística)
+  pescaVence() {
+    if (!G.pesca || G.pesca.fase !== 'fisgada') return false;
+    G.pesca.progresso = 1;
+    updatePesca(0);
+    return true;
+  },
   pescaExpira() {
     if (!G.pesca) return false;
     toast('O peixe fugiu...');
