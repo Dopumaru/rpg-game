@@ -728,12 +728,12 @@ function drawTitle() {
 
   g.font = '7px monospace';
   g.fillStyle = '#8a7aa8';
-  g.fillText('↑↓ escolher  ·  Z/Enter confirmar  ·  M som', VW / 2, 176);
+  g.fillText('↑↓ escolher  ·  Z/Enter confirmar  ·  N som', VW / 2, 176);
   g.textAlign = 'left';
   g.lineWidth = 1;
 }
 
-function titleOpts() { return hasSave() ? ['Continuar', 'Novo Jogo', 'Codex'] : ['Novo Jogo', 'Codex']; }
+function titleOpts() { return hasSave() ? ['Continuar', 'Novo Jogo', 'Codex', 'Opções'] : ['Novo Jogo', 'Codex', 'Opções']; }
 function updateTitle() {
   const opts = titleOpts();
   const n = opts.length;
@@ -743,9 +743,85 @@ function updateTitle() {
     AU.sfx('ok');
     const escolha = opts[G.titleIdx];
     if (escolha === 'Codex') { G.state = 'codex'; G.codexTab = 0; G.codexIdx = 0; return; }
+    if (escolha === 'Opções') { G.optFrom = 'title'; G.optIdx = 0; G.state = 'options'; return; }
     if (escolha === 'Continuar' && loadGame()) return;
     startNewGame();
   }
+}
+
+// ---------- Opções (Esc no mundo, ou pelo título) ----------
+const OPT_LABELS = ['Brilho', 'Volume', 'Partículas', 'Tela cheia', 'Voltar ao menu inicial'];
+function drawOptions() {
+  if (G.optFrom === 'title') drawTitle(); else drawWorld(true);
+  coverRect(0, 0, VW, VH, 'rgba(8,6,16,0.86)');
+  const w = 220, h = 126, x = Math.round((VW - w) / 2), y = Math.round((VH - h) / 2);
+  coverRect(x, y, w, h, 'rgba(26,20,42,0.98)');
+  ctx.strokeStyle = '#ffd94e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = 'bold 9px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('◈ OPÇÕES', x + 8, y + 13);
+  ctx.font = '7px monospace';
+  OPT_LABELS.forEach((label, i) => {
+    const oy = y + 28 + i * 15;
+    const sel = G.optIdx === i;
+    ctx.fillStyle = sel ? '#ffd94e' : '#a89ac0';
+    ctx.fillText((sel ? '▶ ' : '  ') + label, x + 8, oy);
+    let val = null;
+    if (i === 0) val = Math.round(SETTINGS.brilho * 100) + '%';
+    else if (i === 1) val = Math.round(SETTINGS.volume * 100) + '%';
+    else if (i === 2) val = SETTINGS.particulas ? 'Ligadas' : 'Desligadas';
+    else if (i === 3) val = document.fullscreenElement ? 'Ligada' : 'Desligada';
+    if (val) {
+      ctx.fillStyle = sel ? '#fff' : '#705a80';
+      ctx.textAlign = 'right';
+      ctx.fillText((i < 3 ? '◀ ' : '') + val + (i < 3 ? ' ▶' : ''), x + w - 8, oy);
+      ctx.textAlign = 'left';
+    }
+  });
+  ctx.font = '7px monospace';
+  if (G.optConfirm) {
+    ctx.fillStyle = '#e07070';
+    ctx.fillText('Sair sem salvar o progresso recente?', x + 8, y + h - 16);
+    ctx.fillStyle = '#a89ac0';
+    ctx.fillText('Z confirma · X cancela', x + 8, y + h - 6);
+  } else {
+    ctx.fillStyle = '#6a5a8a';
+    ctx.fillText('▲▼ escolher · ◀▶ ajustar · Z ativar · X fechar', x + 8, y + h - 6);
+  }
+}
+function updateOptions() {
+  if (G.optConfirm) {
+    if (tap('ok')) { G.optConfirm = false; if (P) saveGame(); G.state = 'title'; AU.sfx('ok'); }
+    if (tap('back')) { G.optConfirm = false; AU.sfx('back'); }
+    return;
+  }
+  const n = OPT_LABELS.length;
+  if (tap('up')) { G.optIdx = (G.optIdx + n - 1) % n; AU.sfx('menu'); }
+  if (tap('down')) { G.optIdx = (G.optIdx + 1) % n; AU.sfx('menu'); }
+  let delta = 0;
+  if (tap('left')) delta = -1;
+  else if (tap('right')) delta = 1;
+  if (delta) {
+    AU.sfx('menu');
+    if (G.optIdx === 0) { SETTINGS.brilho = clamp(+(SETTINGS.brilho + delta * 0.1).toFixed(2), 0.5, 1.5); aplicaBrilho(); saveSettings(); }
+    else if (G.optIdx === 1) { SETTINGS.volume = clamp(+(SETTINGS.volume + delta * 0.1).toFixed(2), 0, 1); saveSettings(); }
+    else if (G.optIdx === 2) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); }
+  }
+  if (tap('ok')) {
+    if (G.optIdx === 2) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); AU.sfx('ok'); }
+    else if (G.optIdx === 3) {
+      AU.sfx('ok');
+      try {
+        if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+      } catch (e) {}
+    } else if (G.optIdx === 4) {
+      G.optConfirm = true; AU.sfx('menu');
+    }
+  }
+  if (tap('back')) { G.state = G.optFrom || 'world'; AU.sfx('back'); }
 }
 // ---------- Codex: catálogo acessível pelo título ----------
 // Deliberadamente NÃO diz onde/como conseguir cada coisa (nada de

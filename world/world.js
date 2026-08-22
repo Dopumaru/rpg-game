@@ -498,6 +498,7 @@ function updateWorld(dt) {
   if (tap('menu')) { G.state = 'menu'; G.menuIdx = 0; G.menuTab = 0; AU.sfx('menu'); marcaTutorial('menu'); }
   if (tap('mapa')) { G.state = 'mapa'; AU.sfx('menu'); marcaTutorial('mapa'); }
   if (tap('log')) { G.state = 'questlog'; AU.sfx('menu'); }
+  if (tap('back')) { G.optFrom = 'world'; G.optIdx = 0; G.state = 'options'; AU.sfx('menu'); }
 
   // inimigos
   for (const e of G.entities) {

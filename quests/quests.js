@@ -398,6 +398,24 @@ function drawQuestHUD() {
   ctx.fillStyle = pronta ? '#ffd94e' : '#6ee86e';
   ctx.fillRect(x + 5, y + 23, Math.round(bw * clamp(a.prog / q.qtd, 0, 1)), 3);
 }
+// missão principal (tutorial): sempre visível num canto, com o passo atual
+// e a descrição de como completá-lo — some sozinha quando os 12 passos
+// terminam, pra não ficar clutter depois que já cumpriu o papel de ensinar
+function drawMainQuestHUD() {
+  const prox = MAIN_QUEST_STEPS.find(s => !mainStepDone(s.id));
+  if (!prox) return;
+  const w = 192, x = 4, y = VH - 30;
+  ctx.fillStyle = 'rgba(12,10,20,0.82)';
+  ctx.fillRect(x, y, w, 26);
+  ctx.strokeStyle = '#5a4a8a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 25);
+  ctx.font = '7px monospace';
+  ctx.fillStyle = '#ffd94e';
+  ctx.fillText('◈ Missão: ' + prox.nome, x + 5, y + 10);
+  ctx.fillStyle = '#a89ac0';
+  ctx.fillText(prox.desc, x + 5, y + 20);
+}
 // seta apontando para o objetivo, girando em volta do jogador
 function drawSetaGuia() {
   const id = questFoco();
