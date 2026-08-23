@@ -673,12 +673,12 @@ function updateAmbient(dt) {
   } else {
     // pétalas de sakura ao vento (mais densas perto das vilas)
     const vila = G.region === 'Vila Sakuramura' || G.region === 'Vila Iwamura';
-    if (Math.random() < (vila ? 0.55 : 0.3)) spawnParticle({
+    if (Math.random() < (vila ? 0.3 : 0.16)) spawnParticle({
       x: x0 + rnd(-8, VW), y: y0 - 6 + rnd(0, VH * 0.5),
       vx: rnd(8, 20), vy: rnd(6, 14), g: 2, drag: 0.4,
       life: rnd(2.4, 4), color: pick(['#f7b3c6', '#ffd6e2', '#e88fa8', '#ffc2d4']), size: 2
     });
-    if (Math.random() < 0.12) spawnParticle({
+    if (Math.random() < 0.07) spawnParticle({
       x: x0 - 4, y: y0 + rnd(0, VH), vx: rnd(10, 22), vy: rnd(-4, 4),
       life: rnd(2, 3.4), color: pick(['#e8e060', '#f0e8a0']), size: 1
     });
