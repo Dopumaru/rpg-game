@@ -810,11 +810,11 @@ function updateTitle() {
 }
 
 // ---------- Opções (Esc no mundo, ou pelo título) ----------
-const OPT_LABELS = ['Brilho', 'Volume', 'Partículas', 'Tela cheia', 'Voltar ao menu inicial'];
+const OPT_LABELS = ['Brilho', 'Volume', 'Música', 'Partículas', 'Tela cheia', 'Voltar ao menu inicial'];
 function drawOptions() {
   if (G.optFrom === 'title') drawTitle(); else drawWorld(true);
   coverRect(0, 0, VW, VH, 'rgba(8,6,16,0.86)');
-  const w = 220, h = 126, x = Math.round((VW - w) / 2), y = Math.round((VH - h) / 2);
+  const w = 220, h = 141, x = Math.round((VW - w) / 2), y = Math.round((VH - h) / 2);
   coverRect(x, y, w, h, 'rgba(26,20,42,0.98)');
   ctx.strokeStyle = '#ffd94e';
   ctx.lineWidth = 1;
@@ -831,12 +831,13 @@ function drawOptions() {
     let val = null;
     if (i === 0) val = Math.round(SETTINGS.brilho * 100) + '%';
     else if (i === 1) val = Math.round(SETTINGS.volume * 100) + '%';
-    else if (i === 2) val = SETTINGS.particulas ? 'Ligadas' : 'Desligadas';
-    else if (i === 3) val = document.fullscreenElement ? 'Ligada' : 'Desligada';
+    else if (i === 2) val = SETTINGS.musica ? 'Ligada' : 'Desligada';
+    else if (i === 3) val = SETTINGS.particulas ? 'Ligadas' : 'Desligadas';
+    else if (i === 4) val = document.fullscreenElement ? 'Ligada' : 'Desligada';
     if (val) {
       ctx.fillStyle = sel ? '#fff' : '#705a80';
       ctx.textAlign = 'right';
-      ctx.fillText((i < 3 ? '◀ ' : '') + val + (i < 3 ? ' ▶' : ''), x + w - 8, oy);
+      ctx.fillText((i < 4 ? '◀ ' : '') + val + (i < 4 ? ' ▶' : ''), x + w - 8, oy);
       ctx.textAlign = 'left';
     }
   });
@@ -867,17 +868,19 @@ function updateOptions() {
     AU.sfx('menu');
     if (G.optIdx === 0) { SETTINGS.brilho = clamp(+(SETTINGS.brilho + delta * 0.1).toFixed(2), 0.5, 1.5); aplicaBrilho(); saveSettings(); }
     else if (G.optIdx === 1) { SETTINGS.volume = clamp(+(SETTINGS.volume + delta * 0.1).toFixed(2), 0, 1); saveSettings(); }
-    else if (G.optIdx === 2) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); }
+    else if (G.optIdx === 2) { SETTINGS.musica = !SETTINGS.musica; saveSettings(); }
+    else if (G.optIdx === 3) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); }
   }
   if (tap('ok')) {
-    if (G.optIdx === 2) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); AU.sfx('ok'); }
-    else if (G.optIdx === 3) {
+    if (G.optIdx === 2) { SETTINGS.musica = !SETTINGS.musica; saveSettings(); AU.sfx('ok'); }
+    else if (G.optIdx === 3) { SETTINGS.particulas = !SETTINGS.particulas; saveSettings(); AU.sfx('ok'); }
+    else if (G.optIdx === 4) {
       AU.sfx('ok');
       try {
         if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
         else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
       } catch (e) {}
-    } else if (G.optIdx === 4) {
+    } else if (G.optIdx === 5) {
       G.optConfirm = true; AU.sfx('menu');
     }
   }

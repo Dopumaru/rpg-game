@@ -231,6 +231,16 @@ function entregaQuest(id) {
   let txt = q.fim + '\n\n+' + q.ouro + ' ouro   +' + q.xp + ' XP';
   if (q.item) txt += itemCheio ? '\n(mochila cheia — ' + ITEMS[q.item].name + ' perdido)' : '\n+ ' + ITEMS[q.item].name;
   if (ups.length) txt += '\nNÍVEL ' + ups[ups.length - 1] + '!';
+  // deixa claro onde pegar a próxima missão: é sempre o mesmo mestre —
+  // só falta indicar se já dá pra falar de novo ou se falta nível
+  const nextId = questOferecida(q.npc);
+  if (nextId) {
+    const npcNome = q.fim.split(':')[0];
+    const nq = QUESTS[nextId];
+    txt += P.lvl >= nq.nivel
+      ? '\n\n▶ Fale de novo com ' + npcNome + ' — há mais trabalho.'
+      : '\n\n▶ Volte com nível ' + nq.nivel + ' para a próxima missão de ' + npcNome + '.';
+  }
   showMsg(txt);
   if (QUEST_PET_REWARD[id]) awardPet(QUEST_PET_REWARD[id]);
   const principais = Object.keys(QUESTS).filter(k => !QUESTS[k].repetivel);
@@ -257,7 +267,7 @@ const MAIN_QUEST_STEPS = [
   { id: 'mover',    nome: 'Primeiros passos',     desc: 'Mova-se e corra (Shift) pelo mundo.',        ouro: 15, xp: 15 },
   { id: 'falar',    nome: 'Um rosto amigo',       desc: 'Converse com alguém (Z).',                   ouro: 15, xp: 15 },
   { id: 'aceitar',  nome: 'Trabalho a fazer',     desc: 'Aceite uma missão de um mestre de missão.',  ouro: 20, xp: 20 },
-  { id: 'menu',     nome: 'O que você carrega',   desc: 'Abra o menu de status (C).',                 ouro: 15, xp: 15 },
+  { id: 'menu',     nome: 'O que você carrega',   desc: 'Abra o menu de status (C).',                 ouro: 15, xp: 15, item: 'bot1' },
   { id: 'equipar',  nome: 'Vestindo a armadura',  desc: 'Equipe um item na aba de Equipamento.',      ouro: 20, xp: 20 },
   { id: 'mapa',     nome: 'Conhecendo o terreno', desc: 'Abra o mapa interativo (M).',                ouro: 15, xp: 15 },
   { id: 'pescar',   nome: 'Paciência de pescador',desc: 'Pesque em qualquer água.',                   ouro: 20, xp: 20 },
@@ -297,13 +307,16 @@ function updateMainQuest() {
     P.quests.mainPaid[s.id] = true;
     P.gold += s.ouro;
     gainXP(s.xp);
+    // alguns passos vêm com um item simples de brinde — o próximo passo
+    // "equipar" só faz sentido se o jogador já tiver algo pra equipar
+    if (s.item && P.equipInv.length < 18) P.equipInv.push(s.item);
     // último passo: fanfarra de conquista em vez do coin comum de cada etapa
     if (MAIN_QUEST_STEPS.every(x => P.quests.mainPaid[x.id])) {
       AU.sfx('conquista');
       toast('Tutorial completo! Você já viu tudo que o jogo oferece.');
     } else {
       AU.sfx('coin');
-      toast('Tutorial: ' + s.nome + ' (+' + s.ouro + ' ouro)');
+      toast('Tutorial: ' + s.nome + ' (+' + s.ouro + ' ouro' + (s.item ? ', ' + eqName(s.item) : '') + ')');
     }
     saveGame();
   }

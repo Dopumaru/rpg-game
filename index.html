@@ -4075,7 +4075,7 @@ const AU = {
   BOSS: { notes: [50, 50, 57, 55, 58, 57, 53, 50, 55, 58, 62, 58, 57, 53, 50, 48], step: 0.13, type: 'sawtooth', vol: 0.032, bass: [38, 38, 34, 36] },
   setTrack(t) { if (this.track !== t) { this.track = t; this.musicStep = 0; this.musicTimer = 0; } },
   update(dt) {
-    if (!this.ctx || this.muted || !this.track) return;
+    if (!this.ctx || this.muted || !this.track || !SETTINGS.musica) return;
     this.musicTimer -= dt;
     if (this.musicTimer <= 0) {
       const tr = this.track;
@@ -4104,7 +4104,7 @@ const REGION_TRACKS = {
 // ---------- Opções (persistidas à parte do save do personagem — valem
 // mesmo antes de começar um jogo, e sobrevivem a Novo Jogo/Continuar) ----------
 const SETTINGS_KEY = 'forged_legend_settings_v1';
-const SETTINGS = { brilho: 1, volume: 1, particulas: true };
+const SETTINGS = { brilho: 1, volume: 1, particulas: true, musica: true };
 function aplicaBrilho() { cv.style.filter = 'brightness(' + SETTINGS.brilho + ')'; }
 function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); } catch (e) {} }
 function loadSettings() {
@@ -4777,7 +4777,11 @@ function drawParticles(screenLayer) {
   for (const p of G.parts) {
     if (!!p.screen !== !!screenLayer) continue;
     const k = 1 - p.t / p.life;
-    ctx.globalAlpha = p.fade ? clamp(k * 1.4, 0, 1) : 1;
+    // entra suave (evita o "pipoco" de ponto sólido no primeiro quadro) e
+    // sai suave como antes
+    const fadeIn = p.fade ? clamp(p.t / Math.min(0.15, p.life * 0.3), 0, 1) : 1;
+    const fadeOut = p.fade ? clamp(k * 1.4, 0, 1) : 1;
+    ctx.globalAlpha = fadeIn * fadeOut;
     const s = p.shrink ? Math.max(1, Math.round(p.size * k)) : p.size;
     ctx.fillStyle = p.color;
     let px, py;
@@ -5099,9 +5103,9 @@ function barRect(x, y, w, h, pct, fg, bg) {
 function drawWorldHUD() {
   // painel
   ctx.fillStyle = 'rgba(12,10,20,0.82)';
-  ctx.fillRect(3, 3, 96, 40);
+  ctx.fillRect(3, 3, 96, 46);
   ctx.strokeStyle = '#5a4a8a'; ctx.lineWidth = 1;
-  ctx.strokeRect(3.5, 3.5, 95, 39);
+  ctx.strokeRect(3.5, 3.5, 95, 45);
   const E = eff();
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
@@ -5110,11 +5114,19 @@ function drawWorldHUD() {
   ctx.fillStyle = '#cfc8e0'; ctx.fillText(P.hp + '/' + E.maxHp, 73, 21);
   barRect(8, 24, 62, 3, P.mp / E.maxMp, '#5080e0');
   ctx.fillStyle = '#cfc8e0'; ctx.fillText('' + P.mp, 73, 28);
-  barRect(8, 31, 62, 2, P.xp / XP_NEXT(P.lvl), '#e8c050');
-  ctx.fillStyle = '#b8a8d8'; ctx.fillText('XP', 73, 35);
+  // barra de XP sempre visível — mais grossa que antes (era só um traço de
+  // 2px) e com o valor numérico, no mesmo padrão de HP/MP
+  barRect(8, 33, 62, 4, P.xp / XP_NEXT(P.lvl), '#e8c050');
+  ctx.fillStyle = '#b8a8d8'; ctx.fillText(P.xp + '/' + XP_NEXT(P.lvl), 73, 38);
   ctx.fillStyle = '#ffd94e';
-  ctx.fillText('$' + P.gold, 8, 41);
-  if (P.pts > 0) { ctx.fillStyle = '#6ee86e'; ctx.fillText('+' + P.pts + ' pts (C)', 40, 41); }
+  ctx.fillText('$' + P.gold, 8, 46);
+  if (P.pts > 0) {
+    // aviso discreto de pontos disponíveis: pulsa de leve pra chamar
+    // atenção sem virar um alerta grande na tela
+    const pulse = 0.55 + Math.sin(G.time * 4) * 0.35;
+    ctx.fillStyle = 'rgba(110,232,110,' + pulse.toFixed(2) + ')';
+    ctx.fillText('+' + P.pts + ' pts (C)', 40, 46);
+  }
   // HP baixo: vinheta
   if (P.hp / E.maxHp < 0.25) {
     const a = 0.15 + Math.sin(G.time * 6) * 0.08;

@@ -54,7 +54,7 @@ const HEADS = {
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
       '..OSEISSSSEISO..',
-      '..OSEESSSSEESO..',
+      '..OSEWSSSSWESO..',
       '..OSsSSmmSSsSO..',
       '...OSSSSSSSSO...',
       '....OSSSSSSO....'],
@@ -80,7 +80,7 @@ const HEADS = {
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
       '.OHHHSIESSSSSO..',
-      '.OHHHSEESSSSO...',
+      '.OHHHSWESSSSO...',
       '.OHHHSSSSmSO....',
       '..OHHSSsSSO.....',
       '...OHSSSSO......']
@@ -95,7 +95,7 @@ const HEADS = {
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
       '..OSEISSSSEISO..',
-      '..OSEESSSSEESO..',
+      '..OSEWSSSSWESO..',
       '..OSsSSmmSSsSO..',
       '..HOSSSSSSSSOH..',
       '..H.OSSSSSSO.H..'],
@@ -121,7 +121,7 @@ const HEADS = {
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
       '.OHHHSIESSSSSO..',
-      '.OHHHSEESSSSO...',
+      '.OHHHSWESSSSO...',
       '.OHHHSSSSmSO....',
       '.HOHHSSsSSO.....',
       '.H.OHSSSSO......']
@@ -136,7 +136,7 @@ const HEADS = {
       '..OAAAAAAAAAAO..',
       '..OASSSSSSSSAO..',
       '..OASEISSEISAO..',
-      '..OASEESSEESAO..',
+      '..OASEWSSWESAO..',
       '..OASSSSSSSSAO..',
       '...OAAAAAAAAO...',
       '....OAAAAAAO....'],
@@ -162,7 +162,7 @@ const HEADS = {
       '..OAAAAAAAAO....',
       '..OASSSSSSAO....',
       '..OASSSIEAO.....',
-      '..OASSSEEAO.....',
+      '..OASSSWEAO.....',
       '..OAAAAAAAO.....',
       '...OAAAAAO......',
       '....OAAAAO......']
@@ -177,7 +177,7 @@ const HEADS = {
       '..OHSSSSSSSSHO..',
       '..OSSSSSSSSSSO..',
       '..OSEISSSSEISO..',
-      '..OSEESSSSEESO..',
+      '..OSEWSSSSWESO..',
       '..OSsSSmmSSsSO..',
       '..HOSSSSSSSSOH..',
       '..H.OSSSSSSO....'],
@@ -203,7 +203,7 @@ const HEADS = {
       '.OHHHHSSSSSSSO..',
       '.OHHHSSSSSSSSO..',
       '.OHHHSIESSSSSO..',
-      '.OHHHSEESSSSO...',
+      '.OHHHSWESSSSO...',
       '.OHHHSSSSmSO....',
       '.HOHHSSsSSO.....',
       '.H.OHSSSSO......']
@@ -317,7 +317,7 @@ function heroSprite(cls, dir, frame) {
   const kind = mapHeadKind();
   const corpoId = P && P.equip && P.equip.corpo;
   const wt = weaponType();
-  const id = `hero_${kind}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${corpoId || 'x'}_${wt || 'x'}_${dir}_${step}`;
+  const id = `hero_${kind}_${lk.pele}_${lk.corCabelo}_${lk.olhos}_${lk.barba}_${corpoId || 'x'}_${wt || 'x'}_${dir}_${step}`;
   if (spriteCache.has(id)) return spriteCache.get(id);
   const pal = lookPal();
   const heads = HEADS[kind] || HEADS.samurai;
@@ -325,6 +325,19 @@ function heroSprite(cls, dir, frame) {
   const bodyDir = (dir === 'left' || dir === 'right') ? 'side' : 'down';
   const rows = heads[headDir].concat(BODIES[bodyDir + step]);
   let spr = makeSprite(rows, pal);
+  // barba/bigode: shinobi usa máscara (menpo/zukin) que já cobre o
+  // rosto, e de costas (headDir==='up') o rosto não aparece — nos dois
+  // casos não há o que desenhar por cima.
+  const barbaKey = BARBA_KEY[lk.barba % BARBA_KEY.length];
+  if (barbaKey !== 'nenhuma' && kind !== 'shinobi' && headDir !== 'up') {
+    const gb = spr.getContext('2d');
+    gb.fillStyle = pal.H;
+    const BARBA_HERO_PTS = {
+      down: { bigode: [[7, 8], [8, 8]], cheia: [[4, 9], [5, 9], [6, 9], [9, 9], [10, 9], [11, 9], [4, 10], [5, 10], [6, 10], [9, 10], [10, 10], [11, 10], [6, 11], [7, 11], [8, 11], [9, 11]] },
+      side: { bigode: [[8, 8], [9, 8]], cheia: [[6, 9], [7, 9], [8, 9], [5, 10], [6, 10], [7, 10], [8, 10], [9, 10], [6, 11], [7, 11], [8, 11], [9, 11]] }
+    };
+    BARBA_HERO_PTS[headDir][barbaKey].forEach(([x, y]) => gb.fillRect(x, y, 1, 1));
+  }
   // arma equipada, visível de frente/lado — de costas fica atrás do corpo
   const arma = wt && WEAPON_HERO_ART[wt];
   if (arma && dir !== 'up') {
