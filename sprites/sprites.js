@@ -1916,20 +1916,18 @@ function npcPal(look) {
 // arte nova por direção. row/col contam a partir do topo do sprite 16x20
 // (cabeça nas linhas 0-11, corpo nas linhas 12-19).
 const ACESSORIO_PAL = {
-  anciao: { F: '#e0e0e8', K: '#6a4a2a' },
+  anciao: { F: '#e8c574', K: '#7a2c2c' },
   ferreira: { D: '#a83030', J: '#3a2c22', T: '#5a4230', U: '#7a7a86' },
   monge: { J: '#8a8098', N: '#e8c050' }
 };
 const ACESSORIO_PATCH = {
-  // Ancião Genzo: barba longa caindo do queixo, bengala ao lado do corpo
+  // Reiko: kanzashi (enfeite de cabelo) dourado e o brasão da linhagem
+  // no peito — não é mais um ancião, é a neta do Rei-Herói
   anciao: [
-    [10, 5, 'F'], [10, 6, 'F'], [10, 7, 'F'], [10, 8, 'F'], [10, 9, 'F'], [10, 10, 'F'],
-    [11, 5, 'F'], [11, 6, 'F'], [11, 7, 'F'], [11, 8, 'F'], [11, 9, 'F'],
-    [12, 6, 'F'], [12, 7, 'F'], [12, 8, 'F'], [12, 9, 'F'],
-    [13, 7, 'F'], [13, 8, 'F'],
-    [13, 14, 'K'], [14, 14, 'K'], [15, 14, 'K'], [16, 14, 'K'], [17, 14, 'K'], [18, 14, 'K'], [19, 14, 'K']
+    [0, 6, 'F'], [0, 7, 'F'], [1, 6, 'F'],
+    [13, 7, 'K'], [13, 8, 'K'], [14, 7, 'K'], [14, 8, 'K']
   ],
-  // Ferreira Sae: bandana amarrada, avental de couro, martelo no quadril
+  // Homura: bandana amarrada, avental de couro, martelo no quadril
   ferreira: [
     [0, 5, 'D'], [0, 6, 'D'], [0, 7, 'D'], [0, 8, 'D'], [0, 9, 'D'], [0, 10, 'D'],
     [1, 4, 'D'], [1, 5, 'D'], [1, 6, 'D'], [1, 7, 'D'], [1, 8, 'D'], [1, 9, 'D'], [1, 10, 'D'], [1, 11, 'D'],

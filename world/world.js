@@ -688,9 +688,9 @@ function updateAmbient(dt) {
 // paradas dos mascates: pontos por onde circulam
 const NPC_DEFS = [
   // --- Vila Sakuramura: mestre de missão, moradores
-  { id: 'anciao',  tipo: 'quest',   nome: 'Ancião Genzo',   x: 46, y: 102, tema: 'vila',
+  { id: 'anciao',  tipo: 'quest',   nome: 'Reiko',   x: 46, y: 102, tema: 'vila',
     look: { cabeca: 'onmyoji', pele: 1, corCabelo: 4, olhos: 4, roupa: 4 },
-    linha: 'Sakuramura resiste, mas mal.\nUm braço firme faria diferença.' },
+    linha: 'Meu avô ergueu isso tudo sozinho.\nEu mal consigo defender a entrada leste.' },
   { id: 'ald_kioko', tipo: 'aldeao', nome: 'Kioko',  x: 34, y: 106, raio: 8, tema: 'vila',
     look: { cabeca: 'samurai', pele: 0, corCabelo: 0, olhos: 0, roupa: 3 } },
   { id: 'ald_taro',  tipo: 'aldeao', nome: 'Taro',   x: 52, y: 108, raio: 10, tema: 'vila',
@@ -700,9 +700,9 @@ const NPC_DEFS = [
   { id: 'ald_goro',  tipo: 'aldeao', nome: 'Goro',   x: 58, y: 98, raio: 12, tema: 'campo',
     look: { cabeca: 'samurai', pele: 3, corCabelo: 0, olhos: 0, roupa: 1 } },
   // --- Vila Iwamura: ferreira e moradores
-  { id: 'ferreira', tipo: 'quest',   nome: 'Ferreira Sae',  x: 156, y: 50, tema: 'forja',
+  { id: 'ferreira', tipo: 'quest',   nome: 'Homura',  x: 156, y: 50, tema: 'forja',
     look: { cabeca: 'shinobi', pele: 2, corCabelo: 2, olhos: 5, roupa: 5 },
-    linha: 'Martelo não bate sozinho.\nSe quiser aço, traga do que se faz aço.' },
+    linha: 'Minha primeira lâmina saiu de uma\ncorrente. A de vocês vai sair de ferro de verdade.' },
   { id: 'ald_ren',   tipo: 'aldeao', nome: 'Ren',    x: 148, y: 44, raio: 8, tema: 'forja',
     look: { cabeca: 'samurai', pele: 1, corCabelo: 3, olhos: 1, roupa: 1 } },
   { id: 'ald_mika',  tipo: 'aldeao', nome: 'Mika',   x: 164, y: 54, raio: 10, tema: 'forja',
