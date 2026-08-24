@@ -1639,15 +1639,128 @@ function updateCreate() {
     AU.sfx('ok');
     fadeTo(() => {
       enterMap('overworld', START.x, START.y);
-      G.state = 'world';
-      showMsg('Bem-vindo a Sakuramura!\nSeu caminho vem da arma que\nempunha: katana, shakujo,\ntanto ou yumi.');
-      showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas técnicas.');
-      showMsg('O que você veste aparece no\nseu personagem: peitorais,\nelmos e armas mudam o visual!');
-      showMsg('Youkai deixam Fragmentos ◆.\nLeve-os ao altar da vila para\nencantar seu equipamento!');
-      showMsg('Três grandes youkai ameaçam\nestas terras. Derrote\nYamata-no-Orochi e traga a paz!');
-      saveGame();
+      startIntro(() => {
+        G.state = 'world';
+        showMsg('Bem-vindo a Sakuramura!\nSeu caminho vem da arma que\nempunha: katana, shakujo,\ntanto ou yumi.');
+        showMsg('Abra o menu (C) para equipar,\ndistribuir pontos de status e\nver suas técnicas.');
+        showMsg('O que você veste aparece no\nseu personagem: peitorais,\nelmos e armas mudam o visual!');
+        showMsg('Youkai deixam Fragmentos ◆.\nLeve-os ao altar da vila para\nencantar seu equipamento!');
+        showMsg('Três grandes youkai ameaçam\nestas terras. Derrote\nYamata-no-Orochi e traga a paz!');
+        saveGame();
+      });
     });
   }
+}
+
+// ---------- Cutscene de abertura ----------
+// Encenada na cena 3D de verdade (câmera + billboards), não é um vídeo nem
+// uma sequência de imagens fixas. Roda uma única vez, entre a criação de
+// personagem e o primeiro quadro no mundo. Reaproveita 100% de arte já
+// existente: Kuniyasu é um NPC sintético (mesmo pipeline de npcSprite() dos
+// mestres, com uma coroa simples via ACESSORIO_PATCH); a ameaça é composta
+// dos próprios tipos de youkai/oni que já existem em ENEMIES.
+const KUNIYASU_ACTOR = { id: 'kuniyasu', look: { cabeca: 'onmyoji', pele: 3, corCabelo: 6, olhos: 4, roupa: 6 } };
+const INTRO_BEATS = [
+  { cam: [44, 100], zoom: 6, tint: 'rgba(255,200,120,0.16)', dur: 5,
+    actors: () => [
+      { spr: npcSprite(KUNIYASU_ACTOR, 'down', 0), x: 44, z: 99 },
+      { spr: enemySprite('orc'), x: 42, z: 101 },
+      { spr: enemySprite('goblin'), x: 46, z: 101 }
+    ],
+    lines: ['Houve um tempo em que Onis e Yokai\neram donos desta terra.',
+            'Até que um homem se recusou\na continuar escravo.'] },
+  { cam: [36, 98], zoom: 5, tint: 'rgba(70,80,130,0.30)', dur: 4.5,
+    actors: () => [{ spr: npcSprite(KUNIYASU_ACTOR, 'down', 0), x: 36, z: 98 }],
+    lines: ['Kuniyasu, o Pacificador, está morrendo.',
+            'Os Deuses ainda não decidiram se\ncontinuarão do lado dos homens.'] },
+  { cam: [30, 82], zoom: 7, tint: 'rgba(120,20,20,0.22)', dur: 4.5,
+    actors: () => [
+      { spr: enemySprite('onigeneral'), x: 30, z: 80 },
+      { spr: enemySprite('harpia'), x: 29, z: 81 },
+      { spr: enemySprite('yamauba'), x: 31, z: 83 }
+    ],
+    lines: ['Nas bordas do território,\noutros já ouviram a notícia.',
+            'Onis. Yokai. Esperando a hora de agir.'] },
+  { cam: [40, 104], zoom: 6, tint: 'rgba(255,220,160,0.10)', dur: 3.5,
+    actors: () => [{ spr: heroSprite(curClass(), 'down', 0), x: 40, z: 104 }],
+    lines: ['E numa vila comum,\num novo caminho está prestes a começar.'] }
+];
+const INTRO_PAN_DUR = 0.9;
+function startIntro(onDone) {
+  G.state = 'intro';
+  G.intro = { beat: 0, t: 0, camFrom: INTRO_BEATS[0].cam.slice(), onDone };
+}
+// pula tudo e encerra de vez — usado pelo botão de pular e pelo hook de teste
+function skipIntro() {
+  if (G.state !== 'intro') return;
+  const onDone = G.intro.onDone;
+  G.intro = null;
+  onDone();
+}
+function updateIntro(dt) {
+  const gi = G.intro;
+  gi.t += dt;
+  if (tap('back')) { AU.sfx('back'); skipIntro(); return; }
+  const beat = INTRO_BEATS[gi.beat];
+  if (tap('ok') || gi.t >= beat.dur) {
+    AU.sfx('menu');
+    gi.camFrom = intronCamAtual(gi);
+    gi.beat++;
+    gi.t = 0;
+    if (gi.beat >= INTRO_BEATS.length) { skipIntro(); return; }
+  }
+}
+// posição atual da câmera dentro do beat (pra servir de ponto de partida
+// do próximo pan, sem saltar se o jogador pular um beat no meio do movimento)
+function intronCamAtual(gi) {
+  const beat = INTRO_BEATS[gi.beat];
+  const f = easeOut(clamp(gi.t / INTRO_PAN_DUR, 0, 1));
+  return [lerp(gi.camFrom[0], beat.cam[0], f), lerp(gi.camFrom[1], beat.cam[1], f)];
+}
+function drawIntro() {
+  const gi = G.intro;
+  const beat = INTRO_BEATS[gi.beat];
+  const m = MAPS.overworld;
+  if (R3.mapaNome !== m.name) { R3.montarMapa(m); R3.regiaoAtual = null; }
+  if (R3.regiaoAtual !== G.region) { R3.regiaoAtual = 'Vila Sakuramura'; R3.ambiente(m); }
+  // câmera desliza suavemente até o alvo do beat, em vez de saltar
+  const camAt = intronCamAtual(gi);
+  R3.aplicaZoom(beat.zoom);
+  R3.camPara(camAt[0], camAt[1]);
+  for (const a of beat.actors()) R3.por('intro_' + a.x + '_' + a.z, a.spr, a.x, a.z + 0.2, 0, 0, true);
+  R3.escondeNaoUsados();
+  R3.culling(camAt[0], camAt[1]);
+  R3.desenha();
+
+  ctx.clearRect(0, 0, VW, VH);
+  ctx.fillStyle = beat.tint;
+  ctx.fillRect(0, 0, VW, VH);
+  // barras de letterbox — moldura de cinemática
+  const bar = 20;
+  ctx.fillStyle = '#0a0812';
+  ctx.fillRect(0, 0, VW, bar);
+  ctx.fillRect(0, VH - bar, VW, bar);
+  // legenda: a segunda linha (se houver) entra depois da primeira
+  ctx.font = '8px monospace';
+  ctx.textAlign = 'center';
+  beat.lines.forEach((ln, i) => {
+    const entra = INTRO_PAN_DUR + 0.3 + i * 1.8;
+    if (gi.t < entra) return;
+    const f = clamp((gi.t - entra) / 0.5, 0, 1);
+    ctx.globalAlpha = f;
+    ln.split('\n').forEach((row, j) => {
+      const y = VH - bar - 30 + i * 22 + j * 10;
+      ctx.fillStyle = '#0a0812';
+      ctx.fillText(row, VW / 2 + 1, y + 1);
+      ctx.fillStyle = '#f0e8f8';
+      ctx.fillText(row, VW / 2, y);
+    });
+  });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.font = '7px monospace';
+  ctx.fillStyle = 'rgba(240,232,248,0.55)';
+  ctx.fillText('X pula', VW - 34, VH - bar + 13);
 }
 
 // ---------- Loja ----------
