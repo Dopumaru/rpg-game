@@ -338,6 +338,15 @@ function heroSprite(cls, dir, frame) {
     };
     BARBA_HERO_PTS[headDir][barbaKey].forEach(([x, y]) => gb.fillRect(x, y, 1, 1));
   }
+  // corzinha nas bochechas: a paleta já tinha um tom de blush por pele
+  // (pal.b) definido desde sempre, mas nunca pintado no sprite do mundo —
+  // mesma exceção de shinobi/costas do bloco da barba
+  if (kind !== 'shinobi' && headDir !== 'up') {
+    const gc = spr.getContext('2d');
+    gc.fillStyle = pal.b;
+    const BLUSH_PTS = { down: [[3, 8], [12, 8]], side: [[10, 8]] };
+    BLUSH_PTS[headDir].forEach(([x, y]) => gc.fillRect(x, y, 1, 1));
+  }
   // arma equipada, visível de frente/lado — de costas fica atrás do corpo
   const arma = wt && WEAPON_HERO_ART[wt];
   if (arma && dir !== 'up') {
@@ -1971,6 +1980,13 @@ function npcSprite(npc, dir, frame) {
     if (npc.id === 'monge') pal = Object.assign({}, pal, { H: pal.S, h: pal.s, d: pal.b });
   }
   let spr = makeSprite(rows, pal);
+  // mesmo blush do heroSprite() — consistência visual entre jogador e NPCs
+  if (lk.cabeca !== 'shinobi' && headDir !== 'up') {
+    const gc = spr.getContext('2d');
+    gc.fillStyle = pal.b;
+    const BLUSH_PTS = { down: [[3, 8], [12, 8]], side: [[10, 8]] };
+    BLUSH_PTS[headDir].forEach(([x, y]) => gc.fillRect(x, y, 1, 1));
+  }
   if (dir === 'left') spr = flipSprite(spr);
   spriteCache.set(id, spr);
   return spr;
