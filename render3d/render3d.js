@@ -950,7 +950,10 @@ function desenhaMundo3D(m) {
     if (q.atras) continue;
     desenhaMarcaNPC(n, q.x, q.y, d);
   }
-  // rótulos de nível e alerta, projetados por cima dos youkai
+  // rótulos de nível e alerta, projetados por cima dos youkai — e, se o
+  // mouse estiver em cima de um deles, o nome (qual youkai é qual não era
+  // óbvio só pelo nível/cor)
+  let hoverE = null, hoverQ = null, hoverD = 12;
   for (const e of G.entities) {
     const dist = Math.hypot(e.x - P.x, e.y - P.y);
     if (dist >= TILE * 5.5) continue;
@@ -969,5 +972,22 @@ function desenhaMundo3D(m) {
     }
     ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
+    if (G.mouse) {
+      const dm = Math.hypot(G.mouse.x - q.x, G.mouse.y - (q.y + 8));
+      if (dm < hoverD) { hoverD = dm; hoverE = e; hoverQ = q; }
+    }
+  }
+  if (hoverE) {
+    const nome = ENEMIES[hoverE.type].name;
+    ctx.font = '7px monospace';
+    const w = ctx.measureText(nome).width + 8;
+    const tx = clamp(hoverQ.x - w / 2, 2, VW - w - 2), ty = clamp(hoverQ.y - 20, 2, VH - 12);
+    ctx.fillStyle = 'rgba(12,10,20,0.9)';
+    ctx.fillRect(tx, ty, w, 10);
+    ctx.strokeStyle = hoverE.isBoss ? '#ffa726' : '#5a4a8a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tx + 0.5, ty + 0.5, w - 1, 9);
+    ctx.fillStyle = hoverE.isBoss ? '#ffa726' : '#f0e8f8';
+    ctx.fillText(nome, tx + 4, ty + 7);
   }
 }

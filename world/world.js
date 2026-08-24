@@ -141,15 +141,21 @@ function genOverworld() {
   // `protegidos` pra um corredor de acesso nunca arrancar pedaço do prédio
   const protPeixaria = new Set();
   for (let y = 64; y <= 71; y++) for (let x = 76; x <= 83; x++) protPeixaria.add(x + ',' + y);
+  const protComuns = new Set([
+    '16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119',
+    ...protPeixaria
+  ]);
   garanteAcesso(t, W, H, [
     [28, 74], [164, 110],       // reislime, necromante
     [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
     [100, 108], [150, 80],      // amanojaku, yamauba
     [79, 72]                    // acesso à porta da peixaria
-  ], [40, 100], new Set([
-    '16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119',
-    ...protPeixaria
-  ]));
+  ], [40, 100], protComuns);
+  // fecha qualquer bolsão minúsculo isolado que a floresta aleatória tenha
+  // deixado pra trás (nenhum youkai nasce mais preso pra sempre no meio de
+  // árvores) — roda por último, depois de garanteAcesso já ter conectado
+  // tudo que precisava
+  seleBolsoesIsolados(t, W, H, protComuns, 1);
   return { w: W, h: H, tiles: t, name: 'overworld' };
 }
 
@@ -196,7 +202,10 @@ function genCave() {
   // baús
   set(4, 4, 16); set(31, 20, 16);
   // garante acesso ao covil do dragão e à teia do tsuchigumo
-  garanteAcesso(t, W, H, [[18, 4], [10, 15]], [17, 23], new Set(['4,4', '31,20']));
+  const protCave = new Set(['4,4', '31,20']);
+  garanteAcesso(t, W, H, [[18, 4], [10, 15]], [17, 23], protCave);
+  // mesma limpeza de bolsão isolado do overworld, aqui com parede de pedra
+  seleBolsoesIsolados(t, W, H, protCave, 10);
   return { w: W, h: H, tiles: t, name: 'cave' };
 }
 
@@ -207,6 +216,35 @@ function genCave() {
 // alcançado mais próximo. Roda por último em cada gerador de mapa — depois
 // de toda decoração/baú — pra nada sobrescrever o corredor depois. Tiles em
 // `protegidos` (baús) nunca são limpos, mesmo se um corredor passar perto.
+// sela bolsões minúsculos isolados (1 tile de grama cercado de árvore/água/
+// pedra por todo lado, sobra do ruído aleatório da floresta) — sem isso um
+// youkai cujo spawn caísse ali ficava preso pra sempre, sem nenhuma direção
+// livre pra sair. Roda depois de garanteAcesso() (pra não engolir nenhum
+// ponto que ele acabou de conectar) e nunca mexe em tile protegido (baú).
+function seleBolsoesIsolados(t, W, H, protegidos, tileSolido) {
+  const prot = protegidos || new Set();
+  const solid = (x, y) => x < 0 || y < 0 || x >= W || y >= H || SOLID.has(t[y][x]);
+  const visited = Array.from({ length: H }, () => new Array(W).fill(false));
+  let melhorComp = [], melhorLen = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (visited[y][x] || solid(x, y)) continue;
+    const q = [[x, y]]; visited[y][x] = true; let head = 0; const comp = [];
+    while (head < q.length) {
+      const [cx, cy] = q[head++]; comp.push([cx, cy]);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || visited[ny][nx] || solid(nx, ny)) continue;
+        visited[ny][nx] = true; q.push([nx, ny]);
+      }
+    }
+    if (comp.length > melhorLen) { melhorLen = comp.length; melhorComp = comp; }
+  }
+  const naMaior = new Set(melhorComp.map(([x, y]) => x + ',' + y));
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (solid(x, y) || naMaior.has(x + ',' + y) || prot.has(x + ',' + y)) continue;
+    t[y][x] = tileSolido;
+  }
+}
 function garanteAcesso(t, W, H, alvos, ancora, protegidos) {
   const prot = protegidos || new Set();
   const clr = (x, y) => { if (x >= 0 && y >= 0 && x < W && y < H && !prot.has(x + ',' + y)) t[y][x] = 0; };
@@ -268,6 +306,12 @@ function genInterior(opts) {
   rect(0, 0, W, 1, 5); rect(0, H - 1, W, 1, 5); rect(0, 0, 1, H, 5); rect(W - 1, 0, 1, H, 5);
   rect(Math.floor(W / 2) - 1, H - 1, 2, 1, 31); // saída, centro da parede sul
   if (opts.shopId) rect(Math.floor(W / 2) - 1, 3, 2, 2, 14); // balcão da loja
+  // decoração: lanternas emoldurando a porta, um arranjo de flores em cada
+  // canto — e, se for loja, mais um par de lanternas junto ao balcão. Tudo
+  // reaproveita tiles/arte que já existem no jogo, sem asset novo.
+  set(8, H - 2, 27); set(W - 9, H - 2, 27);
+  set(2, 2, 4); set(3, 2, 4); set(W - 3, 2, 4); set(W - 4, 2, 4);
+  if (opts.shopId) { set(8, 3, 27); set(W - 9, 3, 27); }
   const map = { w: W, h: H, tiles: t, name: opts.name, exitTo: opts.exitTo };
   if (opts.shopId) map.shopId = opts.shopId;
   return map;
@@ -308,8 +352,25 @@ function enterMap(name, px, py) {
   if (!MAPS[name]) MAPS[name] = name === 'cave' ? genCave() : (INTERIORES[name] ? INTERIORES[name]() : genOverworld());
   G.map = MAPS[name];
   P.mapName = name;
-  P.x = px; P.y = py;
-  G.petX = px - 14; G.petY = py;
+  // rede de segurança: se o destino cair em cima de um tile sólido (posição
+  // salva de antes de um mapa mudar de tamanho, ou qualquer outro bug de
+  // coordenada), realoca pro tile livre mais próximo em vez de prender o
+  // jogador dentro da parede pra sempre — inclusive resgata saves antigos já
+  // corrompidos por esse tipo de bug, não só previne novos
+  let tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+  if (isSolid(MAPS[name], tx, ty)) {
+    [tx, ty] = tileLivrePerto(MAPS[name], tx, ty);
+    // tileLivrePerto só busca num raio de 6 tiles — não basta pra escapar de
+    // dentro de um bloco sólido bem mais largo (ex.: a faixa de montanha no
+    // norte do overworld). Último recurso: o ponto de entrada padrão do
+    // próprio mapa, sempre garantido livre.
+    if (isSolid(MAPS[name], tx, ty)) {
+      const seguro = name === 'overworld' ? START : name === 'cave' ? { x: 18 * TILE, y: 21 * TILE } : interiorEntry();
+      tx = Math.floor(seguro.x / TILE); ty = Math.floor(seguro.y / TILE);
+    }
+  }
+  P.x = tx * TILE; P.y = ty * TILE;
+  G.petX = P.x - 14; G.petY = P.y;
   G.entities = [];
   spawnEnemies(true);
   if (name === 'cave') {
@@ -487,7 +548,11 @@ function updateWorld(dt) {
   if (cur === 11) { // entrada caverna
     fadeTo(() => { enterMap('cave', 18 * TILE, 21 * TILE); P.dir = 'up'; saveGame(); });
   } else if (cur === 12) { // saída caverna
-    fadeTo(() => { enterMap('overworld', 48 * TILE, 10 * TILE); P.dir = 'down'; saveGame(); });
+    // (97,21) é o tile de estrada logo ao sul da entrada real (96-97,18-19).
+    // 48*TILE,10*TILE era a posição de antes do mapa dobrar de tamanho (nunca
+    // reescalada junto) — caía dentro da montanha sólida rect(0,0,W,20,8),
+    // prendendo e "sumindo" o personagem pra sempre, inclusive no save.
+    fadeTo(() => { enterMap('overworld', 97 * TILE, 21 * TILE); P.dir = 'down'; saveGame(); });
   } else if (cur === 31 && G.map.exitTo) { // saída de um interior
     const dest = G.map.exitTo;
     fadeTo(() => { enterMap(dest.map, dest.x, dest.y); P.dir = 'down'; saveGame(); });
@@ -638,6 +703,13 @@ function updateWorld(dt) {
   G.camY = Math.round(G.camYf);
 }
 
+// fonte (cura) e altar (encantamento) das duas vilas — brilho ambiente sobe
+// deles o tempo todo, mesmo parado, pra ficar óbvio que são especiais antes
+// de qualquer interação (Z). Cor ecoa a mesma paleta do desenho de cada um.
+const PONTOS_MAGICOS = [
+  { x: 40.5, y: 100.5, tipo: 'fonte' }, { x: 148.5, y: 40.5, tipo: 'fonte' },
+  { x: 32.5, y: 106.5, tipo: 'altar' }, { x: 142.5, y: 44.5, tipo: 'altar' }
+];
 // ambiente: vagalumes, folhas, poeira — depende da região
 function updateAmbient(dt) {
   G.ambT -= dt;
@@ -647,6 +719,17 @@ function updateAmbient(dt) {
   const forest = G.region === 'Bosque de Bambu' || G.region === 'Floresta de Aokigahara';
   const grave = G.region === 'Templo Abandonado';
   const x0 = G.camX, y0 = G.camY;
+  if (G.map.name === 'overworld') {
+    for (const p of PONTOS_MAGICOS) {
+      const wx = p.x * TILE, wy = p.y * TILE;
+      if (Math.hypot(wx - P.x, wy - P.y) > TILE * 9) continue;
+      if (Math.random() < 0.4) spawnParticle({
+        x: wx + rnd(-4, 4), y: wy + rnd(-2, 2), vx: rnd(-3, 3), vy: rnd(-16, -10), h: 0.6,
+        life: rnd(0.9, 1.5), size: 1,
+        color: p.tipo === 'fonte' ? pick(['#8ec6f0', '#c6e2f8', '#5a92d6']) : pick(['#b06ae8', '#e0b8ff', '#8a3ac8'])
+      });
+    }
+  }
   if (cave) {
     // faíscas subindo dos cristais
     if (Math.random() < 0.5) spawnParticle({
