@@ -33,8 +33,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'slime', qtd: 6,
     local: [60, 104], dica: 'Campos de Arroz, a leste da vila',
     ouro: 70, xp: 60,
-    oferta: 'Ancião Genzo:\nOs Konpaku tomaram o arrozal a leste.\nDerrube seis deles e a vila come.',
-    fim: 'Ancião Genzo:\nO arrozal respira de novo.\nTome, é pouco, mas é de coração.',
+    oferta: 'Reiko:\nOs Konpaku tomaram o arrozal a leste.\nMeu avô resolveria isso sem pensar\nduas vezes. Eu... só tenho você.',
+    fim: 'Reiko:\nO arrozal respira de novo.\nTalvez eu não precise ser ele pra\nfazer alguma diferença. Tome.',
     proxima: 'q_kappa'
   },
   q_kappa: {
@@ -42,8 +42,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'goblin', qtd: 5,
     local: [88, 92], dica: 'a margem do rio, a leste',
     ouro: 120, xp: 110,
-    oferta: 'Ancião Genzo:\nOs Kappa arrastam quem chega perto\nda água. Cinco a menos já ajuda.',
-    fim: 'Ancião Genzo:\nAs crianças podem voltar ao rio.\nVocê tem o agradecimento da vila.',
+    oferta: 'Reiko:\nOs Kappa arrastam quem chega perto\nda água. Cinco a menos já ajuda —\ne já é mais do que eu conseguiria sozinha.',
+    fim: 'Reiko:\nAs crianças podem voltar ao rio.\nA vila agradece a você.\nEu só assino o nome dela nisso.',
     proxima: 'q_lobos'
   },
   q_lobos: {
@@ -51,8 +51,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'lobo', qtd: 5,
     local: [90, 35], dica: 'Planalto do Norte, na trilha alta',
     ouro: 95, xp: 85,
-    oferta: 'Ancião Genzo:\nOs Okuri-inu cercam quem sobe\nsozinho a trilha do norte. Ajude\nquem ainda precisa subir.',
-    fim: 'Ancião Genzo:\nA trilha está mais segura agora.\nBoa caçada, jovem guerreiro.',
+    oferta: 'Reiko:\nOs Okuri-inu cercam quem sobe\nsozinho a trilha do norte. Meu avô\nsubiu aquela trilha cem vezes. Eu nunca subi.',
+    fim: 'Reiko:\nA trilha está mais segura agora.\nEle ficaria orgulhoso — acho que é\na primeira vez que penso isso sem doer.',
     proxima: 'q_nurarihyon'
   },
   q_nurarihyon: {
@@ -60,8 +60,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'reislime', qtd: 1,
     local: [28, 74], dica: 'Bosque de Bambu, a oeste',
     ouro: 300, xp: 260, item: 'elixir',
-    oferta: 'Ancião Genzo:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono.\nExpulse-o do bambuzal.',
-    fim: 'Ancião Genzo:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez.',
+    oferta: 'Reiko:\nNurarihyon entra nas casas e bebe\nnosso chá como se fosse dono — porque\nna vida do meu avô, nunca ousou. Expulse-o.',
+    fim: 'Reiko:\nEntão o velho atrevido se foi.\nBeba você o chá desta vez — você\nganhou isso mais do que eu jamais ganharia.',
     proxima: 'q_aranharainha'
   },
   q_aranharainha: {
@@ -69,8 +69,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'aranharainha', qtd: 1,
     local: [42, 78], dica: 'Bosque de Bambu, no fundo da teia',
     ouro: 200, xp: 170,
-    oferta: 'Ancião Genzo:\nUma rainha teceu sua teia no\nfundo do bambuzal. Ninguém que\nentra lá volta com a roupa limpa.',
-    fim: 'Ancião Genzo:\nA teia caiu com ela. O bambuzal\nrespira sem fios agora.',
+    oferta: 'Reiko:\nUma rainha teceu sua teia no\nfundo do bambuzal, animada com a\nidade do meu avô. Ela não sabe da sua.',
+    fim: 'Reiko:\nA teia caiu com ela. O bambuzal\nrespira sem fios agora. Estou começando\na acreditar que isso vai dar certo.',
     proxima: 'q_amanojaku'
   },
   q_amanojaku: {
@@ -78,8 +78,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'amanojaku', qtd: 1,
     local: [100, 108], dica: 'Campos de Arroz, onde a colheita desandou',
     ouro: 340, xp: 300, item: 'pocaoG',
-    oferta: 'Ancião Genzo:\nAmanojaku virou nossa colheita\nde cabeça para baixo só por\nteimosia. Ensine-o o contrário.',
-    fim: 'Ancião Genzo:\nO arroz volta a crescer para cima.\nVocê fez o impossível parecer fácil.',
+    oferta: 'Reiko:\nAmanojaku virou nossa colheita\nde cabeça para baixo só por teimosia.\nMeu avô riria disso. Eu só quero resolver.',
+    fim: 'Reiko:\nO arroz volta a crescer para cima.\nVocê fez o impossível parecer fácil —\ntalvez seja hora de eu parar de me comparar a ele.',
     proxima: 'q_bounty_arrozal'
   },
   q_bounty_arrozal: {
@@ -87,16 +87,16 @@ const QUESTS = {
     tipo: 'matar', alvo: 'goblin', qtd: 8,
     local: [72, 90], dica: 'Campos de Arroz — sempre há mais um Kappa',
     ouro: 90, xp: 70,
-    oferta: 'Ancião Genzo:\nOs Kappa voltam sempre. Enquanto\nhouver rio, haverá trabalho pra\nquem tem coragem.',
-    fim: 'Ancião Genzo:\nMais alguns dias de paz. Volte\nquando quiser — o rio não seca.'
+    oferta: 'Reiko:\nOs Kappa voltam sempre. Enquanto\nhouver rio, haverá trabalho — e\nagora eu sei a quem pedir.',
+    fim: 'Reiko:\nMais alguns dias de paz. Volte\nquando quiser — o rio não seca,\ne nem a minha gratidão.'
   },
   q_ferro: {
     nome: 'Ferro para a forja', npc: 'ferreira', nivel: 3,
     tipo: 'coletar', alvo: 'ferro', qtd: 5,
     local: [116, 80], dica: 'Oni e Doro-ningyo deixam ferro',
     ouro: 150, xp: 130,
-    oferta: 'Ferreira Sae:\nMinha bigorna está ociosa.\nTraga cinco Ferro Velho e eu\ntransformo em algo que corta.',
-    fim: 'Ferreira Sae:\nIsso serve. O fole já está quente.\nPegue sua parte.',
+    oferta: 'Homura:\nMinha bigorna está ociosa. Traga\ncinco Ferro Velho e eu transformo\nem algo que corta — já fiz pior com corrente.',
+    fim: 'Homura:\nIsso serve. O fole já está quente.\nPegue sua parte — e lembre: toda\nlâmina boa já foi outra coisa antes.',
     proxima: 'q_tengu'
   },
   q_tengu: {
@@ -104,8 +104,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'harpia', qtd: 5,
     local: [116, 36], dica: 'Planalto do Norte',
     ouro: 240, xp: 220, item: 'pocaoG',
-    oferta: 'Ferreira Sae:\nOs Tengu levam o minério que\nsobe pela trilha. Cinco penas\nmenos no céu resolvem.',
-    fim: 'Ferreira Sae:\nA trilha está livre. O minério chega.\nBoa caçada, essa.',
+    oferta: 'Homura:\nOs Tengu levam o minério que sobe\npela trilha. Cinco penas a menos\nno céu, e eu paro de perder tempo esperando.',
+    fim: 'Homura:\nA trilha está livre. O minério chega.\nBoa caçada, essa — quase tão\nsatisfatória quanto forjar.',
     proxima: 'q_tenguveterano'
   },
   q_tenguveterano: {
@@ -113,8 +113,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'tenguveterano', qtd: 1,
     local: [120, 34], dica: 'Planalto do Norte, no ninho alto',
     ouro: 260, xp: 230,
-    oferta: 'Ferreira Sae:\nUm Tengu veterano lidera os que\nroubam minério do meu ninho. Corte\na cabeça e o resto se dispersa.',
-    fim: 'Ferreira Sae:\nO ninho está quieto. O minério\nvolta a descer a trilha em paz.',
+    oferta: 'Homura:\nUm Tengu veterano lidera os que\nroubam minério do meu ninho. Corte\na cabeça — os Onis não são os únicos que sabem tomar o que não é deles.',
+    fim: 'Homura:\nO ninho está quieto. O minério\nvolta a descer a trilha em paz.\nGuarde essa sensação — não dura.',
     proxima: 'q_yamauba'
   },
   q_yamauba: {
@@ -122,8 +122,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'yamauba', qtd: 1,
     local: [150, 80], dica: 'Floresta de Aokigahara, na cabana torta',
     ouro: 420, xp: 380, item: 'elixir',
-    oferta: 'Ferreira Sae:\nUma bruxa da montanha amaldiçoa\nquem sobe até a Aokigahara.\nMinhas peças mais finas esperam\nquem quebrar essa maldição.',
-    fim: 'Ferreira Sae:\nA maldição se foi com ela.\nEssa forja te deve muito.',
+    oferta: 'Homura:\nUma bruxa da montanha amaldiçoa\nquem sobe até a Aokigahara. Minhas\npeças mais finas esperam quem quebrar essa maldição.',
+    fim: 'Homura:\nA maldição se foi com ela.\nEssa forja te deve muito —\ne eu não digo isso fácil.',
     proxima: 'q_bounty_minerio'
   },
   q_bounty_minerio: {
@@ -131,8 +131,8 @@ const QUESTS = {
     tipo: 'coletar', alvo: 'ferro', qtd: 6,
     local: [140, 60], dica: 'Oni e Doro-ningyo sempre soltam mais',
     ouro: 110, xp: 90,
-    oferta: 'Ferreira Sae:\nA forja nunca para. Sempre que\ntrouxer ferro, eu compenso.',
-    fim: 'Ferreira Sae:\nBoa remessa. Volte quando quiser\n— o fole segue aceso.'
+    oferta: 'Homura:\nA forja nunca para. Sempre que\ntrouxer ferro, eu compenso — não\ntenho tempo pra fingir educação sobre isso.',
+    fim: 'Homura:\nBoa remessa. Volte quando quiser\n— o fole segue aceso, e o front\nOni não vai esperar a gente descansar.'
   },
   q_yurei: {
     nome: 'O choro do templo', npc: 'monge', nivel: 6,
@@ -157,8 +157,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'necromante', qtd: 1,
     local: [164, 110], dica: 'Templo Abandonado, a leste',
     ouro: 460, xp: 420, item: 'elixir',
-    oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nO que ele virou já não é irmão\nde ninguém. Termine isso.',
-    fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir.',
+    oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nTemeu que a paz de Kuniyasu não\ndurasse, e foi buscar poder onde não devia. Termine isso.',
+    fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir — e pelo\nmedo que o perdeu, que também é nosso.',
     proxima: 'q_orochi'
   },
   q_orochi: {
@@ -166,8 +166,8 @@ const QUESTS = {
     tipo: 'matar', alvo: 'dragao', qtd: 1,
     local: [96, 19], dica: 'Caverna de Orochi, no covil final',
     ouro: 700, xp: 650, item: 'elixir',
-    oferta: 'Monge Eikan:\nKagemaru só invocou a sombra.\nA fonte dorme na caverna do norte.\nSele-a, ou tudo isso se repete.',
-    fim: 'Monge Eikan:\nYamata-no-Orochi caiu. Que este\nvale durma em paz, enfim.',
+    oferta: 'Monge Eikan:\nKagemaru só invocou a sombra.\nA fonte dorme na caverna do norte,\nguardada por algo que nem os Deuses tocam à toa. Sele-a.',
+    fim: 'Monge Eikan:\nYamata-no-Orochi caiu. Que este\nvale durma em paz — e que os\nDeuses tenham visto o que eu vi.',
     proxima: 'q_tsuchigumo'
   },
   q_tsuchigumo: {
@@ -402,7 +402,7 @@ function drawQuestHUD() {
   ctx.fillText('◈ ' + q.nome, x + 5, y + 10);
   ctx.fillStyle = '#8a7ab0';
   const alvoNome = q.tipo === 'coletar' ? MATS[q.alvo].name : (ENEMIES[q.alvo] ? ENEMIES[q.alvo].name : q.alvo);
-  ctx.fillText(pronta ? 'Volte ao ' + (QUESTS[id].npc === 'anciao' ? 'ancião' : QUESTS[id].npc === 'ferreira' ? 'ferreira' : 'monge')
+  ctx.fillText(pronta ? 'Volte ' + (QUESTS[id].npc === 'anciao' ? 'à Reiko' : QUESTS[id].npc === 'ferreira' ? 'à Homura' : 'ao monge')
     : alvoNome + '  ' + a.prog + '/' + q.qtd, x + 5, y + 20);
   // barra de progresso
   const bw = w - 10;

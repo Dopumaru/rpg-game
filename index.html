@@ -5010,7 +5010,7 @@ function desenhaPersonagens2D(sx, sy) {
 
 // telas que aparecem por cima do mundo 3D; as demais (título, criação,
 // game over) são puramente 2D e escondem a cena
-const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'quest', 'questlog', 'battle', 'pescando', 'peixaria']);
+const ESTADOS_3D = new Set(['world', 'menu', 'shop', 'enchant', 'learn', 'confirm', 'quest', 'questlog', 'battle', 'pescando', 'peixaria', 'intro']);
 // 'options' pode abrir tanto do mundo (cena 3D deve continuar atrás) quanto
 // do título (sem cena nenhuma pra mostrar) — depende de onde veio, então não
 // dá pra ser um estado fixo no set acima
@@ -5179,6 +5179,7 @@ function frame(now) {
         case 'mapa': updateMapa(); break;
         case 'learn': updateLearn(); break;
         case 'create': updateCreate(); break;
+        case 'intro': updateIntro(dt); break;
         case 'gameover': updateGameOver(); break;
         case 'victory': updateVictory(); break;
       }
@@ -5217,6 +5218,7 @@ function frame(now) {
     case 'mapa': drawMapa(); break;
     case 'learn': drawLearn(); break;
     case 'create': drawCreate(); break;
+    case 'intro': drawIntro(); break;
     case 'gameover': drawGameOver(); break;
     case 'victory': drawVictory(); break;
   }
@@ -5349,6 +5351,7 @@ window.DBG = {
   // "entregar a missão paga ouro") do sistema de tutorial, que também paga
   // ouro em segundo plano conforme o jogador usa cada sistema do jogo
   skipTutorial() { for (const s of MAIN_QUEST_STEPS) P.quests.mainPaid[s.id] = true; },
+  skipIntro() { skipIntro(); },
   questFoco() { return questFoco(); },
   alvoDaQuest(id) { return alvoDaQuest(id); },
   estoqueMascate(id) { const n = G.npcs.find(v => v.id === id); return n ? estoqueMascate(n) : null; },

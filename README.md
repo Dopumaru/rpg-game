@@ -109,7 +109,7 @@ Um marcador flutua sobre a cabeça de quem tem algo a oferecer: **◈** missão 
 
 ## ◈ Missões
 
-Três mestres de missão dão **cadeias curtas** que empurram a progressão: o Ancião Genzo em Sakuramura, a Ferreira Sae em Iwamura e o Monge Eikan no caminho do templo. Cada cadeia abre a próxima quando você entrega a anterior, e respeita um nível mínimo.
+Três mestres de missão dão **cadeias curtas** que empurram a progressão: a Reiko em Sakuramura, a Homura em Iwamura e o Monge Eikan no caminho do templo. Cada cadeia abre a próxima quando você entrega a anterior, e respeita um nível mínimo.
 
 São de três feitios: **caçar** N youkai de um tipo, **reunir** material de forja, ou **derrotar um chefe**. Pagam ouro e XP — e às vezes um consumível.
 
@@ -129,7 +129,7 @@ Aperte **M** para abrir o mapa. Passe o mouse por cima de qualquer região para 
 
 ## 🧑‍🌾 Mestres de missão com rosto próprio
 
-O Ancião Genzo, a Ferreira Sae e o Monge Eikan não são só uma paleta diferente: cada um tem um desenho só seu por cima do sprite genérico — barba longa e bengala para o ancião, bandana e avental de couro com martelo no quadril para a ferreira, cabeça raspada e manto longo com contas de oração para o monge. E onde quer que estejam, **nunca somem atrás de uma casa ou muro** — o jogo garante que continuam visíveis mesmo quando a câmera 3D deveria escondê-los atrás de uma estrutura.
+A Reiko, a Homura e o Monge Eikan não são só uma paleta diferente: cada um tem um desenho só seu por cima do sprite genérico — kanzashi dourado e o brasão da linhagem no peito para a Reiko, bandana e avental de couro com martelo no quadril para a Homura, cabeça raspada e manto longo com contas de oração para o monge. E onde quer que estejam, **nunca somem atrás de uma casa ou muro** — o jogo garante que continuam visíveis mesmo quando a câmera 3D deveria escondê-los atrás de uma estrutura.
 
 ## 🎒 Consumíveis
 
