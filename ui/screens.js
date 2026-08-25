@@ -1660,40 +1660,79 @@ function updateCreate() {
 // mestres, com uma coroa simples via ACESSORIO_PATCH); a ameaça é composta
 // dos próprios tipos de youkai/oni que já existem em ENEMIES.
 const KUNIYASU_ACTOR = { id: 'kuniyasu', look: { cabeca: 'onmyoji', pele: 3, corCabelo: 6, olhos: 4, roupa: 6 } };
+// posição/direção/quadro de um ator num instante do beat, a partir de um
+// caminho de waypoints [x, z, tSegundos] — parado nas pontas, andando (com
+// direção e ciclo de passada de verdade) entre elas. 1 waypoint = parado o
+// beat inteiro. Inimigos (sprFn sem dir/frame) só se deslocam mesmo, sem virar.
+function posNoCaminho(path, tLocal, dirParado) {
+  if (path.length === 1) return { x: path[0][0], z: path[0][1], dir: dirParado || 'down', frame: 0 };
+  let i = 0;
+  while (i < path.length - 2 && tLocal >= path[i + 1][2]) i++;
+  const [x0, z0, t0] = path[i], [x1, z1, t1] = path[i + 1];
+  if (tLocal <= t0) return { x: x0, z: z0, dir: dirParado || 'down', frame: 0 };
+  if (tLocal >= t1) return { x: x1, z: z1, dir: dirParado || 'down', frame: 0 };
+  const f = easeOut(clamp((tLocal - t0) / (t1 - t0), 0, 1));
+  const dx = x1 - x0, dz = z1 - z0;
+  const dir = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 'right' : 'left') : (dz > 0 ? 'down' : 'up');
+  return { x: lerp(x0, x1, f), z: lerp(z0, z1, f), dir, frame: Math.floor((tLocal / 0.14) % 4) };
+}
 const INTRO_BEATS = [
-  { cam: [44, 100], zoom: 6, tint: 'rgba(255,200,120,0.16)', dur: 5,
+  { cam: [44, 100], zoom: 6, tint: 'rgba(255,200,120,0.16)', dur: 9,
     actors: () => [
-      { spr: npcSprite(KUNIYASU_ACTOR, 'down', 0), x: 44, z: 99 },
-      { spr: enemySprite('orc'), x: 42, z: 101 },
-      { spr: enemySprite('goblin'), x: 46, z: 101 }
+      { sprFn: (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), path: [[48, 99.5, 0], [44, 99, 3.2]], dir: 'down' },
+      { sprFn: () => enemySprite('orc'), path: [[43, 100.3, 0], [43, 100.3, 3.3], [38, 103.5, 6.8]] },
+      { sprFn: () => enemySprite('goblin'), path: [[45, 100.3, 0], [45, 100.3, 3.3], [50, 102, 6.8]] }
     ],
-    lines: ['Houve um tempo em que Onis e Yokai\neram donos desta terra.',
-            'Até que um homem se recusou\na continuar escravo.'] },
-  { cam: [36, 98], zoom: 5, tint: 'rgba(70,80,130,0.30)', dur: 4.5,
-    actors: () => [{ spr: npcSprite(KUNIYASU_ACTOR, 'down', 0), x: 36, z: 98 }],
-    lines: ['Kuniyasu, o Pacificador, está morrendo.',
-            'Os Deuses ainda não decidiram se\ncontinuarão do lado dos homens.'] },
-  { cam: [30, 82], zoom: 7, tint: 'rgba(120,20,20,0.22)', dur: 4.5,
+    fx: [{ at: 3.25, run: () => {
+      burst(44 * TILE, 99.3 * TILE, 22, { color: ['#ffd94e', '#fff0a0', '#ffe8b0'], spdMax: 90, lifeMax: 1.0, size: 2, lift: 20, g: 40 });
+      G.shake = 7; AU.sfx('magic');
+    } }],
+    lines: [
+      { text: 'Houve um tempo em que Onis e Yokai\neram donos desta terra.', at: 1.0 },
+      { text: 'Até que um homem se recusou\na continuar escravo.', at: 3.7 }
+    ] },
+  { cam: [36, 98], zoomFrom: 7, zoomTo: 4.5, tint: 'rgba(70,80,130,0.30)', dur: 8,
+    actors: () => [{ sprFn: (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), path: [[36, 98, 0]], dir: 'down' }],
+    // névoa fria subindo dele, contínua — a vida se esvaindo aos poucos
+    ambient: () => { if (Math.random() < 0.3) spawnParticle({
+      x: 36 * TILE + rnd(-6, 6), y: 98 * TILE + rnd(-3, 3), vx: rnd(-3, 3), vy: rnd(-10, -4), h: 0.5,
+      life: rnd(1.2, 2), size: 1, color: pick(['#8a94b0', '#6a7a9a', '#aab4d0'])
+    }); },
+    lines: [
+      { text: 'Kuniyasu, o Pacificador, está morrendo.', at: 1.0 },
+      { text: 'Os Deuses ainda não decidiram se\ncontinuarão do lado dos homens.', at: 4.2 }
+    ] },
+  { cam: [30, 82], zoom: 7, tint: 'rgba(120,20,20,0.22)', dur: 8,
     actors: () => [
-      { spr: enemySprite('onigeneral'), x: 30, z: 80 },
-      { spr: enemySprite('harpia'), x: 29, z: 81 },
-      { spr: enemySprite('yamauba'), x: 31, z: 83 }
+      { sprFn: () => enemySprite('onigeneral'), path: [[30, 80, 0], [30, 80, 2], [30, 78.3, 4.5]] },
+      { sprFn: () => enemySprite('harpia'), path: [[29, 81, 0], [29, 81, 3], [27.5, 79, 5.5]] },
+      { sprFn: () => enemySprite('yamauba'), path: [[31, 83, 0], [31, 83, 4], [31, 81, 6.5]] }
     ],
-    lines: ['Nas bordas do território,\noutros já ouviram a notícia.',
-            'Onis. Yokai. Esperando a hora de agir.'] },
-  { cam: [40, 104], zoom: 6, tint: 'rgba(255,220,160,0.10)', dur: 3.5,
-    actors: () => [{ spr: heroSprite(curClass(), 'down', 0), x: 40, z: 104 }],
-    lines: ['E numa vila comum,\num novo caminho está prestes a começar.'] }
+    fx: [{ at: 2.1, run: () => {
+      burst(30 * TILE, 79 * TILE, 14, { color: ['#e05050', '#ff8060', '#c03030'], spdMax: 70, lifeMax: 0.8, size: 1, lift: 10, g: 20 });
+      G.shake = 4;
+    } }],
+    lines: [
+      { text: 'Nas bordas do território,\noutros já ouviram a notícia.', at: 1.0 },
+      { text: 'Onis. Yokai. Esperando a hora de agir.', at: 5.0 }
+    ] },
+  { cam: [40, 104], zoom: 6, tint: 'rgba(255,220,160,0.10)', dur: 7.5,
+    actors: () => [{ sprFn: (dir, fr) => heroSprite(curClass(), dir, fr), path: [[40, 109, 0], [40, 104.2, 5]], dir: 'up' }],
+    lines: [{ text: 'E numa vila comum,\num novo caminho está prestes a começar.', at: 5.4 }] }
 ];
 const INTRO_PAN_DUR = 0.9;
 function startIntro(onDone) {
   G.state = 'intro';
-  G.intro = { beat: 0, t: 0, camFrom: INTRO_BEATS[0].cam.slice(), onDone };
+  // guarda o zoom de antes pra devolver no fim — sem isso a câmera do mundo
+  // real ficava travada no zoom apertado da última batida pra sempre (bug
+  // sério: toda a jogatina seguinte herdava aquele enquadramento)
+  G.intro = { beat: 0, t: 0, camFrom: INTRO_BEATS[0].cam.slice(), zoomAntes: R3.dist, firedFx: new Set(), onDone };
 }
 // pula tudo e encerra de vez — usado pelo botão de pular e pelo hook de teste
 function skipIntro() {
   if (G.state !== 'intro') return;
   const onDone = G.intro.onDone;
+  R3.aplicaZoom(G.intro.zoomAntes);
   G.intro = null;
   onDone();
 }
@@ -1707,6 +1746,7 @@ function updateIntro(dt) {
     gi.camFrom = intronCamAtual(gi);
     gi.beat++;
     gi.t = 0;
+    gi.firedFx = new Set();
     if (gi.beat >= INTRO_BEATS.length) { skipIntro(); return; }
   }
 }
@@ -1723,11 +1763,20 @@ function drawIntro() {
   const m = MAPS.overworld;
   if (R3.mapaNome !== m.name) { R3.montarMapa(m); R3.regiaoAtual = null; }
   if (R3.regiaoAtual !== G.region) { R3.regiaoAtual = 'Vila Sakuramura'; R3.ambiente(m); }
-  // câmera desliza suavemente até o alvo do beat, em vez de saltar
+  // câmera desliza suavemente até o alvo do beat, em vez de saltar; o zoom
+  // pode ficar fixo (beat.zoom) ou derivar devagar a batida inteira
+  // (beat.zoomFrom/zoomTo) pra dar sensação de câmera viva, não só parada
   const camAt = intronCamAtual(gi);
-  R3.aplicaZoom(beat.zoom);
+  R3.aplicaZoom(beat.zoomFrom !== undefined ? lerp(beat.zoomFrom, beat.zoomTo, clamp(gi.t / beat.dur, 0, 1)) : beat.zoom);
   R3.camPara(camAt[0], camAt[1]);
-  for (const a of beat.actors()) R3.por('intro_' + a.x + '_' + a.z, a.spr, a.x, a.z + 0.2, 0, 0, true);
+  for (const a of beat.actors()) {
+    const p = posNoCaminho(a.path, gi.t, a.dir);
+    R3.por('intro_' + a.path[0][0] + '_' + a.path[0][1], a.sprFn(p.dir, p.frame), p.x, p.z + 0.2, 0, 0, true);
+  }
+  if (beat.ambient) beat.ambient();
+  (beat.fx || []).forEach((f, i) => {
+    if (gi.t >= f.at && !gi.firedFx.has(i)) { gi.firedFx.add(i); f.run(); }
+  });
   R3.escondeNaoUsados();
   R3.culling(camAt[0], camAt[1]);
   R3.desenha();
@@ -1735,20 +1784,24 @@ function drawIntro() {
   ctx.clearRect(0, 0, VW, VH);
   ctx.fillStyle = beat.tint;
   ctx.fillRect(0, 0, VW, VH);
+  // partículas (fx de choque, névoa ambiente etc.) — sem isso ficavam
+  // simuladas por updateParticles() mas nunca desenhadas, já que só
+  // drawWorld() chamava drawParticles(); a cutscene usa drawIntro().
+  drawParticles(false);
   // barras de letterbox — moldura de cinemática
   const bar = 20;
   ctx.fillStyle = '#0a0812';
   ctx.fillRect(0, 0, VW, bar);
   ctx.fillRect(0, VH - bar, VW, bar);
-  // legenda: a segunda linha (se houver) entra depois da primeira
+  // legenda: cada linha tem seu próprio instante de entrada, alinhado com a
+  // ação em cena (ex.: a 2ª fala da batida 1 só entra depois do choque)
   ctx.font = '8px monospace';
   ctx.textAlign = 'center';
   beat.lines.forEach((ln, i) => {
-    const entra = INTRO_PAN_DUR + 0.3 + i * 1.8;
-    if (gi.t < entra) return;
-    const f = clamp((gi.t - entra) / 0.5, 0, 1);
+    if (gi.t < ln.at) return;
+    const f = clamp((gi.t - ln.at) / 0.5, 0, 1);
     ctx.globalAlpha = f;
-    ln.split('\n').forEach((row, j) => {
+    ln.text.split('\n').forEach((row, j) => {
       const y = VH - bar - 30 + i * 22 + j * 10;
       ctx.fillStyle = '#0a0812';
       ctx.fillText(row, VW / 2 + 1, y + 1);
