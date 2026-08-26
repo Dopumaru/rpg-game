@@ -1927,16 +1927,9 @@ function npcPal(look) {
 const ACESSORIO_PAL = {
   anciao: { F: '#e8c574', K: '#7a2c2c' },
   ferreira: { D: '#a83030', J: '#3a2c22', T: '#5a4230', U: '#7a7a86' },
-  monge: { J: '#8a8098', N: '#e8c050' },
-  kuniyasu: { F: '#f0d878' }
+  monge: { J: '#8a8098', N: '#e8c050' }
 };
 const ACESSORIO_PATCH = {
-  // Kuniyasu, o Rei-Herói: pequena coroa dourada — só aparece na
-  // cutscene de abertura, nunca é um NPC do mundo de verdade
-  kuniyasu: [
-    [0, 7, 'F'], [0, 8, 'F'],
-    [1, 6, 'F'], [1, 7, 'F'], [1, 8, 'F'], [1, 9, 'F']
-  ],
   // Reiko: kanzashi (enfeite de cabelo) dourado e o brasão da linhagem
   // no peito — não é mais um ancião, é a neta do Rei-Herói
   anciao: [
