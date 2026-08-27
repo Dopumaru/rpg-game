@@ -25,7 +25,9 @@
 // 20 lápide · 21 altar · 22 arbusto · 23 pedra · 24 cogumelo (decorativos)
 // 31 saída de interior (some tiles further: 25/26 topo-torii, 27 lanterna,
 // 28 caminho-templo, 29/30 base-torii — já existiam, listados só por ordem)
-const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30]);
+// 32 estátua do Herói-Rei — monumento fixo nas duas vilas, sem interação (só
+// cenário: reforça a lore de Kuniyasu no próprio mapa, não só em diálogo)
+const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30, 32]);
 const MAPS = {};
 
 function genOverworld() {
@@ -91,6 +93,7 @@ function genOverworld() {
   rect(32, 106, 2, 2, 21); // altar de encantamento
   rect(38, 84, 2, 2, 25); rect(40, 84, 2, 2, 26);  // torii na entrada norte (topo)
   rect(38, 86, 2, 2, 29); rect(40, 86, 2, 2, 30);  // pilares
+  set(43, 92, 32); // estátua do Herói-Rei, à margem do caminho (um só tile — em bloco 2x2 o mesmo desenho se repetia 4 vezes)
   rect(36, 102, 2, 2, 27); rect(44, 102, 2, 2, 27);  // lanternas junto ao chozuya
   rect(28, 104, 2, 2, 27); rect(52, 104, 2, 2, 27);
   // VILA ROCHA (nordeste, junto às montanhas)
@@ -104,6 +107,7 @@ function genOverworld() {
   rect(142, 44, 2, 2, 21); // altar de encantamento
   rect(150, 46, 2, 2, 25); rect(152, 46, 2, 2, 26);  // torii ao sul (topo)
   rect(150, 48, 2, 2, 29); rect(152, 48, 2, 2, 30);  // pilares
+  set(150, 34, 32); // estátua do Herói-Rei, à margem do caminho (um só tile)
   rect(144, 36, 2, 2, 27); rect(154, 36, 2, 2, 27);  // lanternas
   // PEIXARIA (margem leste da Lagoa Central, terreno aberto)
   rect(76, 64, 8, 4, 18); rect(76, 68, 8, 4, 5); rect(78, 70, 2, 2, 19); // porta leva ao interior
