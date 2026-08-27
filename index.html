@@ -4427,22 +4427,22 @@ const ALLOC = [
 // tier: raridade máxima que o mob costuma dropar (índice em RAR_KEYS)
 // loot: itens temáticos do mob (têm prioridade no sorteio); mat: material que ele deixa
 const ENEMIES = {
-  slime:      { name: 'Konpaku',        hp: 16, atk: 5,  def: 2,  spd: 3, xp: 8,   gold: [3, 7],   drop: 0.30, tier: 1, mat: 'seda', loot: ['arm12', 'amu9', 'elm9', 'caj8'] },
-  morcego:    { name: 'Kawahori',       hp: 14, atk: 6,  def: 1,  spd: 8, xp: 10,  gold: [4, 8],   drop: 0.25, tier: 1, mat: 'osso', loot: ['bot6', 'elm9', 'ada7', 'amu9'] },
-  lobo:       { name: 'Okuri-inu',      hp: 26, atk: 9,  def: 3,  spd: 7, xp: 18,  gold: [8, 14],  drop: 0.30, tier: 2, mat: 'osso', loot: ['luv7', 'bot7', 'ada8', 'arm13'] },
-  esqueleto:  { name: 'Gashadokuro',    hp: 34, atk: 11, def: 5,  spd: 5, xp: 26,  gold: [12, 20], drop: 0.32, tier: 2, mat: 'osso', loot: ['esp8', 'esp9', 'elm10', 'luv8', 'amu10'], skill: { name: 'Hone-uchi', mult: 1.5, chance: 0.25 } },
-  goblin:     { name: 'Kappa',          hp: 22, atk: 8,  def: 3,  spd: 9, xp: 16,  gold: [10, 22], drop: 0.30, tier: 2, mat: 'jade', loot: ['arc7', 'arc8', 'bot7', 'arm13', 'amu9'], skill: { name: 'Sumo do Rio', mult: 1.2, chance: 0.25 } },
-  aranha:     { name: 'Jorogumo',       hp: 30, atk: 10, def: 3,  spd: 8, xp: 24,  gold: [10, 18], drop: 0.32, tier: 2, mat: 'seda', loot: ['arm12', 'ada7', 'ada8', 'arm14', 'arm17', 'luv10'], skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
-  zumbi:      { name: 'Jikininki',      hp: 42, atk: 13, def: 4,  spd: 3, xp: 34,  gold: [14, 24], drop: 0.35, tier: 3, mat: 'osso', loot: ['esp8', 'amu9', 'esp9', 'esp10', 'elm10', 'luv8', 'amu10'], skill: { name: 'Mordida Faminta', mult: 1.4, chance: 0.3 } },
-  fantasma:   { name: 'Yurei',          hp: 38, atk: 15, def: 2,  spd: 10, xp: 38, gold: [16, 28], drop: 0.35, tier: 3, mat: 'seda', loot: ['caj8', 'amu9', 'caj9', 'arm15', 'amu13', 'amu11', 'elm12'], skill: { name: 'Toque do Além', mult: 1.6, chance: 0.35 } },
-  orc:        { name: 'Oni',            hp: 48, atk: 14, def: 6,  spd: 4, xp: 40,  gold: [18, 30], drop: 0.38, tier: 3, mat: 'ferro', loot: ['esp1', 'esp8', 'esp6', 'elm2', 'esp10', 'esp11', 'arm16', 'elm11', 'luv3'], skill: { name: 'Kanabo', mult: 1.7, chance: 0.3 } },
-  harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 52, gold: [22, 36], drop: 0.38, tier: 3, mat: 'seda', loot: ['arc7', 'arc8', 'bot7', 'arc9', 'bot8', 'luv9', 'arc10', 'bot9', 'elm7'], skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
-  golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 60,  gold: [30, 45], drop: 0.42, tier: 3, mat: 'ferro', loot: ['arm13', 'bot6', 'luv7', 'bot3', 'arm16', 'elm11', 'luv3', 'amu12'], skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
-  elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 68, gold: [28, 48], drop: 0.42, tier: 4, mat: 'jade', loot: ['caj8', 'caj9', 'caj10', 'ada9', 'amu11', 'caj11', 'ada10', 'elm12'], skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
+  slime:      { name: 'Konpaku',        hp: 16, atk: 5,  def: 2,  spd: 3, xp: 7,   gold: [3, 6],   drop: 0.30, tier: 1, mat: 'seda', loot: ['arm12', 'amu9', 'elm9', 'caj8'] },
+  morcego:    { name: 'Kawahori',       hp: 14, atk: 6,  def: 1,  spd: 8, xp: 9,   gold: [3, 7],   drop: 0.25, tier: 1, mat: 'osso', loot: ['bot6', 'elm9', 'ada7', 'amu9'] },
+  lobo:       { name: 'Okuri-inu',      hp: 26, atk: 9,  def: 3,  spd: 7, xp: 15,  gold: [7, 12],  drop: 0.30, tier: 2, mat: 'osso', loot: ['luv7', 'bot7', 'ada8', 'arm13'] },
+  esqueleto:  { name: 'Gashadokuro',    hp: 34, atk: 11, def: 5,  spd: 5, xp: 22,  gold: [10, 17], drop: 0.32, tier: 2, mat: 'osso', loot: ['esp8', 'esp9', 'elm10', 'luv8', 'amu10'], skill: { name: 'Hone-uchi', mult: 1.5, chance: 0.25 } },
+  goblin:     { name: 'Kappa',          hp: 22, atk: 8,  def: 3,  spd: 9, xp: 14,  gold: [9, 19],  drop: 0.30, tier: 2, mat: 'jade', loot: ['arc7', 'arc8', 'bot7', 'arm13', 'amu9'], skill: { name: 'Sumo do Rio', mult: 1.2, chance: 0.25 } },
+  aranha:     { name: 'Jorogumo',       hp: 30, atk: 10, def: 3,  spd: 8, xp: 20,  gold: [9, 15],  drop: 0.32, tier: 2, mat: 'seda', loot: ['arm12', 'ada7', 'ada8', 'arm14', 'arm17', 'luv10'], skill: { name: 'Teia Venenosa', mult: 1.3, chance: 0.35, poison: true } },
+  zumbi:      { name: 'Jikininki',      hp: 42, atk: 13, def: 4,  spd: 3, xp: 29,  gold: [12, 20], drop: 0.35, tier: 3, mat: 'osso', loot: ['esp8', 'amu9', 'esp9', 'esp10', 'elm10', 'luv8', 'amu10'], skill: { name: 'Mordida Faminta', mult: 1.4, chance: 0.3 } },
+  fantasma:   { name: 'Yurei',          hp: 38, atk: 15, def: 2,  spd: 10, xp: 32, gold: [14, 24], drop: 0.35, tier: 3, mat: 'seda', loot: ['caj8', 'amu9', 'caj9', 'arm15', 'amu13', 'amu11', 'elm12'], skill: { name: 'Toque do Além', mult: 1.6, chance: 0.35 } },
+  orc:        { name: 'Oni',            hp: 48, atk: 14, def: 6,  spd: 4, xp: 34,  gold: [15, 26], drop: 0.38, tier: 3, mat: 'ferro', loot: ['esp1', 'esp8', 'esp6', 'elm2', 'esp10', 'esp11', 'arm16', 'elm11', 'luv3'], skill: { name: 'Kanabo', mult: 1.7, chance: 0.3 } },
+  harpia:     { name: 'Tengu',          hp: 52, atk: 17, def: 5,  spd: 12, xp: 44, gold: [19, 31], drop: 0.38, tier: 3, mat: 'seda', loot: ['arc7', 'arc8', 'bot7', 'arc9', 'bot8', 'luv9', 'arc10', 'bot9', 'elm7'], skill: { name: 'Vento das Asas', mult: 1.5, chance: 0.35 } },
+  golem:      { name: 'Doro-ningyo',    hp: 70, atk: 16, def: 10, spd: 2, xp: 51,  gold: [26, 38], drop: 0.42, tier: 3, mat: 'ferro', loot: ['arm13', 'bot6', 'luv7', 'bot3', 'arm16', 'elm11', 'luv3', 'amu12'], skill: { name: 'Tremor de Terra', mult: 1.6, chance: 0.3 } },
+  elemental:  { name: 'Onibi',          hp: 62, atk: 20, def: 6, spd: 7, xp: 58, gold: [24, 41], drop: 0.42, tier: 4, mat: 'jade', loot: ['caj8', 'caj9', 'caj10', 'ada9', 'amu11', 'caj11', 'ada10', 'elm12'], skill: { name: 'Chama Fátua', mult: 1.8, chance: 0.35 } },
   // mobs comuns novos (escalam com o nível como os demais)
-  yukionna:   { name: 'Yuki-onna',      hp: 44, atk: 15, def: 7,  spd: 6,  xp: 34, gold: [15, 26], drop: 0.35, tier: 3, mat: 'jade', loot: ['caj9', 'amu11', 'bot8', 'elm3'], skill: { name: 'Sopro Glacial', mult: 1.5, chance: 0.3 } },
-  rokuro:     { name: 'Rokurokubi',     hp: 28, atk: 11, def: 3,  spd: 9,  xp: 22, gold: [10, 18], drop: 0.32, tier: 2, mat: 'seda', loot: ['amu9', 'luv9', 'elm4', 'arm17'], skill: { name: 'Pescoço Extensível', mult: 1.4, chance: 0.3 } },
-  nue:        { name: 'Nue',            hp: 48, atk: 16, def: 6,  spd: 10, xp: 42, gold: [18, 30], drop: 0.36, tier: 3, mat: 'osso', loot: ['arc9', 'bot9', 'caj9', 'ada9', 'elm7'], skill: { name: 'Grito da Quimera', mult: 1.6, chance: 0.32 } },
+  yukionna:   { name: 'Yuki-onna',      hp: 44, atk: 15, def: 7,  spd: 6,  xp: 29, gold: [13, 22], drop: 0.35, tier: 3, mat: 'jade', loot: ['caj9', 'amu11', 'bot8', 'elm3'], skill: { name: 'Sopro Glacial', mult: 1.5, chance: 0.3 } },
+  rokuro:     { name: 'Rokurokubi',     hp: 28, atk: 11, def: 3,  spd: 9,  xp: 19, gold: [9, 15],  drop: 0.32, tier: 2, mat: 'seda', loot: ['amu9', 'luv9', 'elm4', 'arm17'], skill: { name: 'Pescoço Extensível', mult: 1.4, chance: 0.3 } },
+  nue:        { name: 'Nue',            hp: 48, atk: 16, def: 6,  spd: 10, xp: 36, gold: [15, 26], drop: 0.36, tier: 3, mat: 'osso', loot: ['arc9', 'bot9', 'caj9', 'ada9', 'elm7'], skill: { name: 'Grito da Quimera', mult: 1.6, chance: 0.32 } },
   // mini-chefes (stats fixos como os chefes, mas sem item-assinatura
   // garantido — só ouro/material bônus em endBattleWin — e não bloqueiam fuga)
   aranharainha:   { name: 'Aranha-Rainha',       hp: 130, atk: 20, def: 9,  spd: 10, xp: 150, gold: [45, 65], drop: 0.55, tier: 3, mat: 'seda', mini: true, loot: ['ada4', 'arm17', 'arc9', 'luv9'], skill: { name: 'Fiada Mortal', mult: 1.6, chance: 0.35, poison: true } },
@@ -4482,7 +4482,7 @@ const ITEMS = {
 // limite por tipo de consumível na mochila — ao bater nele, o jogador
 // para de receber cópias novas (loot, missão, baú, compra) e é avisado
 const ITEM_CAP = 9;
-const XP_NEXT = lvl => Math.floor(18 * Math.pow(lvl, 1.5));
+const XP_NEXT = lvl => Math.floor(22 * Math.pow(lvl, 1.55));
 
 // ---------- Mapas ----------
 
