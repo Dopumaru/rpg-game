@@ -438,6 +438,21 @@ function drawFountainTile(x, y) {
   const jy = Math.floor(Math.sin(G.time * 4) * 1.5);
   ctx.fillStyle = '#d8eeff'; ctx.fillRect(x + 7, y + 2 + jy, 2, 3);
 }
+// estátua do Herói-Rei — figura de pedra num pedestal, com um toque
+// dourado na coroa. Só decorativa (SOLID), sem interação própria.
+function bakeStatue() {
+  return bakeTile('statue', g => {
+    px(g, '#3f7a3a', 0, 0, TILE, TILE);
+    px(g, '#5a5468', 3, 12, 10, 3);
+    px(g, '#6a6470', 4, 10, 8, 2);
+    px(g, '#8a8a94', 6, 3, 4, 7);
+    px(g, '#6a6470', 5, 5, 1, 4);
+    px(g, '#9a9aa4', 6, 3, 4, 1);
+    px(g, '#8a8a94', 7, 1, 2, 2);
+    px(g, '#ffd94e', 7, 0, 2, 1);
+    px(g, '#a8a8b2', 10, 4, 1, 5);
+  });
+}
 function drawAltarTile(x, y) {
   ctx.fillStyle = '#3f7a3a'; ctx.fillRect(x, y, TILE, TILE);
   ctx.fillStyle = '#4a4458'; ctx.fillRect(x + 2, y + 10, 12, 5);
@@ -495,5 +510,6 @@ function drawTile(t, x, y, tx, ty, map) {
     case 27: ctx.drawImage(bakeLantern(), x, y); break;
     case 28: ctx.drawImage(bakeTemplePath(Math.floor(v * 3) % 3), x, y); break;
     case 31: ctx.drawImage(bakeDoor(), x, y); break;
+    case 32: ctx.drawImage(bakeStatue(), x, y); break;
   }
 }

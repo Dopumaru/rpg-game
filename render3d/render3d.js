@@ -235,6 +235,17 @@ const MODELOS3 = {
   11: v => [
       M3('caixa', 0x2a2438, [0, 1.1, 0], [1, 2.2, 1]),
       M3('cil', 0x0a0812, [0, .5, .42], [.66, 1.0, .3], [Math.PI / 2, 0, 0])
+    ],
+  // --- estátua do Herói-Rei: pedestal + figura de pé com manto e lâmina
+  // erguida, coroa dourada. Só cenário — reforça a lore de Kuniyasu no
+  // próprio mapa, sem depender só de diálogo.
+  32: v => [
+      M3('caixa', 0x5a5468, [0, .1, 0], [.9, .2, .9]),
+      M3('caixa', 0x6a6470, [0, .34, 0], [.62, .28, .62]),
+      M3('caixa', 0x8a8a94, [0, 1.0, 0], [.4, 1.0, .26]),
+      M3('esf', 0x9a9aa4, [0, 1.62, 0], [.24, .26, .24]),
+      M3('cone4', 0xffd94e, [0, 1.82, 0], [.14, .1, .14]),
+      M3('caixa', 0xa8a8b2, [.22, 1.15, .04], [.1, .7, .1], [0, 0, -.5])
     ]
 };
 // saída de interior: mesmo modelo da porta shoji (19)
@@ -253,7 +264,7 @@ const ALT3 = {
   19: .5, 22: .5, 24: .5, 25: .5, 26: .5, 28: .5, 31: .5,
   2: .3,                                    // água, rebaixada
   1: 2.6, 5: 2.4, 8: 4.2, 10: 3.6, 14: 2.6, 18: 2.4, 20: .95, 21: 1.2,
-  16: .8, 17: .8, 23: .9, 27: 1.4, 29: 3.0, 30: 3.0
+  16: .8, 17: .8, 23: .9, 27: 1.4, 29: 3.0, 30: 3.0, 32: 2.0
 };
 const LADO3 = {                            // cor das laterais do bloco
   0: 0x5a4a30, 4: 0x5a4a30, 22: 0x5a4a30, 3: 0x6a5238, 28: 0x6a5238, 6: 0x6a5238,
@@ -261,7 +272,7 @@ const LADO3 = {                            // cor das laterais do bloco
   9: 0x3a3448, 18: 0x6a2a24, 19: 0x4a3420, 31: 0x4a3420, 14: 0x6a2a24, 20: 0x6a6470,
   23: 0x5a5a66, 27: 0x4a3a2a, 21: 0x6a4a9a, 29: 0x8a2420, 30: 0x8a2420,
   11: 0x2a2438, 13: 0x4a6a8a, 16: 0x8a6a2a, 17: 0x8a6a2a, 24: 0x6a3a3a,
-  25: 0x8a2420, 26: 0x8a2420, 12: 0x3a3448, 15: 0x6a5238
+  25: 0x8a2420, 26: 0x8a2420, 12: 0x3a3448, 15: 0x6a5238, 32: 0x6a6470
 };
 // grão de cada tipo de chão: quantidade, cores e se são fiapos verticais
 const GRAO3 = {

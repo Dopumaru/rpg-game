@@ -34,7 +34,7 @@ const QUESTS = {
     local: [60, 104], dica: 'Campos de Arroz, a leste da vila',
     ouro: 70, xp: 60,
     oferta: 'Reiko:\nOs Konpaku tomaram o arrozal a leste.\nMeu avô resolveria isso sem pensar\nduas vezes. Eu... só tenho você.',
-    fim: 'Reiko:\nO arrozal respira de novo.\nTalvez eu não precise ser ele pra\nfazer alguma diferença. Tome.',
+    fim: 'Reiko:\nO arrozal respira de novo.\nTalvez eu não precise ser ele pra\nfazer alguma diferença. Passe pela\nestátua dele na praça — acho que ele gostaria de saber.',
     proxima: 'q_kappa'
   },
   q_kappa: {
@@ -96,7 +96,7 @@ const QUESTS = {
     local: [116, 80], dica: 'Oni e Doro-ningyo deixam ferro',
     ouro: 150, xp: 130,
     oferta: 'Homura:\nMinha bigorna está ociosa. Traga\ncinco Ferro Velho e eu transformo\nem algo que corta — já fiz pior com corrente.',
-    fim: 'Homura:\nIsso serve. O fole já está quente.\nPegue sua parte — e lembre: toda\nlâmina boa já foi outra coisa antes.',
+    fim: 'Homura:\nIsso serve. O fole já está quente.\nPegue sua parte — e lembre: toda\nlâmina boa já foi outra coisa antes.\nA minha primeira foi uma corrente,\nantes de Kuniyasu nos libertar.',
     proxima: 'q_tengu'
   },
   q_tengu: {
@@ -105,7 +105,7 @@ const QUESTS = {
     local: [116, 36], dica: 'Planalto do Norte',
     ouro: 240, xp: 220, item: 'pocaoG',
     oferta: 'Homura:\nOs Tengu levam o minério que sobe\npela trilha. Cinco penas a menos\nno céu, e eu paro de perder tempo esperando.',
-    fim: 'Homura:\nA trilha está livre. O minério chega.\nBoa caçada, essa — quase tão\nsatisfatória quanto forjar.',
+    fim: 'Homura:\nA trilha está livre. O minério chega.\nBoa caçada, essa — quase tão\nsatisfatória quanto forjar pra um\nreino que não precisa mais implorar por ferro.',
     proxima: 'q_tenguveterano'
   },
   q_tenguveterano: {
@@ -123,7 +123,7 @@ const QUESTS = {
     local: [150, 80], dica: 'Floresta de Aokigahara, na cabana torta',
     ouro: 420, xp: 380, item: 'elixir',
     oferta: 'Homura:\nUma bruxa da montanha amaldiçoa\nquem sobe até a Aokigahara. Minhas\npeças mais finas esperam quem quebrar essa maldição.',
-    fim: 'Homura:\nA maldição se foi com ela.\nEssa forja te deve muito —\ne eu não digo isso fácil.',
+    fim: 'Homura:\nA maldição se foi com ela.\nEssa forja te deve muito —\ne eu não digo isso fácil. Kuniyasu\nlibertou meu corpo; parece que você anda libertando o resto de nós.',
     proxima: 'q_bounty_minerio'
   },
   q_bounty_minerio: {
