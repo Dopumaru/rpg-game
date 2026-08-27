@@ -86,7 +86,7 @@ const QUESTS = {
     nome: 'Caça-recompensa: Arrozal', npc: 'anciao', nivel: 4, repetivel: true,
     tipo: 'matar', alvo: 'goblin', qtd: 8,
     local: [72, 90], dica: 'Campos de Arroz — sempre há mais um Kappa',
-    ouro: 90, xp: 70,
+    ouro: 68, xp: 53,
     oferta: 'Reiko:\nOs Kappa voltam sempre. Enquanto\nhouver rio, haverá trabalho — e\nagora eu sei a quem pedir.',
     fim: 'Reiko:\nMais alguns dias de paz. Volte\nquando quiser — o rio não seca,\ne nem a minha gratidão.'
   },
@@ -130,7 +130,7 @@ const QUESTS = {
     nome: 'Encomenda: Ferro Extra', npc: 'ferreira', nivel: 5, repetivel: true,
     tipo: 'coletar', alvo: 'ferro', qtd: 6,
     local: [140, 60], dica: 'Oni e Doro-ningyo sempre soltam mais',
-    ouro: 110, xp: 90,
+    ouro: 83, xp: 68,
     oferta: 'Homura:\nA forja nunca para. Sempre que\ntrouxer ferro, eu compenso — não\ntenho tempo pra fingir educação sobre isso.',
     fim: 'Homura:\nBoa remessa. Volte quando quiser\n— o fole segue aceso, e o front\nOni não vai esperar a gente descansar.'
   },
@@ -183,7 +183,7 @@ const QUESTS = {
     nome: 'Rito contínuo: Exorcismo', npc: 'monge', nivel: 8, repetivel: true,
     tipo: 'matar', alvo: 'fantasma', qtd: 8,
     local: [160, 105], dica: 'Templo Abandonado — os Yurei sempre voltam',
-    ouro: 160, xp: 140,
+    ouro: 120, xp: 105,
     oferta: 'Monge Eikan:\nAs almas inquietas não têm fim.\nCada exorcismo é um alívio, ainda\nque temporário.',
     fim: 'Monge Eikan:\nMais uma alma em paz. Sempre\nhaverá outra, infelizmente.'
   }

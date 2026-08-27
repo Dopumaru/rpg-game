@@ -112,7 +112,7 @@ function battleActions() {
 function enemyStats(type, lvl) {
   const d = ENEMIES[type];
   // chefes e mini-chefes já têm stats fixos definidos; mobs comuns escalam com o nível
-  const f = (d.boss || d.mini) ? 1 : 1 + (lvl - 1) * 0.22;
+  const f = (d.boss || d.mini) ? 1 : 1 + (lvl - 1) * 0.26;
   return {
     type, lvl, name: d.name,
     hp: Math.round(d.hp * f), maxHp: Math.round(d.hp * f),
