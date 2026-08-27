@@ -1660,39 +1660,79 @@ function updateCreate() {
 // tela), no mesmo canvas 320x180 do resto do jogo. Roda uma única vez,
 // entre a criação de personagem e o primeiro quadro no mundo.
 function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-// figura humana simples em silhueta — desenha o herói e a multidão em
-// todas as cenas, só troca pose/cor/escala/oscilação.
-function figuraHumana(c, x, y, esc, pose, cor, t) {
+// Kuniyasu como NPC sintético (mesmo pipeline de npcSprite() dos mestres);
+// a multidão sem nome varia entre alguns visuais genéricos pra não repetir
+// sempre a mesma pessoa. Nenhum dos dois é um NPC real do mundo.
+const KUNIYASU_ACTOR = { id: 'kuniyasu_intro', look: { cabeca: 'onmyoji', pele: 3, corCabelo: 6, olhos: 4, roupa: 6 } };
+const MULTIDAO_LOOKS = [
+  { cabeca: 'samurai', pele: 0, corCabelo: 1, olhos: 0, roupa: 0 },
+  { cabeca: 'kyudoka', pele: 1, corCabelo: 3, olhos: 2, roupa: 1 },
+  { cabeca: 'shinobi', pele: 2, corCabelo: 0, olhos: 4, roupa: 2 },
+  { cabeca: 'onmyoji', pele: 3, corCabelo: 5, olhos: 1, roupa: 3 },
+  { cabeca: 'samurai', pele: 1, corCabelo: 2, olhos: 3, roupa: 5 },
+  { cabeca: 'kyudoka', pele: 0, corCabelo: 6, olhos: 5, roupa: 6 }
+];
+function figurante(i) { return { id: 'intro_figurante' + (i % MULTIDAO_LOOKS.length), look: MULTIDAO_LOOKS[i % MULTIDAO_LOOKS.length] }; }
+// silhueta de um sprite REAL do jogo (herói/NPC/youkai) — pega a arte de
+// verdade (a mesma usada no mundo) e preenche a forma toda com uma cor
+// sólida plana. Nunca mexe no sprite original: ele fica em cache e é
+// reusado em outros lugares do jogo, então a recoloração acontece numa
+// cópia num canvas à parte.
+function silhuetaSprite(c, spriteSrc, x, y, escala, cor, opts) {
+  opts = opts || {};
+  const w = spriteSrc.width, h = spriteSrc.height;
+  const buf = document.createElement('canvas');
+  buf.width = w; buf.height = h;
+  const bc = buf.getContext('2d');
+  bc.drawImage(spriteSrc, 0, 0);
+  bc.globalCompositeOperation = 'source-in';
+  bc.fillStyle = cor;
+  bc.fillRect(0, 0, w, h);
   c.save();
+  if (opts.alpha !== undefined) c.globalAlpha = opts.alpha;
+  c.imageSmoothingEnabled = false;
   c.translate(x, y);
-  c.scale(esc, esc);
+  if (opts.rot) c.rotate(opts.rot);
+  c.scale(escala, escala * (opts.achatar || 1));
+  c.drawImage(buf, -w / 2, -h);
+  c.restore();
+}
+// desenha um ator (herói/NPC sintético ou youkai) como silhueta, com uma
+// leve oscilação de respiração e um ciclo de passada lento (só pra dar
+// vida parado, não é uma caminhada de verdade). sprFn seguindo o mesmo
+// formato usado no resto do jogo: (dir, frame) => canvas.
+function ator(c, sprFn, x, y, escala, cor, t, dir, opts) {
+  opts = opts || {};
+  const frame = Math.floor((t || 0) * 1.2) % 4;
+  const bob = opts.semBob ? 0 : Math.sin((t || 0) * 1.6 + x * 0.3) * 0.5;
+  silhuetaSprite(c, sprFn(dir || 'down', frame), x, y + bob, escala, cor, opts);
+}
+// fumaça/névoa/nuvens derivando devagar pelo céu — dá vida ao fundo de
+// cada cena sem precisar de asset novo: só elipses translúcidas que
+// deslizam e voltam pela borda oposta, em loop.
+function nuvensDerivando(c, t, y0, y1, cor, vel, n, faseBase) {
+  c.save();
   c.fillStyle = cor;
-  const bob = pose === 'deitada' ? 0 : Math.sin((t || 0) * 1.6 + x * 0.3) * 0.5;
-  if (pose === 'curvada') {
-    c.beginPath(); c.arc(0, -5 + bob, 3, 0, Math.PI * 2); c.fill();
-    c.fillRect(-4, -3 + bob, 8, 9);
-    c.fillRect(-3, 5 + bob, 2, 6); c.fillRect(1, 5 + bob, 2, 6);
-  } else if (pose === 'ereta') {
-    c.beginPath(); c.arc(0, -14 + bob, 3, 0, Math.PI * 2); c.fill();
-    c.fillRect(-3, -11 + bob, 6, 12);
-    c.fillRect(-3, 1 + bob, 2, 7); c.fillRect(1, 1 + bob, 2, 7);
-  } else if (pose === 'lutando') {
-    c.beginPath(); c.arc(1, -14, 3, 0, Math.PI * 2); c.fill();
-    c.fillRect(-3, -11, 6, 11);
-    c.fillRect(-3, 0, 2, 7); c.fillRect(2, 0, 2, 7);
-    c.save(); c.translate(3, -10); c.rotate(-1.1); c.fillRect(0, -1, 12, 2); c.restore();
-  } else if (pose === 'ajoelhada') {
-    c.beginPath(); c.arc(0, -9 + bob * 0.3, 3, 0, Math.PI * 2); c.fill();
-    c.fillRect(-3, -6 + bob * 0.3, 6, 8);
-    c.fillRect(-4, 2, 9, 3);
-  } else if (pose === 'coroada') {
-    c.beginPath(); c.arc(0, -15 + bob, 3.2, 0, Math.PI * 2); c.fill();
-    c.fillRect(-4.5, -12 + bob, 9, 15);
-    c.fillRect(-3, 3 + bob, 2, 6); c.fillRect(1, 3 + bob, 2, 6);
-  } else if (pose === 'deitada') {
-    c.fillRect(-11, -3, 20, 5);
-    c.beginPath(); c.arc(-12, -0.5, 3.2, 0, Math.PI * 2); c.fill();
+  for (let i = 0; i < n; i++) {
+    const larg = 36 + (i % 3) * 16;
+    const baseX = (faseBase || 0) + i * (VW / n) * 1.3;
+    const x = ((baseX + t * vel) % (VW + larg * 2)) - larg;
+    const y = y0 + (i % 3) * ((y1 - y0) / 3);
+    c.beginPath();
+    c.ellipse(x, y, larg, larg * 0.26, 0, 0, Math.PI * 2);
+    c.fill();
   }
+  c.restore();
+}
+// bandeirola triangular tremulando ao vento — usada na coroação
+function bandeirola(c, x, y, alt, cor, t, fase) {
+  c.save();
+  c.fillStyle = '#5a4a34'; c.fillRect(x - 0.5, y - alt, 1, alt);
+  const onda = Math.sin(t * 3 + (fase || 0)) * 4;
+  c.fillStyle = cor;
+  c.beginPath();
+  c.moveTo(x, y - alt); c.lineTo(x + 10 + onda, y - alt + 3); c.lineTo(x, y - alt + 7);
+  c.closePath(); c.fill();
   c.restore();
 }
 function correntesIcone(c, x, y, esc) {
@@ -1740,15 +1780,16 @@ const INTRO_SCENES = [
     dur: 10.5, transOut: 'flash', flashCor: '#ffe6a0',
     draw(c, t) {
       fundoGradiente(c, '#5a3f2c', '#241811');
+      nuvensDerivando(c, t, 24, 50, 'rgba(90,64,40,0.22)', 4, 4, 0);
       silhuetaIntro(c, [[210, 90], [224, 58], [236, 72], [248, 46], [262, 66], [276, 90], [320, 90], [320, 180], [200, 180]], '#170f0a');
       c.fillStyle = '#1c1209'; c.fillRect(0, 148, VW, 32);
       for (let i = 0; i < 6; i++) {
-        const x = 26 + i * 34, y = 140;
-        figuraHumana(c, x, y, 1.15, 'curvada', '#0e0906', t + i * 0.35);
+        const x = 26 + i * 34, y = 148;
+        ator(c, (dir, fr) => npcSprite(figurante(i), dir, fr), x, y, 1.15, '#0e0906', t + i * 0.4, 'down', { achatar: 0.82, rot: 0.08 });
         correntesIcone(c, x + 4, y, 1.15);
       }
-      figuraHumana(c, 268, 146, 2.1, 'ereta', '#4a150f', t);
-      c.save(); c.translate(268, 108); c.rotate(0.2 + Math.sin(t * 1.4) * 0.05);
+      ator(c, () => enemySprite('onigeneral'), 268, 154, 1.6, '#4a150f', t, 'down', { semBob: true });
+      c.save(); c.translate(268, 112); c.rotate(0.2 + Math.sin(t * 1.4) * 0.05);
       c.fillStyle = '#2c0e08'; c.fillRect(-1, -6, 2, 44);
       c.restore();
       c.fillStyle = 'rgba(120,86,50,0.18)'; c.fillRect(0, 138, VW, 22);
@@ -1766,10 +1807,11 @@ const INTRO_SCENES = [
     draw(c, t) {
       fundoGradiente(c, '#8a6a3a', '#3a2c1c');
       raiosLuz(c, 160, 40, 10, '#ffe6a0', t, 160);
+      nuvensDerivando(c, t, 60, 90, 'rgba(255,220,150,0.10)', 6, 3, 40);
       c.fillStyle = '#241a10'; c.fillRect(0, 148, VW, 32);
-      for (let i = 0; i < 4; i++) figuraHumana(c, 40 + i * 26, 144, 0.9, 'curvada', 'rgba(20,14,8,0.85)', t + i);
-      for (let i = 0; i < 4; i++) figuraHumana(c, 220 + i * 22, 144, 0.9, 'curvada', 'rgba(20,14,8,0.85)', t + i + 2);
-      figuraHumana(c, 160, 140, 2.3, 'ereta', '#e8c060', t);
+      for (let i = 0; i < 4; i++) ator(c, (dir, fr) => npcSprite(figurante(i), dir, fr), 40 + i * 26, 152, 0.9, 'rgba(20,14,8,0.85)', t + i, 'down', { achatar: 0.85 });
+      for (let i = 0; i < 4; i++) ator(c, (dir, fr) => npcSprite(figurante(i + 2), dir, fr), 220 + i * 22, 152, 0.9, 'rgba(20,14,8,0.85)', t + i + 2, 'down', { achatar: 0.85 });
+      ator(c, (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), 160, 148, 2.3, '#e8c060', t, 'down');
       const abre = clamp(t / 2, 0, 1);
       c.save(); c.globalAlpha = 1 - abre; c.translate(160, 130 + abre * 14); c.rotate(0.3);
       c.strokeStyle = '#40372a'; c.lineWidth = 1;
@@ -1785,17 +1827,25 @@ const INTRO_SCENES = [
     dur: 12, transOut: 'slideUp',
     draw(c, t) {
       fundoGradiente(c, '#6a1c18', '#1c0c0c');
+      nuvensDerivando(c, t, 30, 70, 'rgba(120,20,20,0.16)', -8, 4, 20);
       silhuetaIntro(c, [[0, 110], [40, 90], [90, 105], [140, 85], [190, 100], [240, 80], [320, 100], [320, 180], [0, 180]], '#120707');
       c.fillStyle = '#160808'; c.fillRect(0, 150, VW, 30);
       const p1 = clamp(t / 1.5, 0, 1);
-      figuraHumana(c, lerp(60, 110, p1), 148, 1.5, 'ereta', '#5a1c14', t);
-      figuraHumana(c, lerp(260, 210, p1), 148, 1.5, 'ereta', '#2c3a1c', t + 1);
-      figuraHumana(c, 160, 146, 2.0, 'lutando', '#e8c060', t);
+      ator(c, () => enemySprite('orc'), lerp(60, 110, p1), 156, 1.5, '#5a1c14', t, 'down');
+      ator(c, () => enemySprite('goblin'), lerp(260, 210, p1), 156, 1.5, '#2c3a1c', t + 1, 'down');
+      ator(c, (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), 160, 152, 2.0, '#e8c060', t, 'right');
+      c.save(); c.translate(166, 138); c.rotate(-0.9 + Math.sin(t * 4) * 0.15);
+      c.fillStyle = '#e8c060'; c.fillRect(0, -1, 13, 2);
+      c.restore();
     },
+    ambient() { if (Math.random() < 0.18) spawnParticle({
+      x: rnd(40, 280), y: rnd(110, 150), vx: rnd(-3, 3), vy: rnd(-14, -6), screen: true,
+      life: rnd(0.5, 1), size: 1, color: pick(['#ff9040', '#ffd94e', '#e05050'])
+    }); },
     fx: [
-      { at: 1.5, run: () => { burstScreen(120, 140, 14, { color: ['#ffd94e', '#ff9040'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
-      { at: 5.5, run: () => { burstScreen(200, 140, 14, { color: ['#ffd94e', '#c8ff90'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
-      { at: 9.2, run: () => { burstScreen(160, 130, 24, { color: ['#ffe6a0', '#fff4c8', '#ffd94e'], spdMax: 90, lifeMax: 1.0, size: 2, lift: 16, g: 30 }); G.shake = 8; AU.sfx('magic'); } }
+      { at: 1.5, run: () => { burstScreen(120, 148, 14, { color: ['#ffd94e', '#ff9040'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
+      { at: 5.5, run: () => { burstScreen(200, 148, 14, { color: ['#ffd94e', '#c8ff90'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
+      { at: 9.2, run: () => { burstScreen(160, 138, 24, { color: ['#ffe6a0', '#fff4c8', '#ffd94e'], spdMax: 90, lifeMax: 1.0, size: 2, lift: 16, g: 30 }); G.shake = 8; AU.sfx('magic'); } }
     ],
     lines: [
       { text: 'O que começou com um homem\nse tornou uma revolta inteira.', at: 2.0 },
@@ -1806,15 +1856,19 @@ const INTRO_SCENES = [
     draw(c, t) {
       fundoGradiente(c, '#0e1c3a', '#f0e0b0');
       raiosLuz(c, 160, 30, 14, '#fff4c8', t, 200);
+      nuvensDerivando(c, t, 90, 140, 'rgba(255,244,220,0.12)', 5, 3, 10);
       silhuetaIntro(c, [[120, 60], [130, 20], [150, 10], [160, 0], [170, 10], [190, 20], [200, 60], [190, 70], [130, 70]], '#c8b060');
       for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#8a7248' : '#a68a58'; c.fillRect(140 - i * 4, 150 - i * 12, 40 + i * 8, 10); }
-      c.save(); c.globalAlpha = 0.7;
-      figuraHumana(c, 90, 60, 3.2, 'ereta', '#fff4c8', t * 0.5);
-      figuraHumana(c, 230, 60, 3.2, 'ereta', '#fff4c8', t * 0.5 + 1);
-      c.restore();
-      figuraHumana(c, 160, 148, 1.6, 'ajoelhada', '#3a2c1c', t);
+      const flut = Math.sin(t * 1.1) * 3;
+      ator(c, (dir, fr) => npcSprite({ id: 'intro_deus1', look: { cabeca: 'onmyoji', pele: 0, corCabelo: 0, olhos: 0, roupa: 4 } }, dir, fr), 90, 62 + flut, 3.2, '#fff4c8', t * 0.4, 'down', { alpha: 0.75, semBob: true });
+      ator(c, (dir, fr) => npcSprite({ id: 'intro_deus2', look: { cabeca: 'kyudoka', pele: 0, corCabelo: 0, olhos: 0, roupa: 4 } }, dir, fr), 230, 62 - flut, 3.2, '#fff4c8', t * 0.4 + 1, 'down', { alpha: 0.75, semBob: true });
+      ator(c, (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), 160, 154, 1.6, '#3a2c1c', t, 'down', { achatar: 0.55 });
     },
     fx: [{ at: 3.5, run: () => { burstScreen(160, 70, 20, { color: ['#fff4c8', '#ffe6a0', '#ffffff'], spdMax: 50, lifeMax: 1.2, size: 2, lift: 6, g: 8 }); AU.sfx('magic'); } }],
+    ambient() { if (Math.random() < 0.12) spawnParticle({
+      x: rnd(60, 260), y: rnd(20, 140), vx: rnd(-3, 3), vy: rnd(-8, -3), screen: true,
+      life: rnd(1, 1.8), size: 1, color: pick(['#fff4c8', '#ffe6a0', '#ffffff'])
+    }); },
     lines: [
       { text: 'Quando o sangue finalmente secou,\nos próprios Deuses vieram vê-lo.', at: 2.2 },
       { text: 'E pela primeira vez, um humano foi\nreconhecido entre eles.', at: 7.0 }
@@ -1823,11 +1877,14 @@ const INTRO_SCENES = [
     dur: 11, transOut: 'fade',
     draw(c, t) {
       fundoGradiente(c, '#c8843a', '#5a2c1c');
+      nuvensDerivando(c, t, 40, 70, 'rgba(255,200,120,0.14)', 5, 3, 60);
+      bandeirola(c, 46, 96, 30, '#c0392b', t, 0);
+      bandeirola(c, 274, 96, 30, '#c0392b', t, 2.4);
       c.fillStyle = '#3a2414'; c.fillRect(0, 150, VW, 30);
-      for (let i = 0; i < 5; i++) figuraHumana(c, 30 + i * 22, 146, 1.0, 'ereta', 'rgba(40,26,16,0.85)', t + i * 0.6);
-      for (let i = 0; i < 5; i++) figuraHumana(c, 210 + i * 20, 146, 1.0, 'ereta', 'rgba(40,26,16,0.85)', t + i * 0.6 + 3);
+      for (let i = 0; i < 5; i++) ator(c, (dir, fr) => npcSprite(figurante(i), dir, fr), 30 + i * 22, 152, 1.0, 'rgba(40,26,16,0.85)', t + i * 0.6, 'down');
+      for (let i = 0; i < 5; i++) ator(c, (dir, fr) => npcSprite(figurante(i + 3), dir, fr), 210 + i * 20, 152, 1.0, 'rgba(40,26,16,0.85)', t + i * 0.6 + 3, 'down');
       c.fillStyle = '#7a5a34'; c.fillRect(140, 148, 40, 10);
-      figuraHumana(c, 160, 146, 2.2, 'coroada', '#e8c060', t);
+      ator(c, (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), 160, 150, 2.2, '#e8c060', t, 'down');
       const desce = clamp((t - 1.5) / 1.2, 0, 1);
       coroaIcone(c, 160, 118 + (1 - desce) * 20, 1.4, desce);
     },
@@ -1847,8 +1904,16 @@ const INTRO_SCENES = [
       c.fillStyle = '#1a1420'; c.fillRect(0, 40, VW, 120);
       c.fillStyle = '#2c2440'; c.fillRect(230, 55, 40, 40);
       c.fillStyle = '#e8dca0'; c.beginPath(); c.arc(250, 75, 10, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#3a2e40'; c.fillRect(60, 130, 90, 26);
-      figuraHumana(c, 70, 128, 1.6, 'deitada', '#8a7a94', 0);
+      // cortina balançando devagar na janela, como se uma brisa fria entrasse
+      const sway = Math.sin(t * 0.8) * 2.5;
+      c.fillStyle = 'rgba(40,32,60,0.6)';
+      c.beginPath(); c.moveTo(232, 55); c.lineTo(232 + sway, 95); c.lineTo(240, 95); c.lineTo(238, 55); c.closePath(); c.fill();
+      c.fillStyle = '#3a2e40'; c.fillRect(50, 130, 100, 30);
+      // cabeça de fora da coberta — mais reconhecível que girar o sprite
+      // de pé 90° pra deitar (virava só um borrão nessa escala)
+      silhuetaSprite(c, npcSprite(KUNIYASU_ACTOR, 'down', 0), 75, 150, 1.3, '#8a7a94');
+      c.fillStyle = '#342740'; c.fillRect(58, 138, 88, 22);
+      c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(58, 138, 88, 1.5);
       c.fillStyle = '#2c2438'; c.fillRect(170, 138, 18, 14);
       coroaIcone(c, 179, 134, 1.0, 1);
       const fl = 0.7 + Math.sin(t * 9) * 0.15 + Math.sin(t * 17) * 0.06;
@@ -1857,10 +1922,16 @@ const INTRO_SCENES = [
       c.restore();
       c.fillStyle = '#5a4a38'; c.fillRect(198, 134, 4, 8);
     },
-    ambient() { if (Math.random() < 0.2) spawnParticle({
-      x: 200 + rnd(-2, 2), y: 130, vx: rnd(-2, 2), vy: rnd(-8, -4), screen: true,
-      life: rnd(0.5, 0.9), size: 1, color: pick(['#ffcf6e', '#ff9040'])
-    }); },
+    ambient() {
+      if (Math.random() < 0.2) spawnParticle({
+        x: 200 + rnd(-2, 2), y: 130, vx: rnd(-2, 2), vy: rnd(-8, -4), screen: true,
+        life: rnd(0.5, 0.9), size: 1, color: pick(['#ffcf6e', '#ff9040'])
+      });
+      if (Math.random() < 0.08) spawnParticle({
+        x: rnd(225, 265), y: rnd(55, 95), vx: rnd(-2, 2), vy: rnd(-3, -1), screen: true,
+        life: rnd(1.5, 2.5), size: 1, color: 'rgba(180,180,220,0.4)'
+      });
+    },
     lines: [
       { text: 'Mas nem um Rei-Herói escapa do tempo.', at: 2.2 },
       { text: 'Agora, com a vida se esvaindo,\num novo caminho está prestes a começar.', at: 7.5 }
