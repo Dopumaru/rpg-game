@@ -1653,86 +1653,276 @@ function updateCreate() {
 }
 
 // ---------- Cutscene de abertura ----------
-// Encenada na cena 3D de verdade (câmera + billboards), não é um vídeo nem
-// uma sequência de imagens fixas. Roda uma única vez, entre a criação de
-// personagem e o primeiro quadro no mundo. Reaproveita 100% de arte já
-// existente: Kuniyasu é um NPC sintético (mesmo pipeline de npcSprite() dos
-// mestres, com uma coroa simples via ACESSORIO_PATCH); a ameaça é composta
-// dos próprios tipos de youkai/oni que já existem em ENEMIES.
-const KUNIYASU_ACTOR = { id: 'kuniyasu', look: { cabeca: 'onmyoji', pele: 3, corCabelo: 6, olhos: 4, roupa: 6 } };
-// posição/direção/quadro de um ator num instante do beat, a partir de um
-// caminho de waypoints [x, z, tSegundos] — parado nas pontas, andando (com
-// direção e ciclo de passada de verdade) entre elas. 1 waypoint = parado o
-// beat inteiro. Inimigos (sprFn sem dir/frame) só se deslocam mesmo, sem virar.
-function posNoCaminho(path, tLocal, dirParado) {
-  if (path.length === 1) return { x: path[0][0], z: path[0][1], dir: dirParado || 'down', frame: 0 };
-  let i = 0;
-  while (i < path.length - 2 && tLocal >= path[i + 1][2]) i++;
-  const [x0, z0, t0] = path[i], [x1, z1, t1] = path[i + 1];
-  if (tLocal <= t0) return { x: x0, z: z0, dir: dirParado || 'down', frame: 0 };
-  if (tLocal >= t1) return { x: x1, z: z1, dir: dirParado || 'down', frame: 0 };
-  const f = easeOut(clamp((tLocal - t0) / (t1 - t0), 0, 1));
-  const dx = x1 - x0, dz = z1 - z0;
-  const dir = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 'right' : 'left') : (dz > 0 ? 'down' : 'up');
-  return { x: lerp(x0, x1, f), z: lerp(z0, z1, f), dir, frame: Math.floor((tLocal / 0.14) % 4) };
+// 6 ilustrações estáticas em 2D (estilo silhueta), com transições entre
+// elas — não é mais a câmera 3D de verdade percorrendo a cena (versão
+// anterior). Sem ferramenta de geração de imagem neste ambiente, cada
+// cena é toda desenhada por código (gradiente, silhuetas, partículas de
+// tela), no mesmo canvas 320x180 do resto do jogo. Roda uma única vez,
+// entre a criação de personagem e o primeiro quadro no mundo.
+function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+// figura humana simples em silhueta — desenha o herói e a multidão em
+// todas as cenas, só troca pose/cor/escala/oscilação.
+function figuraHumana(c, x, y, esc, pose, cor, t) {
+  c.save();
+  c.translate(x, y);
+  c.scale(esc, esc);
+  c.fillStyle = cor;
+  const bob = pose === 'deitada' ? 0 : Math.sin((t || 0) * 1.6 + x * 0.3) * 0.5;
+  if (pose === 'curvada') {
+    c.beginPath(); c.arc(0, -5 + bob, 3, 0, Math.PI * 2); c.fill();
+    c.fillRect(-4, -3 + bob, 8, 9);
+    c.fillRect(-3, 5 + bob, 2, 6); c.fillRect(1, 5 + bob, 2, 6);
+  } else if (pose === 'ereta') {
+    c.beginPath(); c.arc(0, -14 + bob, 3, 0, Math.PI * 2); c.fill();
+    c.fillRect(-3, -11 + bob, 6, 12);
+    c.fillRect(-3, 1 + bob, 2, 7); c.fillRect(1, 1 + bob, 2, 7);
+  } else if (pose === 'lutando') {
+    c.beginPath(); c.arc(1, -14, 3, 0, Math.PI * 2); c.fill();
+    c.fillRect(-3, -11, 6, 11);
+    c.fillRect(-3, 0, 2, 7); c.fillRect(2, 0, 2, 7);
+    c.save(); c.translate(3, -10); c.rotate(-1.1); c.fillRect(0, -1, 12, 2); c.restore();
+  } else if (pose === 'ajoelhada') {
+    c.beginPath(); c.arc(0, -9 + bob * 0.3, 3, 0, Math.PI * 2); c.fill();
+    c.fillRect(-3, -6 + bob * 0.3, 6, 8);
+    c.fillRect(-4, 2, 9, 3);
+  } else if (pose === 'coroada') {
+    c.beginPath(); c.arc(0, -15 + bob, 3.2, 0, Math.PI * 2); c.fill();
+    c.fillRect(-4.5, -12 + bob, 9, 15);
+    c.fillRect(-3, 3 + bob, 2, 6); c.fillRect(1, 3 + bob, 2, 6);
+  } else if (pose === 'deitada') {
+    c.fillRect(-11, -3, 20, 5);
+    c.beginPath(); c.arc(-12, -0.5, 3.2, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
 }
-const INTRO_BEATS = [
-  { cam: [44, 100], zoom: 6, tint: 'rgba(255,200,120,0.16)', dur: 9,
-    actors: () => [
-      { sprFn: (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), path: [[48, 99.5, 0], [44, 99, 3.2]], dir: 'down' },
-      { sprFn: () => enemySprite('orc'), path: [[43, 100.3, 0], [43, 100.3, 3.3], [38, 103.5, 6.8]] },
-      { sprFn: () => enemySprite('goblin'), path: [[45, 100.3, 0], [45, 100.3, 3.3], [50, 102, 6.8]] }
-    ],
-    fx: [{ at: 3.25, run: () => {
-      burst(44 * TILE, 99.3 * TILE, 22, { color: ['#ffd94e', '#fff0a0', '#ffe8b0'], spdMax: 90, lifeMax: 1.0, size: 2, lift: 20, g: 40 });
-      G.shake = 7; AU.sfx('magic');
-    } }],
-    lines: [
-      { text: 'Houve um tempo em que Onis e Yokai\neram donos desta terra.', at: 1.0 },
-      { text: 'Até que um homem se recusou\na continuar escravo.', at: 3.7 }
-    ] },
-  { cam: [36, 98], zoomFrom: 7, zoomTo: 4.5, tint: 'rgba(70,80,130,0.30)', dur: 8,
-    actors: () => [{ sprFn: (dir, fr) => npcSprite(KUNIYASU_ACTOR, dir, fr), path: [[36, 98, 0]], dir: 'down' }],
-    // névoa fria subindo dele, contínua — a vida se esvaindo aos poucos
-    ambient: () => { if (Math.random() < 0.3) spawnParticle({
-      x: 36 * TILE + rnd(-6, 6), y: 98 * TILE + rnd(-3, 3), vx: rnd(-3, 3), vy: rnd(-10, -4), h: 0.5,
-      life: rnd(1.2, 2), size: 1, color: pick(['#8a94b0', '#6a7a9a', '#aab4d0'])
+function correntesIcone(c, x, y, esc) {
+  c.save(); c.translate(x, y); c.scale(esc, esc);
+  c.strokeStyle = 'rgba(20,16,12,0.8)'; c.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(-1 + i * 1.4, 3, 1, 0, Math.PI * 2); c.stroke(); }
+  c.restore();
+}
+function coroaIcone(c, x, y, esc, alpha) {
+  c.save(); c.translate(x, y); c.scale(esc, esc); c.globalAlpha = alpha === undefined ? 1 : alpha;
+  c.fillStyle = '#ffd94e';
+  c.beginPath();
+  c.moveTo(-4, 2); c.lineTo(-4, -1); c.lineTo(-2, 1); c.lineTo(0, -3); c.lineTo(2, 1); c.lineTo(4, -1); c.lineTo(4, 2);
+  c.closePath(); c.fill();
+  c.restore();
+}
+function raiosLuz(c, cx, cy, n, cor, t, comprimento) {
+  c.save();
+  c.globalAlpha = 0.16;
+  c.strokeStyle = cor;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + t * 0.05;
+    c.lineWidth = 3 + Math.sin(t + i) * 1.5;
+    c.beginPath();
+    c.moveTo(cx, cy);
+    c.lineTo(cx + Math.cos(ang) * comprimento, cy + Math.sin(ang) * comprimento);
+    c.stroke();
+  }
+  c.restore();
+}
+function fundoGradiente(c, corTopo, corBase) {
+  const g = c.createLinearGradient(0, 0, 0, VH);
+  g.addColorStop(0, corTopo); g.addColorStop(1, corBase);
+  c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+}
+function silhuetaIntro(c, pontos, cor) {
+  c.fillStyle = cor;
+  c.beginPath();
+  c.moveTo(pontos[0][0], pontos[0][1]);
+  for (let i = 1; i < pontos.length; i++) c.lineTo(pontos[i][0], pontos[i][1]);
+  c.closePath(); c.fill();
+}
+const INTRO_SCENES = [
+  { // 1. Escravidão dos humanos
+    dur: 10.5, transOut: 'flash', flashCor: '#ffe6a0',
+    draw(c, t) {
+      fundoGradiente(c, '#5a3f2c', '#241811');
+      silhuetaIntro(c, [[210, 90], [224, 58], [236, 72], [248, 46], [262, 66], [276, 90], [320, 90], [320, 180], [200, 180]], '#170f0a');
+      c.fillStyle = '#1c1209'; c.fillRect(0, 148, VW, 32);
+      for (let i = 0; i < 6; i++) {
+        const x = 26 + i * 34, y = 140;
+        figuraHumana(c, x, y, 1.15, 'curvada', '#0e0906', t + i * 0.35);
+        correntesIcone(c, x + 4, y, 1.15);
+      }
+      figuraHumana(c, 268, 146, 2.1, 'ereta', '#4a150f', t);
+      c.save(); c.translate(268, 108); c.rotate(0.2 + Math.sin(t * 1.4) * 0.05);
+      c.fillStyle = '#2c0e08'; c.fillRect(-1, -6, 2, 44);
+      c.restore();
+      c.fillStyle = 'rgba(120,86,50,0.18)'; c.fillRect(0, 138, VW, 22);
+    },
+    ambient(t) { if (Math.random() < 0.12) spawnParticle({
+      x: rnd(0, VW), y: rnd(135, 158), vx: rnd(-4, 4), vy: rnd(-3, -1), screen: true,
+      life: rnd(1.5, 2.5), size: 1, color: 'rgba(150,120,80,0.5)'
     }); },
     lines: [
-      { text: 'Kuniyasu, o Pacificador, está morrendo.', at: 1.0 },
-      { text: 'Os Deuses ainda não decidiram se\ncontinuarão do lado dos homens.', at: 4.2 }
+      { text: 'Por gerações, os homens curvaram as costas\nsob o jugo de Onis e Yokai.', at: 2.0 },
+      { text: 'Nenhum ousava se levantar contra correntes\nque pareciam eternas.', at: 6.0 }
     ] },
-  { cam: [30, 82], zoom: 7, tint: 'rgba(120,20,20,0.22)', dur: 8,
-    actors: () => [
-      { sprFn: () => enemySprite('onigeneral'), path: [[30, 80, 0], [30, 80, 2], [30, 78.3, 4.5]] },
-      { sprFn: () => enemySprite('harpia'), path: [[29, 81, 0], [29, 81, 3], [27.5, 79, 5.5]] },
-      { sprFn: () => enemySprite('yamauba'), path: [[31, 83, 0], [31, 83, 4], [31, 81, 6.5]] }
-    ],
-    fx: [{ at: 2.1, run: () => {
-      burst(30 * TILE, 79 * TILE, 14, { color: ['#e05050', '#ff8060', '#c03030'], spdMax: 70, lifeMax: 0.8, size: 1, lift: 10, g: 20 });
-      G.shake = 4;
-    } }],
+  { // 2. O herói se destaca
+    dur: 10, transOut: 'wipeDiag',
+    draw(c, t) {
+      fundoGradiente(c, '#8a6a3a', '#3a2c1c');
+      raiosLuz(c, 160, 40, 10, '#ffe6a0', t, 160);
+      c.fillStyle = '#241a10'; c.fillRect(0, 148, VW, 32);
+      for (let i = 0; i < 4; i++) figuraHumana(c, 40 + i * 26, 144, 0.9, 'curvada', 'rgba(20,14,8,0.85)', t + i);
+      for (let i = 0; i < 4; i++) figuraHumana(c, 220 + i * 22, 144, 0.9, 'curvada', 'rgba(20,14,8,0.85)', t + i + 2);
+      figuraHumana(c, 160, 140, 2.3, 'ereta', '#e8c060', t);
+      const abre = clamp(t / 2, 0, 1);
+      c.save(); c.globalAlpha = 1 - abre; c.translate(160, 130 + abre * 14); c.rotate(0.3);
+      c.strokeStyle = '#40372a'; c.lineWidth = 1;
+      c.beginPath(); c.arc(0, 0, 1.4, 0, Math.PI * 2); c.arc(3, 1.5, 1.4, 0, Math.PI * 2); c.stroke();
+      c.restore();
+    },
+    fx: [{ at: 1.9, run: () => { burstScreen(160, 128, 16, { color: ['#ffe6a0', '#fff4c8'], spdMax: 60, lifeMax: 0.8, size: 1, lift: 14, g: 30 }); AU.sfx('level'); } }],
     lines: [
-      { text: 'Nas bordas do território,\noutros já ouviram a notícia.', at: 1.0 },
-      { text: 'Onis. Yokai. Esperando a hora de agir.', at: 5.0 }
+      { text: 'Um deles se recusou a continuar curvado.', at: 2.0 },
+      { text: 'Kuniyasu quebrou os próprios grilhões —\ne se ergueu.', at: 5.5 }
     ] },
-  { cam: [40, 104], zoom: 6, tint: 'rgba(255,220,160,0.10)', dur: 7.5,
-    actors: () => [{ sprFn: (dir, fr) => heroSprite(curClass(), dir, fr), path: [[40, 109, 0], [40, 104.2, 5]], dir: 'up' }],
-    lines: [{ text: 'E numa vila comum,\num novo caminho está prestes a começar.', at: 5.4 }] }
+  { // 3. Batalha pela liberdade
+    dur: 12, transOut: 'slideUp',
+    draw(c, t) {
+      fundoGradiente(c, '#6a1c18', '#1c0c0c');
+      silhuetaIntro(c, [[0, 110], [40, 90], [90, 105], [140, 85], [190, 100], [240, 80], [320, 100], [320, 180], [0, 180]], '#120707');
+      c.fillStyle = '#160808'; c.fillRect(0, 150, VW, 30);
+      const p1 = clamp(t / 1.5, 0, 1);
+      figuraHumana(c, lerp(60, 110, p1), 148, 1.5, 'ereta', '#5a1c14', t);
+      figuraHumana(c, lerp(260, 210, p1), 148, 1.5, 'ereta', '#2c3a1c', t + 1);
+      figuraHumana(c, 160, 146, 2.0, 'lutando', '#e8c060', t);
+    },
+    fx: [
+      { at: 1.5, run: () => { burstScreen(120, 140, 14, { color: ['#ffd94e', '#ff9040'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
+      { at: 5.5, run: () => { burstScreen(200, 140, 14, { color: ['#ffd94e', '#c8ff90'], spdMax: 70, lifeMax: 0.6, size: 1, lift: 8, g: 20 }); G.shake = 5; AU.sfx('crit'); } },
+      { at: 9.2, run: () => { burstScreen(160, 130, 24, { color: ['#ffe6a0', '#fff4c8', '#ffd94e'], spdMax: 90, lifeMax: 1.0, size: 2, lift: 16, g: 30 }); G.shake = 8; AU.sfx('magic'); } }
+    ],
+    lines: [
+      { text: 'O que começou com um homem\nse tornou uma revolta inteira.', at: 2.0 },
+      { text: 'Ele enfrentou Onis e Yokai,\num a um, até o último.', at: 7.5 }
+    ] },
+  { // 4. Chegada ao reino dos Deuses e reconhecimento
+    dur: 11.5, transOut: 'iris', flashCor: '#fff8e0',
+    draw(c, t) {
+      fundoGradiente(c, '#0e1c3a', '#f0e0b0');
+      raiosLuz(c, 160, 30, 14, '#fff4c8', t, 200);
+      silhuetaIntro(c, [[120, 60], [130, 20], [150, 10], [160, 0], [170, 10], [190, 20], [200, 60], [190, 70], [130, 70]], '#c8b060');
+      for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#8a7248' : '#a68a58'; c.fillRect(140 - i * 4, 150 - i * 12, 40 + i * 8, 10); }
+      c.save(); c.globalAlpha = 0.7;
+      figuraHumana(c, 90, 60, 3.2, 'ereta', '#fff4c8', t * 0.5);
+      figuraHumana(c, 230, 60, 3.2, 'ereta', '#fff4c8', t * 0.5 + 1);
+      c.restore();
+      figuraHumana(c, 160, 148, 1.6, 'ajoelhada', '#3a2c1c', t);
+    },
+    fx: [{ at: 3.5, run: () => { burstScreen(160, 70, 20, { color: ['#fff4c8', '#ffe6a0', '#ffffff'], spdMax: 50, lifeMax: 1.2, size: 2, lift: 6, g: 8 }); AU.sfx('magic'); } }],
+    lines: [
+      { text: 'Quando o sangue finalmente secou,\nos próprios Deuses vieram vê-lo.', at: 2.2 },
+      { text: 'E pela primeira vez, um humano foi\nreconhecido entre eles.', at: 7.0 }
+    ] },
+  { // 5. Coroação entre os humanos
+    dur: 11, transOut: 'fade',
+    draw(c, t) {
+      fundoGradiente(c, '#c8843a', '#5a2c1c');
+      c.fillStyle = '#3a2414'; c.fillRect(0, 150, VW, 30);
+      for (let i = 0; i < 5; i++) figuraHumana(c, 30 + i * 22, 146, 1.0, 'ereta', 'rgba(40,26,16,0.85)', t + i * 0.6);
+      for (let i = 0; i < 5; i++) figuraHumana(c, 210 + i * 20, 146, 1.0, 'ereta', 'rgba(40,26,16,0.85)', t + i * 0.6 + 3);
+      c.fillStyle = '#7a5a34'; c.fillRect(140, 148, 40, 10);
+      figuraHumana(c, 160, 146, 2.2, 'coroada', '#e8c060', t);
+      const desce = clamp((t - 1.5) / 1.2, 0, 1);
+      coroaIcone(c, 160, 118 + (1 - desce) * 20, 1.4, desce);
+    },
+    fx: [{ at: 2.7, run: () => { burstScreen(160, 120, 26, { color: ['#ffd94e', '#fff4c8', '#ff9040'], spdMax: 80, lifeMax: 1.0, size: 2, lift: 20, g: 30 }); AU.sfx('victory'); } }],
+    ambient() { if (Math.random() < 0.1) spawnParticle({
+      x: rnd(0, VW), y: -4, vx: rnd(-6, 6), vy: rnd(10, 20), screen: true,
+      life: rnd(2, 3), size: 1, color: pick(['#ffd94e', '#ff9ec0', '#fff4c8'])
+    }); },
+    lines: [
+      { text: 'O povo ergueu seu libertador\ncomo Rei.', at: 2.2 },
+      { text: 'Kuniyasu, o Pacificador, reinou por\ngerações de paz.', at: 6.5 }
+    ] },
+  { // 6. Velhice, acamado — última cena, sem transição de saída
+    dur: 11.5,
+    draw(c, t) {
+      fundoGradiente(c, '#241c30', '#0c0a14');
+      c.fillStyle = '#1a1420'; c.fillRect(0, 40, VW, 120);
+      c.fillStyle = '#2c2440'; c.fillRect(230, 55, 40, 40);
+      c.fillStyle = '#e8dca0'; c.beginPath(); c.arc(250, 75, 10, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#3a2e40'; c.fillRect(60, 130, 90, 26);
+      figuraHumana(c, 70, 128, 1.6, 'deitada', '#8a7a94', 0);
+      c.fillStyle = '#2c2438'; c.fillRect(170, 138, 18, 14);
+      coroaIcone(c, 179, 134, 1.0, 1);
+      const fl = 0.7 + Math.sin(t * 9) * 0.15 + Math.sin(t * 17) * 0.06;
+      c.save(); c.globalAlpha = fl;
+      c.fillStyle = '#ffcf6e'; c.beginPath(); c.arc(200, 132, 2.4, 0, Math.PI * 2); c.fill();
+      c.restore();
+      c.fillStyle = '#5a4a38'; c.fillRect(198, 134, 4, 8);
+    },
+    ambient() { if (Math.random() < 0.2) spawnParticle({
+      x: 200 + rnd(-2, 2), y: 130, vx: rnd(-2, 2), vy: rnd(-8, -4), screen: true,
+      life: rnd(0.5, 0.9), size: 1, color: pick(['#ffcf6e', '#ff9040'])
+    }); },
+    lines: [
+      { text: 'Mas nem um Rei-Herói escapa do tempo.', at: 2.2 },
+      { text: 'Agora, com a vida se esvaindo,\num novo caminho está prestes a começar.', at: 7.5 }
+    ] }
 ];
-const INTRO_PAN_DUR = 0.9;
+const INTRO_TRANS_DUR = 1.6;
+// canvas fora de tela reutilizados só pra compor a transição entre 2 cenas
+const _introBufs = [];
+function introBuf(i) {
+  if (!_introBufs[i]) {
+    const cv = document.createElement('canvas');
+    cv.width = VW; cv.height = VH;
+    _introBufs[i] = cv;
+  }
+  return _introBufs[i];
+}
+// compõe a transição de saída de uma cena por cima de outra já renderizada
+// nos dois buffers — 5 estilos diferentes pra não repetir sempre o mesmo corte
+function desenhaTransicaoIntro(tipo, k, bufA, bufB, flashCor) {
+  const kk = easeInOut(k);
+  if (tipo === 'iris') {
+    ctx.drawImage(bufA, 0, 0);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(VW / 2, VH / 2, Math.hypot(VW, VH) * 0.6 * kk, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(bufB, 0, 0);
+    ctx.restore();
+  } else if (tipo === 'wipeDiag') {
+    ctx.drawImage(bufA, 0, 0);
+    ctx.save();
+    const edge = -VH + kk * (VW + 2 * VH);
+    ctx.beginPath();
+    ctx.moveTo(-VH, 0); ctx.lineTo(edge, 0); ctx.lineTo(edge + VH, VH); ctx.lineTo(-VH, VH);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(bufB, 0, 0);
+    ctx.restore();
+  } else if (tipo === 'slideUp') {
+    ctx.drawImage(bufA, 0, -VH * kk);
+    ctx.drawImage(bufB, 0, VH - VH * kk);
+  } else if (tipo === 'flash') {
+    ctx.drawImage(k < 0.5 ? bufA : bufB, 0, 0);
+    ctx.globalAlpha = k < 0.5 ? k * 2 : (1 - k) * 2;
+    ctx.fillStyle = flashCor || '#fff8e0';
+    ctx.fillRect(0, 0, VW, VH);
+    ctx.globalAlpha = 1;
+  } else { // fade
+    ctx.drawImage(bufA, 0, 0);
+    ctx.globalAlpha = kk;
+    ctx.drawImage(bufB, 0, 0);
+    ctx.globalAlpha = 1;
+  }
+}
 function startIntro(onDone) {
   G.state = 'intro';
-  // guarda o zoom de antes pra devolver no fim — sem isso a câmera do mundo
-  // real ficava travada no zoom apertado da última batida pra sempre (bug
-  // sério: toda a jogatina seguinte herdava aquele enquadramento)
-  G.intro = { beat: 0, t: 0, camFrom: INTRO_BEATS[0].cam.slice(), zoomAntes: R3.dist, firedFx: new Set(), onDone };
+  G.intro = { scene: 0, t: 0, firedFx: new Set(), onDone };
 }
 // pula tudo e encerra de vez — usado pelo botão de pular e pelo hook de teste
 function skipIntro() {
   if (G.state !== 'intro') return;
   const onDone = G.intro.onDone;
-  R3.aplicaZoom(G.intro.zoomAntes);
   G.intro = null;
   onDone();
 }
@@ -1740,64 +1930,51 @@ function updateIntro(dt) {
   const gi = G.intro;
   gi.t += dt;
   if (tap('back')) { AU.sfx('back'); skipIntro(); return; }
-  const beat = INTRO_BEATS[gi.beat];
-  if (tap('ok') || gi.t >= beat.dur) {
+  const scene = INTRO_SCENES[gi.scene];
+  if (tap('ok') || gi.t >= scene.dur) {
     AU.sfx('menu');
-    gi.camFrom = intronCamAtual(gi);
-    gi.beat++;
-    gi.t = 0;
+    gi.scene++;
+    // continua a partir do ponto em que a transição já tinha deixado a
+    // cena seguinte (evita "pular" a fase da animação/partícula dela)
+    gi.t = INTRO_TRANS_DUR;
     gi.firedFx = new Set();
-    if (gi.beat >= INTRO_BEATS.length) { skipIntro(); return; }
+    // sem isso, partículas de tela ainda vivas da cena anterior (ex.: o
+    // confete da coroação) continuavam caindo por cima da cena seguinte
+    G.parts = G.parts.filter(p => !p.screen);
+    if (gi.scene >= INTRO_SCENES.length) { skipIntro(); return; }
   }
-}
-// posição atual da câmera dentro do beat (pra servir de ponto de partida
-// do próximo pan, sem saltar se o jogador pular um beat no meio do movimento)
-function intronCamAtual(gi) {
-  const beat = INTRO_BEATS[gi.beat];
-  const f = easeOut(clamp(gi.t / INTRO_PAN_DUR, 0, 1));
-  return [lerp(gi.camFrom[0], beat.cam[0], f), lerp(gi.camFrom[1], beat.cam[1], f)];
 }
 function drawIntro() {
   const gi = G.intro;
-  const beat = INTRO_BEATS[gi.beat];
-  const m = MAPS.overworld;
-  if (R3.mapaNome !== m.name) { R3.montarMapa(m); R3.regiaoAtual = null; }
-  if (R3.regiaoAtual !== G.region) { R3.regiaoAtual = 'Vila Sakuramura'; R3.ambiente(m); }
-  // câmera desliza suavemente até o alvo do beat, em vez de saltar; o zoom
-  // pode ficar fixo (beat.zoom) ou derivar devagar a batida inteira
-  // (beat.zoomFrom/zoomTo) pra dar sensação de câmera viva, não só parada
-  const camAt = intronCamAtual(gi);
-  R3.aplicaZoom(beat.zoomFrom !== undefined ? lerp(beat.zoomFrom, beat.zoomTo, clamp(gi.t / beat.dur, 0, 1)) : beat.zoom);
-  R3.camPara(camAt[0], camAt[1]);
-  for (const a of beat.actors()) {
-    const p = posNoCaminho(a.path, gi.t, a.dir);
-    R3.por('intro_' + a.path[0][0] + '_' + a.path[0][1], a.sprFn(p.dir, p.frame), p.x, p.z + 0.2, 0, 0, true);
+  const scene = INTRO_SCENES[gi.scene];
+  const proxima = INTRO_SCENES[gi.scene + 1];
+  ctx.clearRect(0, 0, VW, VH);
+  const emTransicao = proxima && scene.transOut && gi.t >= scene.dur - INTRO_TRANS_DUR;
+  if (emTransicao) {
+    const k = clamp((gi.t - (scene.dur - INTRO_TRANS_DUR)) / INTRO_TRANS_DUR, 0, 1);
+    const bufA = introBuf(0), bufB = introBuf(1);
+    bufA.getContext('2d').clearRect(0, 0, VW, VH);
+    scene.draw(bufA.getContext('2d'), scene.dur);
+    bufB.getContext('2d').clearRect(0, 0, VW, VH);
+    proxima.draw(bufB.getContext('2d'), k * INTRO_TRANS_DUR);
+    desenhaTransicaoIntro(scene.transOut, k, bufA, bufB, scene.flashCor);
+  } else {
+    scene.draw(ctx, gi.t);
   }
-  if (beat.ambient) beat.ambient();
-  (beat.fx || []).forEach((f, i) => {
+  if (scene.ambient) scene.ambient(gi.t);
+  (scene.fx || []).forEach((f, i) => {
     if (gi.t >= f.at && !gi.firedFx.has(i)) { gi.firedFx.add(i); f.run(); }
   });
-  R3.escondeNaoUsados();
-  R3.culling(camAt[0], camAt[1]);
-  R3.desenha();
-
-  ctx.clearRect(0, 0, VW, VH);
-  ctx.fillStyle = beat.tint;
-  ctx.fillRect(0, 0, VW, VH);
-  // partículas (fx de choque, névoa ambiente etc.) — sem isso ficavam
-  // simuladas por updateParticles() mas nunca desenhadas, já que só
-  // drawWorld() chamava drawParticles(); a cutscene usa drawIntro().
-  drawParticles(false);
+  drawParticles(true);
   // barras de letterbox — moldura de cinemática
   const bar = 20;
   ctx.fillStyle = '#0a0812';
   ctx.fillRect(0, 0, VW, bar);
   ctx.fillRect(0, VH - bar, VW, bar);
-  // legenda: cada linha tem seu próprio instante de entrada, alinhado com a
-  // ação em cena (ex.: a 2ª fala da batida 1 só entra depois do choque)
+  // legenda: cada linha tem seu próprio instante de entrada
   ctx.font = '8px monospace';
   ctx.textAlign = 'center';
-  beat.lines.forEach((ln, i) => {
+  scene.lines.forEach((ln, i) => {
     if (gi.t < ln.at) return;
     const f = clamp((gi.t - ln.at) / 0.5, 0, 1);
     ctx.globalAlpha = f;
