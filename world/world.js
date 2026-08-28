@@ -31,7 +31,7 @@ const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30, 3
 const MAPS = {};
 
 function genOverworld() {
-  const W = 192, H = 128;
+  const W = 384, H = 256;
   const t = [];
   for (let y = 0; y < H; y++) { t.push(new Array(W).fill(0)); }
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
@@ -116,6 +116,31 @@ function genOverworld() {
     if (t[y][x] === 1) set(x, y, 0);
     if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
   }
+  // ---------- Expansão (Fase 1): dobra o mapa, 3 regiões selvagens novas ----------
+  // Só geometria/terreno nesta fase — cidades, NPCs e youkai novos entram nas
+  // fases seguintes. Nenhum tile novo: reaproveita o vocabulário existente
+  // (montanha/pedra pros picos, água/árvore pro pântano, água pra baía).
+  // PICOS DE TAKARA (nordeste) — cordilheira rochosa nova, ao leste de Iwamura
+  for (let y = 24; y < 124; y++) for (let x = 196; x < 380; x++) {
+    const h = hash2(x * 5 + 1, y * 5 + 3);
+    if (h < 0.20) set(x, y, 8);
+    else if (h < 0.28) set(x, y, 23);
+  }
+  // PÂNTANO NEGRO (sudoeste) — água estagnada entre árvores densas, ao sul
+  // da estrada do cemitério
+  for (let y = 132; y < 252; y++) for (let x = 4; x < 188; x++) {
+    const h = hash2(x * 4 + 9, y * 4 + 2);
+    if (h < 0.16) set(x, y, 2);
+    else if (h < 0.42) set(x, y, 1);
+  }
+  // BAÍA DE MINATO (sudeste) — a água cresce em gradiente até o canto do
+  // mapa, deixando praia/terra firme mais perto das outras duas regiões
+  for (let y = 132; y < 252; y++) for (let x = 196; x < 380; x++) {
+    const dist = (x - 196) + (y - 132);
+    const chanceAgua = clamp((dist - 90) / 120, 0, 0.9);
+    if (hash2(x * 3 + 1, y * 3 + 4) < chanceAgua) set(x, y, 2);
+    else if (hash2(x * 6 + 2, y * 6 + 5) < 0.05) set(x, y, 1);
+  }
   // estradas (largura 4 — 2 era estreito demais para desviar de inimigo no caminho)
   rect(39, 62, 4, 26, 3);              // ponte oeste -> Sakuramura
   rect(39, 22, 4, 34, 3);              // ponte oeste -> norte
@@ -125,6 +150,12 @@ function genOverworld() {
   rect(42, 99, 112, 4, 3);             // estrada sul: aldeia -> cemitério
   rect(151, 50, 4, 6, 3);              // Iwamura -> ponte leste
   rect(151, 62, 4, 38, 3);             // ponte leste -> estrada sul
+  // estradas novas da expansão — ligam as 3 regiões novas ao mapa antigo e
+  // entre si, cruzando as costuras em x=192 e y=128
+  rect(170, 36, 30, 4, 3);             // Iwamura -> Picos de Takara (nordeste)
+  rect(90, 99, 4, 40, 3);              // estrada sul -> Pântano Negro (sudoeste)
+  rect(290, 100, 4, 40, 3);            // Picos de Takara -> Baía de Minato (sudeste)
+  rect(150, 180, 50, 4, 3);            // Pântano Negro -> Baía de Minato (leste-oeste)
   // placas
   rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
@@ -136,8 +167,10 @@ function genOverworld() {
     else if (d < 0.088) set(x, y, 23);     // pedra
     else if (d < 0.095 && y > 60 && x < 60) set(x, y, 24); // cogumelo (floresta)
   }
-  // baús escondidos
-  rect(16, 66, 2, 2, 16); rect(176, 72, 2, 2, 16); rect(178, 118, 2, 2, 16);
+  // baús escondidos — dentro da margem que a câmera consegue acompanhar
+  // (ver comentário de SPAWN_ZONES); os 2 baús do leste/sudeste estavam
+  // além dela, ficando visualmente cortados perto da borda
+  rect(20, 66, 2, 2, 16); rect(170, 72, 2, 2, 16); rect(168, 104, 2, 2, 16);
   // garante que os pontos fixos de mini-chefe/chefe sejam alcançáveis — a
   // floresta aleatória (bolsões acima) podia isolar um deles sem isso. o alvo
   // da peixaria é o tile de grama logo ao sul da porta (onde o jogador
@@ -146,11 +179,11 @@ function genOverworld() {
   const protPeixaria = new Set();
   for (let y = 64; y <= 71; y++) for (let x = 76; x <= 83; x++) protPeixaria.add(x + ',' + y);
   const protComuns = new Set([
-    '16,66', '17,66', '16,67', '17,67', '176,72', '177,72', '176,73', '177,73', '178,118', '179,118', '178,119', '179,119',
+    '20,66', '21,66', '20,67', '21,67', '170,72', '171,72', '170,73', '171,73', '168,104', '169,104', '168,105', '169,105',
     ...protPeixaria
   ]);
   garanteAcesso(t, W, H, [
-    [28, 74], [164, 110],       // reislime, necromante
+    [28, 74], [164, 106],       // reislime, necromante
     [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
     [100, 108], [150, 80],      // amanojaku, yamauba
     [79, 72]                    // acesso à porta da peixaria
@@ -171,7 +204,11 @@ const REGIONS = [
   { x1: 148, y1: 98, x2: 180, y2: 122, name: 'Templo Abandonado' },
   { x1: 112, y1: 66, x2: 180, y2: 98, name: 'Floresta de Aokigahara' },
   { x1: 4,  y1: 20, x2: 186, y2: 54, name: 'Planalto do Norte' },
-  { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' }
+  { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' },
+  // regiões da expansão (Fase 1) — cidades/youkai próprios entram nas fases seguintes
+  { x1: 196, y1: 20,  x2: 380, y2: 124, name: 'Picos de Takara' },
+  { x1: 4,   y1: 132, x2: 188, y2: 252, name: 'Pântano Negro' },
+  { x1: 196, y1: 132, x2: 380, y2: 252, name: 'Baía de Minato' }
 ];
 function regionAt(tx, ty) {
   for (const r of REGIONS) if (tx >= r.x1 && tx <= r.x2 && ty >= r.y1 && ty <= r.y2) return r.name;
@@ -388,7 +425,7 @@ function enterMap(name, px, py) {
     G.region = null;
   } else {
     if (!G.flags.reislime) G.entities.push(makeEntity('reislime', 28 * TILE, 74 * TILE, 5, true));
-    if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 164 * TILE, 110 * TILE, 8, true));
+    if (!G.flags.necromante) G.entities.push(makeEntity('necromante', 164 * TILE, 106 * TILE, 8, true));
     if (!G.flags.amanojaku) G.entities.push(makeEntity('amanojaku', 100 * TILE, 108 * TILE, 6, true));
     if (!G.flags.yamauba) G.entities.push(makeEntity('yamauba', 150 * TILE, 80 * TILE, 9, true));
     if (!G.flags.aranharainha) G.entities.push(makeEntity('aranharainha', 42 * TILE, 78 * TILE, 5, true));
@@ -403,15 +440,21 @@ function enterMap(name, px, py) {
 // cada zona é dividida em uma faixa vertical por tipo (agrupa cada youkai
 // no seu próprio canto da zona, em vez de espalhar todos os tipos
 // misturados pela caixa inteira — ajuda a achar o alvo de uma missão)
+// os limites x/y de cada zona ficam dentro de [20,172]x[20,108] — a mesma
+// margem que a câmera do mundo usa pra travar antes da borda do mapa
+// (camMX/camMZ em desenhaMundo3D()). Fora dessa faixa a câmera não consegue
+// centralizar no jogador, então um youkai nascido ali fica visualmente
+// cortado/fora do quadro mesmo perto do jogador — bug relatado pelo usuário
+// na borda sul. Zonas que batiam nessa faixa foram recuadas.
 const SPAWN_ZONES = {
   overworld: [
-    { x1: 12, y1: 64, x2: 140, y2: 122, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 12,
+    { x1: 20, y1: 64, x2: 140, y2: 108, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 12,
       exclude: [{ x1: 22, y1: 86, x2: 58, y2: 114 }, { x1: 10, y1: 62, x2: 54, y2: 86 }] },
-    { x1: 12, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin', 'rokuro'], lv: [3, 5], count: 9 },
-    { x1: 12, y1: 22, x2: 180, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 12,
+    { x1: 20, y1: 64, x2: 52, y2: 84, types: ['lobo', 'aranha', 'goblin', 'rokuro'], lv: [3, 5], count: 9 },
+    { x1: 20, y1: 22, x2: 172, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 12,
       exclude: [{ x1: 130, y1: 24, x2: 170, y2: 50 }] },
-    { x1: 112, y1: 68, x2: 180, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 10 },
-    { x1: 148, y1: 100, x2: 180, y2: 120, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 9 }
+    { x1: 112, y1: 68, x2: 172, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 10 },
+    { x1: 148, y1: 100, x2: 172, y2: 108, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 9 }
   ],
   cave: [
     { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 13 }

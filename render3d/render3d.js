@@ -361,18 +361,32 @@ const R3 = {
   // única (a mesma arte 2D) sobre um plano — 1 draw call por chunk em vez de
   // um por tipo de tile. Só as peças altas continuam sendo blocos, porque são
   // elas que dão volume. Chunks longe do jogador saem da cena.
+  // Monta só o essencial (setup + casas do mapa inteiro, que é barato — só
+  // percorre tiles) e deixa a geometria pesada (pedaço por pedaço) para
+  // garanteChunksPerto(), chamada todo quadro a partir de culling(). Antes,
+  // esta função construía TODOS os pedaços do mapa de uma vez, de forma
+  // síncrona — com o mapa expandido (4x mais pedaços) isso passou a travar
+  // o carregamento por dezenas de segundos (medido: 72s+, e uma vez o
+  // navegador chegou a fechar por esgotamento de recursos). Agora só os
+  // pedaços perto do jogador nascem construídos; o resto entra sob demanda
+  // conforme ele anda, alguns por quadro, sem travar nada.
   montarMapa(map) {
     this.limparMapa();
     this.mapaNome = map.name;
+    this.mapaAtual = map;
     this.chunks = [];
+    this.chunksFeitos = new Set();
     const grupo = new THREE.Group();
+    this.grupoMapa = grupo;
+    this.cena.add(grupo);
     const CH = 16, base = map.name === 'cave' ? 9 : 0;
-    // ganha geometria própria quem é alto OU quem tem modelo (arbusto, placa,
-    // porta, viga do torii, chozuya... coisas baixas mas que ocupam espaço)
-    const alto = t => (ALT3[t] !== undefined ? ALT3[t] : 0.5) > 0.6 || !!MODELOS3[t];
+    this._chunkCH = CH; this._chunkBase = base;
     // Uma casa neste mapa é uma fileira de telhado (18) com as fileiras de
     // parede (5/19/14) logo abaixo. Junta tudo num prédio só, senão cada tile
-    // vira uma caixinha e o conjunto fica com cara de grade.
+    // vira uma caixinha e o conjunto fica com cara de grade. Isso é feito
+    // pro mapa inteiro de uma vez (é só um flood-fill sobre os tiles, barato
+    // mesmo num mapa grande) porque uma casa pode ficar perto da costura
+    // entre dois pedaços.
     const ehTeto = t => t === 18;
     const ehParede = t => t === 5 || t === 19 || t === 14;
     const dono = new Map(), casas = [];
@@ -411,102 +425,135 @@ const R3 = {
       casas.push({ x0, x1, y0, y1, loja });
     }
     this.casas = casas;
+    this._donoCasas = dono;
     const SS = 2;   // supersample da textura do chão
     const cvT = document.createElement('canvas');
     cvT.width = CH * TILE * SS; cvT.height = CH * TILE * SS;
-    for (let cz = 0; cz * CH < map.h; cz++) {
-      for (let cx = 0; cx * CH < map.w; cx++) {
-        const g2 = cvT.getContext('2d');
-        g2.imageSmoothingEnabled = false;
-        g2.clearRect(0, 0, cvT.width, cvT.height);
-        const altos = new Map();
-        for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) {
-          const tx = cx * CH + x, ty = cz * CH + y;
-          if (tx >= map.w || ty >= map.h) continue;
-          const t = map.tiles[ty][tx];
-          // sob uma peça alta vai o chão da região, não a arte dela
-          this.pinta(g2, (alto(t) || dono.has(tx + ',' + ty)) ? base : t, tx, ty, map, x * TILE * SS, y * TILE * SS, SS);
-          if (dono.has(tx + ',' + ty)) continue;
-          if (alto(t)) {
-            const vv = varTile3(t, tx, ty);
-            const ch = t + '#' + vv;
-            if (!altos.has(ch)) { const a2 = []; a2.t = t; a2.v = vv; altos.set(ch, a2); }
-            altos.get(ch).push([tx, ty]);
-          }
-        }
-        const c2 = document.createElement('canvas');
-        c2.width = cvT.width; c2.height = cvT.height;
-        c2.getContext('2d').drawImage(cvT, 0, 0);
-        const tex = new THREE.CanvasTexture(c2);
-        tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
-        tex.generateMipmaps = false;
-        const plano = new THREE.Mesh(
-          new THREE.PlaneGeometry(CH, CH),
-          new THREE.MeshLambertMaterial({ map: tex })
-        );
-        plano.rotation.x = -Math.PI / 2;
-        plano.position.set(cx * CH + CH / 2 - 0.5, 0.5, cz * CH + CH / 2 - 0.5);
-        plano.receiveShadow = true;
-        const pedaco = new THREE.Group();
-        pedaco.add(plano);
-        // peças altas: cada tipo vira um modelo de verdade (tronco + copa,
-        // telhado inclinado, pedra facetada...), uma InstancedMesh por parte
-        const m4 = new THREE.Matrix4();
-        const _q = new THREE.Quaternion(), _e = new THREE.Euler();
-        const _p = new THREE.Vector3(), _s = new THREE.Vector3();
-        for (const [chave, lista] of altos) {
-          const t = lista.t, vv = lista.v;
-          const modelo = MODELOS3[t] ? MODELOS3[t](vv) : null;
-          if (!modelo) {   // sem modelo próprio: bloco com a arte, como antes
-            const alt = ALT3[t];
-            const tx3 = this.tex(t, lista[0][0], lista[0][1], map);
-            const lado = new THREE.MeshLambertMaterial({ map: tx3, color: 0xb8b8c4 });
-            const mesh = new THREE.InstancedMesh(geo3('caixa'),
-              [lado, lado, new THREE.MeshLambertMaterial({ map: tx3 }),
-               new THREE.MeshLambertMaterial({ color: 0x1a1626 }), lado, lado], lista.length);
-            mesh.castShadow = true; mesh.receiveShadow = true;
-            lista.forEach(([x, y], k) => {
-              m4.makeScale(1, alt, 1); m4.setPosition(x, 0.5 + alt / 2, y);
-              mesh.setMatrixAt(k, m4);
-            });
-            mesh.instanceMatrix.needsUpdate = true;
-            pedaco.add(mesh);
-            continue;
-          }
-          modelo.forEach((parte, pi) => {
-            const mesh = new THREE.InstancedMesh(geo3(parte.k),
-              new THREE.MeshLambertMaterial({ color: parte.c, flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
-              lista.length);
-            mesh.castShadow = true; mesh.receiveShadow = true;
-            lista.forEach(([x, y], k) => {
-              // variação por tile: gira e redimensiona um pouco, senão a
-              // floresta vira uma fileira de clones
-              const h1 = hash2(x * 13 + 5, y * 11 + 2), h2b = hash2(x * 3 + 9, y * 17 + 4);
-              const giro = MODELOS3_GIRA.has(t) ? h1 * Math.PI * 2 : 0;
-              const esc = 1 + (MODELOS3_VARIA.has(t) ? (h2b - 0.5) * 0.34 : 0);
-              _e.set(parte.r ? parte.r[0] : 0, (parte.r ? parte.r[1] : 0) + giro, parte.r ? parte.r[2] : 0);
-              _q.setFromEuler(_e);
-              _p.set(x + (parte.p[0]) * esc, 0.5 + parte.p[1] * esc, y + (parte.p[2]) * esc);
-              _s.set(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
-              m4.compose(_p, _q, _s);
-              mesh.setMatrixAt(k, m4);
-            });
-            mesh.instanceMatrix.needsUpdate = true;
-            pedaco.add(mesh);
-          });
-        }
-        for (const c of casas) {
-          if (c.x0 < cx * CH || c.x0 >= (cx + 1) * CH || c.y0 < cz * CH || c.y0 >= (cz + 1) * CH) continue;
-          pedaco.add(this.constroiCasa(c));
-        }
-        pedaco.userData.centro = new THREE.Vector2(cx * CH + CH / 2, cz * CH + CH / 2);
-        this.chunks.push(pedaco);
-        grupo.add(pedaco);
+    this._cvChunk = cvT;
+    this.ambiente(map);
+    // constrói sem limite (não é o mapa inteiro, só a vizinhança imediata)
+    // pra não nascer num vazio por alguns quadros
+    const hx = P.x / TILE, hz = P.y / TILE;
+    this.garanteChunksPerto(hx, hz, 1, Infinity);
+  },
+  // constrói a geometria de UM pedaço (cx,cz em unidade de pedaço, não de
+  // tile) — mesma lógica que antes rodava pra todos de uma vez
+  construirChunk(cx, cz) {
+    const map = this.mapaAtual, CH = this._chunkCH, base = this._chunkBase;
+    const dono = this._donoCasas, casas = this.casas, cvT = this._cvChunk;
+    // ganha geometria própria quem é alto OU quem tem modelo (arbusto, placa,
+    // porta, viga do torii, chozuya... coisas baixas mas que ocupam espaço)
+    const alto = t => (ALT3[t] !== undefined ? ALT3[t] : 0.5) > 0.6 || !!MODELOS3[t];
+    const SS = 2;
+    const g2 = cvT.getContext('2d');
+    g2.imageSmoothingEnabled = false;
+    g2.clearRect(0, 0, cvT.width, cvT.height);
+    const altos = new Map();
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CH; x++) {
+      const tx = cx * CH + x, ty = cz * CH + y;
+      if (tx >= map.w || ty >= map.h) continue;
+      const t = map.tiles[ty][tx];
+      // sob uma peça alta vai o chão da região, não a arte dela
+      this.pinta(g2, (alto(t) || dono.has(tx + ',' + ty)) ? base : t, tx, ty, map, x * TILE * SS, y * TILE * SS, SS);
+      if (dono.has(tx + ',' + ty)) continue;
+      if (alto(t)) {
+        const vv = varTile3(t, tx, ty);
+        const ch = t + '#' + vv;
+        if (!altos.has(ch)) { const a2 = []; a2.t = t; a2.v = vv; altos.set(ch, a2); }
+        altos.get(ch).push([tx, ty]);
       }
     }
-    this.grupoMapa = grupo;
-    this.cena.add(grupo);
-    this.ambiente(map);
+    const c2 = document.createElement('canvas');
+    c2.width = cvT.width; c2.height = cvT.height;
+    c2.getContext('2d').drawImage(cvT, 0, 0);
+    const tex = new THREE.CanvasTexture(c2);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    const plano = new THREE.Mesh(
+      new THREE.PlaneGeometry(CH, CH),
+      new THREE.MeshLambertMaterial({ map: tex })
+    );
+    plano.rotation.x = -Math.PI / 2;
+    plano.position.set(cx * CH + CH / 2 - 0.5, 0.5, cz * CH + CH / 2 - 0.5);
+    plano.receiveShadow = true;
+    const pedaco = new THREE.Group();
+    pedaco.add(plano);
+    // peças altas: cada tipo vira um modelo de verdade (tronco + copa,
+    // telhado inclinado, pedra facetada...), uma InstancedMesh por parte
+    const m4 = new THREE.Matrix4();
+    const _q = new THREE.Quaternion(), _e = new THREE.Euler();
+    const _p = new THREE.Vector3(), _s = new THREE.Vector3();
+    for (const [chave, lista] of altos) {
+      const t = lista.t, vv = lista.v;
+      const modelo = MODELOS3[t] ? MODELOS3[t](vv) : null;
+      if (!modelo) {   // sem modelo próprio: bloco com a arte, como antes
+        const alt = ALT3[t];
+        const tx3 = this.tex(t, lista[0][0], lista[0][1], map);
+        const lado = new THREE.MeshLambertMaterial({ map: tx3, color: 0xb8b8c4 });
+        const mesh = new THREE.InstancedMesh(geo3('caixa'),
+          [lado, lado, new THREE.MeshLambertMaterial({ map: tx3 }),
+           new THREE.MeshLambertMaterial({ color: 0x1a1626 }), lado, lado], lista.length);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        lista.forEach(([x, y], k) => {
+          m4.makeScale(1, alt, 1); m4.setPosition(x, 0.5 + alt / 2, y);
+          mesh.setMatrixAt(k, m4);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        pedaco.add(mesh);
+        continue;
+      }
+      modelo.forEach((parte, pi) => {
+        const mesh = new THREE.InstancedMesh(geo3(parte.k),
+          new THREE.MeshLambertMaterial({ color: parte.c, flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
+          lista.length);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        lista.forEach(([x, y], k) => {
+          // variação por tile: gira e redimensiona um pouco, senão a
+          // floresta vira uma fileira de clones
+          const h1 = hash2(x * 13 + 5, y * 11 + 2), h2b = hash2(x * 3 + 9, y * 17 + 4);
+          const giro = MODELOS3_GIRA.has(t) ? h1 * Math.PI * 2 : 0;
+          const esc = 1 + (MODELOS3_VARIA.has(t) ? (h2b - 0.5) * 0.34 : 0);
+          _e.set(parte.r ? parte.r[0] : 0, (parte.r ? parte.r[1] : 0) + giro, parte.r ? parte.r[2] : 0);
+          _q.setFromEuler(_e);
+          _p.set(x + (parte.p[0]) * esc, 0.5 + parte.p[1] * esc, y + (parte.p[2]) * esc);
+          _s.set(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
+          m4.compose(_p, _q, _s);
+          mesh.setMatrixAt(k, m4);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        pedaco.add(mesh);
+      });
+    }
+    for (const c of casas) {
+      if (c.x0 < cx * CH || c.x0 >= (cx + 1) * CH || c.y0 < cz * CH || c.y0 >= (cz + 1) * CH) continue;
+      pedaco.add(this.constroiCasa(c));
+    }
+    pedaco.userData.centro = new THREE.Vector2(cx * CH + CH / 2, cz * CH + CH / 2);
+    this.chunks.push(pedaco);
+    this.grupoMapa.add(pedaco);
+  },
+  // constrói (uma vez cada) os pedaços dentro de `raio` pedaços do ponto
+  // (wx,wz), até `maxPorChamada` pedaços novos por chamada — chamada todo
+  // quadro a partir de culling(), então o resto do mapa vai nascendo aos
+  // poucos conforme o jogador anda, sem travar um quadro inteiro
+  garanteChunksPerto(wx, wz, raio, maxPorChamada) {
+    const map = this.mapaAtual;
+    if (!map) return;
+    const CH = this._chunkCH;
+    const ccx = Math.floor(wx / CH), ccz = Math.floor(wz / CH);
+    let feitos = 0;
+    for (let dz = -raio; dz <= raio; dz++) {
+      for (let dx = -raio; dx <= raio; dx++) {
+        if (feitos >= maxPorChamada) return;
+        const cx = ccx + dx, cz = ccz + dz;
+        if (cx < 0 || cz < 0 || cx * CH >= map.w || cz * CH >= map.h) continue;
+        const chave = cx + ',' + cz;
+        if (this.chunksFeitos.has(chave)) continue;
+        this.chunksFeitos.add(chave);
+        this.construirChunk(cx, cz);
+        feitos++;
+      }
+    }
   },
   // Uma construção japonesa: embasamento de pedra, parede de shikkui com
   // travamento de madeira aparente, engawa na frente e telhado de kawara com
@@ -630,6 +677,7 @@ const R3 = {
   // só os chunks por perto ficam na cena
   culling(wx, wz) {
     if (!this.chunks) return;
+    this.garanteChunksPerto(wx, wz, 3, 2);
     for (const p of this.chunks) {
       const d = Math.hypot(p.userData.centro.x - wx, p.userData.centro.y - wz);
       p.visible = d < 30;
