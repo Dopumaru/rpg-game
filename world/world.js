@@ -31,7 +31,7 @@ const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30, 3
 const MAPS = {};
 
 function genOverworld() {
-  const W = 192, H = 128;
+  const W = 384, H = 256;
   const t = [];
   for (let y = 0; y < H; y++) { t.push(new Array(W).fill(0)); }
   const set = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) t[y][x] = v; };
@@ -116,6 +116,31 @@ function genOverworld() {
     if (t[y][x] === 1) set(x, y, 0);
     if (hash2(x * 11, y * 11) < 0.14 && t[y][x] === 0) set(x, y, 20);
   }
+  // ---------- Expansão (Fase 1): dobra o mapa, 3 regiões selvagens novas ----------
+  // Só geometria/terreno nesta fase — cidades, NPCs e youkai novos entram nas
+  // fases seguintes. Nenhum tile novo: reaproveita o vocabulário existente
+  // (montanha/pedra pros picos, água/árvore pro pântano, água pra baía).
+  // PICOS DE TAKARA (nordeste) — cordilheira rochosa nova, ao leste de Iwamura
+  for (let y = 24; y < 124; y++) for (let x = 196; x < 380; x++) {
+    const h = hash2(x * 5 + 1, y * 5 + 3);
+    if (h < 0.20) set(x, y, 8);
+    else if (h < 0.28) set(x, y, 23);
+  }
+  // PÂNTANO NEGRO (sudoeste) — água estagnada entre árvores densas, ao sul
+  // da estrada do cemitério
+  for (let y = 132; y < 252; y++) for (let x = 4; x < 188; x++) {
+    const h = hash2(x * 4 + 9, y * 4 + 2);
+    if (h < 0.16) set(x, y, 2);
+    else if (h < 0.42) set(x, y, 1);
+  }
+  // BAÍA DE MINATO (sudeste) — a água cresce em gradiente até o canto do
+  // mapa, deixando praia/terra firme mais perto das outras duas regiões
+  for (let y = 132; y < 252; y++) for (let x = 196; x < 380; x++) {
+    const dist = (x - 196) + (y - 132);
+    const chanceAgua = clamp((dist - 90) / 120, 0, 0.9);
+    if (hash2(x * 3 + 1, y * 3 + 4) < chanceAgua) set(x, y, 2);
+    else if (hash2(x * 6 + 2, y * 6 + 5) < 0.05) set(x, y, 1);
+  }
   // estradas (largura 4 — 2 era estreito demais para desviar de inimigo no caminho)
   rect(39, 62, 4, 26, 3);              // ponte oeste -> Sakuramura
   rect(39, 22, 4, 34, 3);              // ponte oeste -> norte
@@ -125,6 +150,12 @@ function genOverworld() {
   rect(42, 99, 112, 4, 3);             // estrada sul: aldeia -> cemitério
   rect(151, 50, 4, 6, 3);              // Iwamura -> ponte leste
   rect(151, 62, 4, 38, 3);             // ponte leste -> estrada sul
+  // estradas novas da expansão — ligam as 3 regiões novas ao mapa antigo e
+  // entre si, cruzando as costuras em x=192 e y=128
+  rect(170, 36, 30, 4, 3);             // Iwamura -> Picos de Takara (nordeste)
+  rect(90, 99, 4, 40, 3);              // estrada sul -> Pântano Negro (sudoeste)
+  rect(290, 100, 4, 40, 3);            // Picos de Takara -> Baía de Minato (sudeste)
+  rect(150, 180, 50, 4, 3);            // Pântano Negro -> Baía de Minato (leste-oeste)
   // placas
   rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
@@ -173,7 +204,11 @@ const REGIONS = [
   { x1: 148, y1: 98, x2: 180, y2: 122, name: 'Templo Abandonado' },
   { x1: 112, y1: 66, x2: 180, y2: 98, name: 'Floresta de Aokigahara' },
   { x1: 4,  y1: 20, x2: 186, y2: 54, name: 'Planalto do Norte' },
-  { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' }
+  { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' },
+  // regiões da expansão (Fase 1) — cidades/youkai próprios entram nas fases seguintes
+  { x1: 196, y1: 20,  x2: 380, y2: 124, name: 'Picos de Takara' },
+  { x1: 4,   y1: 132, x2: 188, y2: 252, name: 'Pântano Negro' },
+  { x1: 196, y1: 132, x2: 380, y2: 252, name: 'Baía de Minato' }
 ];
 function regionAt(tx, ty) {
   for (const r of REGIONS) if (tx >= r.x1 && tx <= r.x2 && ty >= r.y1 && ty <= r.y2) return r.name;
