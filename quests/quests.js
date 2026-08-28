@@ -155,7 +155,7 @@ const QUESTS = {
   q_kagemaru: {
     nome: 'O onmyoji negro', npc: 'monge', nivel: 8,
     tipo: 'matar', alvo: 'necromante', qtd: 1,
-    local: [164, 110], dica: 'Templo Abandonado, a leste',
+    local: [164, 106], dica: 'Templo Abandonado, a leste',
     ouro: 460, xp: 420, item: 'elixir',
     oferta: 'Monge Eikan:\nKagemaru foi meu irmão de ordem.\nTemeu que a paz de Kuniyasu não\ndurasse, e foi buscar poder onde não devia. Termine isso.',
     fim: 'Monge Eikan:\nEntão acabou. Rezarei por ele\nagora que pode ouvir — e pelo\nmedo que o perdeu, que também é nosso.',
