@@ -276,7 +276,12 @@ function updatePeixaria() {
 // Painel fixo em coordenadas lógicas (VW×VH) — o mesmo em qualquer resolução
 // de tela, já que todo o jogo desenha nesse espaço lógico via transform.
 const MAPA_X = 10, MAPA_Y = 20, MAPA_W = 190, MAPA_H = 127;
-const MAPA_S = MAPA_W / 192;
+// escala fixa em 384 (largura real do overworld pós-Fase 1) — antes da
+// expansão o mapa era 192 de largura e essa constante nunca foi atualizada,
+// então a metade de baixo/direita do mapa (onde ficam as 3 regiões novas)
+// desenhava comprimida mas o hover/clique (regiaoNoMapa) ainda cortava em
+// tx>=192, deixando essa área inteira sem tooltip
+const MAPA_S = MAPA_W / 384;
 const LAGOS = [
   { nome: 'Lagoa Central', x: 69, y: 76, r: 8 },
   { nome: 'Lago do Planalto', x: 32, y: 36, r: 7 },
@@ -292,17 +297,26 @@ const REGIAO_INFO = {
   'Planalto do Norte':     { nivel: [4, 6], mobs: ['lobo', 'esqueleto', 'harpia'] },
   'Floresta de Aokigahara':{ nivel: [5, 7], mobs: ['esqueleto', 'aranha', 'harpia'] },
   'Templo Abandonado':     { nivel: [6, 8], mobs: ['zumbi', 'fantasma', 'esqueleto'], boss: 'necromante' },
-  'Caverna de Orochi':     { nivel: [7, 9], mobs: ['orc', 'golem', 'elemental', 'fantasma'], boss: 'dragao' }
+  'Caverna de Orochi':     { nivel: [7, 9], mobs: ['orc', 'golem', 'elemental', 'fantasma'], boss: 'dragao' },
+  // vilas da Fase 2 — sem youkai próprios ainda (fase 3), sem chefe/nível
+  'Vila Takara':   { seguro: true },
+  'Vila Kurogane': { seguro: true },
+  'Vila Minato':   { seguro: true },
+  'Picos de Takara': { seguro: true },
+  'Pântano Negro':   { seguro: true },
+  'Baía de Minato':  { seguro: true }
 };
 const REGIAO_COR = {
   'Vila Sakuramura': '#c98a5a', 'Vila Iwamura': '#a89a6a',
   'Campos de Arroz': '#7aa050', 'Bosque de Bambu': '#4a8a4e',
   'Planalto do Norte': '#7a8aa0', 'Floresta de Aokigahara': '#2e6a38',
-  'Templo Abandonado': '#6a5a8a', 'Caverna de Orochi': '#4a4458'
+  'Templo Abandonado': '#6a5a8a', 'Caverna de Orochi': '#4a4458',
+  'Vila Takara': '#8a8ac0', 'Vila Kurogane': '#5a5262', 'Vila Minato': '#5a8aa0',
+  'Picos de Takara': '#7a7a8a', 'Pântano Negro': '#3a4a3a', 'Baía de Minato': '#3a6a8a'
 };
 // ícone especial no mapa: entrada da caverna, perto do torii norte
 const CAVERNA_PONTO = { x: 96, y: 19 };
-const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 110], dragao: [48, 10] };
+const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 106], dragao: [48, 10] };
 // cor por tipo de tile para a miniatura ilustrada do mapa (ver legenda em
 // world/world.js:22-25). Água/lagos ficam por conta do desenho de LAGOS por
 // cima, então a cor de água aqui é só o leito visto de longe.
@@ -346,7 +360,7 @@ function mapaMiniatura(map) {
 // pelos testes, que passam a coordenada diretamente.
 function regiaoNoMapa(lx, ly) {
   const tx = (lx - MAPA_X) / MAPA_S, ty = (ly - MAPA_Y) / MAPA_S;
-  if (tx < 0 || ty < 0 || tx >= 192 || ty >= 128) return null;
+  if (tx < 0 || ty < 0 || tx >= 384 || ty >= 256) return null;
   for (const lago of LAGOS) if (Math.hypot(tx - lago.x, ty - lago.y) < lago.r + 1.2) return { tipo: 'lago', nome: lago.nome };
   if (Math.hypot(tx - CAVERNA_PONTO.x, ty - CAVERNA_PONTO.y) < 4.8) return { tipo: 'regiao', nome: 'Caverna de Orochi' };
   const r = regionAt(Math.floor(tx), Math.floor(ty));

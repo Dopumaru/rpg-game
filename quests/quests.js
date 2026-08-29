@@ -186,6 +186,61 @@ const QUESTS = {
     ouro: 120, xp: 105,
     oferta: 'Monge Eikan:\nAs almas inquietas não têm fim.\nCada exorcismo é um alívio, ainda\nque temporário.',
     fim: 'Monge Eikan:\nMais uma alma em paz. Sempre\nhaverá outra, infelizmente.'
+  },
+  // --- Vila Takara (Fase 2): 'coletar' em vez de 'matar' de propósito —
+  // a expansão ainda não tem youkai próprios (fase 3), então uma cadeia de
+  // caça na região nova não seria cumprível ainda; material se obtém
+  // desmontando equipamento em qualquer lugar do jogo já hoje
+  q_jade_takara: {
+    nome: 'Jade da veia funda', npc: 'gemologa', nivel: 4,
+    tipo: 'coletar', alvo: 'jade', qtd: 4,
+    local: [160, 45], dica: 'amuletos desmontados devolvem Jade Bruta',
+    ouro: 140, xp: 120,
+    oferta: 'Aiko:\nA veia de jade ficou funda demais\npara os meus joelhos. Traga 4 Jade\nBruta e eu conto o resto.',
+    fim: 'Aiko:\nA montanha ainda guarda mais do\nque nós merecemos. Obrigada.',
+    proxima: 'q_jade_takara2'
+  },
+  q_jade_takara2: {
+    nome: 'O peso da montanha', npc: 'gemologa', nivel: 6,
+    tipo: 'coletar', alvo: 'jade', qtd: 6,
+    local: [160, 45], dica: 'amuletos desmontados devolvem Jade Bruta',
+    ouro: 260, xp: 230,
+    oferta: 'Aiko:\nSeis Jade Bruta desta vez — não é\nganância, é o preço de manter\nTakara de pé sem depender de ninguém.',
+    fim: 'Aiko:\nCom isso sustentamos o inverno.\nKuniyasu unificou os quatro povos,\nmas foi a pedra que sempre nos\nmanteve vivos aqui em cima.'
+  },
+  q_osso_kurogane: {
+    nome: 'Osso do pântano', npc: 'ferreiro_negro', nivel: 4,
+    tipo: 'coletar', alvo: 'osso', qtd: 4,
+    local: [160, 104], dica: 'elmos e armas desmontados devolvem Osso Antigo',
+    ouro: 140, xp: 120,
+    oferta: 'Sumi:\nO pântano cospe osso velho toda\nlua cheia. Traga 4 Osso Antigo —\neu sei o que fazer com eles.',
+    fim: 'Sumi:\nBom aço precisa de cal de osso.\nNão pergunte de onde vem o resto\nda receita.',
+    proxima: 'q_osso_kurogane2'
+  },
+  q_osso_kurogane2: {
+    nome: 'Ferro negro de verdade', npc: 'ferreiro_negro', nivel: 6,
+    tipo: 'coletar', alvo: 'osso', qtd: 6,
+    local: [160, 104], dica: 'elmos e armas desmontados devolvem Osso Antigo',
+    ouro: 260, xp: 230,
+    oferta: 'Sumi:\nMais 6 Osso Antigo, e eu forjo algo\nque nenhuma vila de cima jamais vai\nter — porque nenhuma delas ousaria.',
+    fim: 'Sumi:\nAs outras vilas nos expulsaram por\nfumaça e cheiro. Kuniyasu nunca nos\nexpulsou. Isso eu não esqueço.'
+  },
+  q_seda_minato: {
+    nome: 'Seda para o comércio', npc: 'porteiro_minato', nivel: 4,
+    tipo: 'coletar', alvo: 'seda', qtd: 4,
+    local: [42, 78], dica: 'corpo, luvas e botas desmontados devolvem Seda Youkai',
+    ouro: 140, xp: 120,
+    oferta: 'Tsukasa:\nUm mercador promete um bom preço\npor Seda Youkai — mas primeiro\nprecisamos de 4 pra fechar o lote.',
+    fim: 'Tsukasa:\nNegócio fechado. O porto de Minato\nvive disso: do que sobra de youkai\nvira sustento de gente.',
+    proxima: 'q_seda_minato2'
+  },
+  q_seda_minato2: {
+    nome: 'Rota comercial', npc: 'porteiro_minato', nivel: 6,
+    tipo: 'coletar', alvo: 'seda', qtd: 6,
+    local: [42, 78], dica: 'corpo, luvas e botas desmontados devolvem Seda Youkai',
+    ouro: 260, xp: 230,
+    oferta: 'Tsukasa:\nSeis Seda Youkai abrem uma rota\nnova rio acima — direto até Iwamura,\nse tudo correr bem.',
+    fim: 'Tsukasa:\nRota aberta. Antes de Kuniyasu, cada\nvila comerciava sozinha e desconfiada.\nAgora um barco meu pode atracar em\nqualquer doca do vale.'
   }
 };
 function questsDoNPC(npcId) { return Object.keys(QUESTS).filter(q => QUESTS[q].npc === npcId); }
