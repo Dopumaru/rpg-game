@@ -217,7 +217,22 @@ const SHOP_STOCK = {
   aldeia: ['i:pocao', 'i:pao', 'i:eter', 'i:antidoto', 'esp2', 'caj2', 'ada2', 'arc2',
            'arm2', 'arm9', 'bot2', 'elm2', 'elm6', 'luv2', 'amu2'],
   rocha:  ['i:pocaoG', 'i:eter', 'i:elixir', 'i:bomba', 'i:pergaminho', 'esp3', 'caj3', 'ada3', 'arc3',
-           'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3', 'luv3', 'luv4', 'amu3', 'amu6', 'amu7']
+           'arm3', 'arm4', 'arm10', 'elm3', 'elm4', 'bot3', 'luv3', 'luv4', 'amu3', 'amu6', 'amu7'],
+  // Vila Takara: o tesouro da montanha vira o estoque mais raro do jogo
+  takara: ['i:pocaoG', 'i:elixir', 'i:eter', 'i:pergaminho', 'i:bomba',
+           'esp7', 'caj10', 'ada9', 'arc9', 'arm16', 'arm17', 'elm11', 'elm12', 'luv9', 'amu11', 'amu12', 'bot8', 'bot9'],
+  // Vila Kurogane: ferreiros exilados, peças ligadas a youkai do pântano
+  kurogane: ['i:pocao', 'i:antidoto', 'i:eter', 'i:bomba',
+             'esp10', 'caj6', 'ada4', 'arc6', 'arm11', 'arm14', 'elm10', 'luv10', 'amu10', 'bot7'],
+  // Vila Minato: porto de comércio, catálogo largo e sem foco de classe
+  minato: ['i:pocao', 'i:pocaoG', 'i:pao', 'i:eter', 'i:antidoto',
+           'esp9', 'caj9', 'ada6', 'arc8', 'caj7', 'arm1', 'arm12', 'elm1', 'elm9', 'luv1', 'luv8', 'amu1', 'amu9', 'bot1', 'bot4']
+};
+// título exibido no topo da tela de loja — data-driven pra escalar sem
+// crescer o ternário toda vez que uma vila nova ganha loja própria
+const SHOP_TITLES = {
+  aldeia: 'MERCADO DE SAKURAMURA', rocha: 'FORJA DE IWAMURA',
+  takara: 'TESOURO DE TAKARA', kurogane: 'FERRARIA DE KUROGANE', minato: 'CAIS DE MINATO'
 };
 // estoque em exibição: fixo da vila ou a carga do mascate
 function estoqueLoja() { return G.shopId === 'mascate' ? G.shopStock : SHOP_STOCK[G.shopId]; }
@@ -248,7 +263,7 @@ function drawShop() {
   ctx.font = 'bold 9px monospace';
   ctx.fillStyle = '#ffd94e';
   ctx.fillText(G.shopId === 'mascate' ? G.shopNPC.nome.toUpperCase()
-    : G.shopId === 'aldeia' ? 'MERCADO DE SAKURAMURA' : 'FORJA DE IWAMURA', x + 10, y + 13);
+    : (SHOP_TITLES[G.shopId] || 'LOJA'), x + 10, y + 13);
   ctx.font = '7px monospace';
   ctx.fillStyle = '#e8e0f0';
   ctx.fillText('Seu ouro: $' + P.gold, x + 10, y + 24);

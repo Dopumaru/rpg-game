@@ -141,6 +141,69 @@ function genOverworld() {
     if (hash2(x * 3 + 1, y * 3 + 4) < chanceAgua) set(x, y, 2);
     else if (hash2(x * 6 + 2, y * 6 + 5) < 0.05) set(x, y, 1);
   }
+  // ---------- Cidades da expansão (Fase 2) ----------
+  // 3 vilas novas, uma por região da Fase 1, seguindo o mesmo vocabulário de
+  // tiles e a mesma composição (2 casas + loja + chozuya + altar + torii +
+  // estátua) já usada em Sakuramura/Iwamura — sem tile novo. Cada bloco é a
+  // vila de referência (Sakuramura ou Iwamura) inteira deslocada por um
+  // delta fixo, pra garantir a mesma proporção interna sem redesenhar do
+  // zero. Colocado depois dos 3 loops de ruído da Fase 1 (picos/pântano/
+  // baía) de propósito — se viesse antes, o ruído desenharia por cima.
+  // VILA TAKARA (Picos de Takara) — vila-tesouro nas montanhas, layout de
+  // Iwamura deslocado por (+96,+14)
+  rect(228, 40, 38, 24, 0);
+  rect(232, 42, 8, 4, 18); rect(232, 46, 8, 4, 5); rect(234, 48, 2, 2, 19);
+  rect(256, 42, 8, 4, 18); rect(256, 46, 8, 4, 5); rect(258, 48, 2, 2, 19);
+  rect(244, 54, 2, 2, 13); // chozuya
+  rect(250, 56, 6, 2, 18); rect(250, 58, 2, 2, 5); rect(252, 58, 2, 2, 19); rect(254, 58, 2, 2, 5); // loja
+  rect(248, 40, 2, 24, 28); rect(230, 54, 34, 2, 28);
+  rect(244, 54, 2, 2, 13);
+  rect(238, 58, 2, 2, 21); // altar
+  rect(246, 60, 2, 2, 25); rect(248, 60, 2, 2, 26);
+  rect(246, 62, 2, 2, 29); rect(248, 62, 2, 2, 30);
+  set(246, 48, 32); // estátua
+  rect(240, 50, 2, 2, 27); rect(250, 50, 2, 2, 27);
+  // VILA KUROGANE (Pântano Negro) — vila de ferreiros exilados no pântano,
+  // layout de Sakuramura deslocado por (+36,+67)
+  rect(60, 155, 34, 26, 0);
+  rect(64, 157, 8, 4, 18); rect(64, 161, 8, 4, 5); rect(66, 163, 2, 2, 19);
+  rect(82, 157, 8, 4, 18); rect(82, 161, 8, 4, 5); rect(84, 163, 2, 2, 19);
+  rect(76, 167, 2, 2, 13); // chozuya
+  rect(82, 171, 6, 2, 18); rect(82, 173, 2, 2, 5); rect(84, 173, 2, 2, 19); rect(86, 173, 2, 2, 5); // loja
+  rect(76, 155, 2, 26, 28); rect(62, 167, 30, 2, 28);
+  rect(76, 167, 2, 2, 13);
+  rect(68, 173, 2, 2, 21); // altar
+  rect(74, 151, 2, 2, 25); rect(76, 151, 2, 2, 26);
+  rect(74, 153, 2, 2, 29); rect(76, 153, 2, 2, 30);
+  set(79, 159, 32); // estátua
+  rect(72, 169, 2, 2, 27); rect(80, 169, 2, 2, 27);
+  rect(64, 171, 2, 2, 27); rect(88, 171, 2, 2, 27);
+  // VILA MINATO (Baía de Minato) — porto de pesca e comércio, layout de
+  // Sakuramura deslocado por (+236,+67), com um cais extra ao sul
+  rect(260, 155, 34, 26, 0);
+  rect(264, 157, 8, 4, 18); rect(264, 161, 8, 4, 5); rect(266, 163, 2, 2, 19);
+  rect(282, 157, 8, 4, 18); rect(282, 161, 8, 4, 5); rect(284, 163, 2, 2, 19);
+  rect(276, 167, 2, 2, 13); // chozuya
+  rect(282, 171, 6, 2, 18); rect(282, 173, 2, 2, 5); rect(284, 173, 2, 2, 19); rect(286, 173, 2, 2, 5); // loja
+  rect(276, 155, 2, 26, 28); rect(262, 167, 30, 2, 28);
+  rect(268, 173, 2, 2, 21); // altar
+  rect(274, 151, 2, 2, 25); rect(276, 151, 2, 2, 26);
+  rect(274, 153, 2, 2, 29); rect(276, 153, 2, 2, 30);
+  set(279, 159, 32); // estátua
+  rect(272, 169, 2, 2, 27); rect(280, 169, 2, 2, 27);
+  rect(264, 171, 2, 2, 27); rect(288, 171, 2, 2, 27);
+  // cais de pesca, colado à borda sul da vila — água só ao sul dele. Limpa
+  // a praça inteira ao redor do prédio ANTES de desenhar telhado/parede/
+  // porta: a porta fica na parede sul (mesma convenção de toda casa deste
+  // jogo — telhado embaixo do topo, porta na fileira de baixo), então o
+  // jogador precisa contornar o prédio pelos lados a partir da vila (norte)
+  // até chegar na porta por baixo. Sem limpar a praça inteira, os dois
+  // lados e a frente ficavam com o que o ruído da Baía tivesse desenhado
+  // ali (água inclusa, sólida) — isolando a porta mesmo com o telhado e a
+  // parede corretos.
+  rect(266, 180, 20, 12, 0);
+  rect(272, 183, 8, 4, 18); rect(272, 187, 8, 4, 5); rect(274, 189, 2, 2, 19);
+  rect(268, 194, 16, 8, 2);
   // estradas (largura 4 — 2 era estreito demais para desviar de inimigo no caminho)
   rect(39, 62, 4, 26, 3);              // ponte oeste -> Sakuramura
   rect(39, 22, 4, 34, 3);              // ponte oeste -> norte
@@ -156,8 +219,13 @@ function genOverworld() {
   rect(90, 99, 4, 40, 3);              // estrada sul -> Pântano Negro (sudoeste)
   rect(290, 100, 4, 40, 3);            // Picos de Takara -> Baía de Minato (sudeste)
   rect(150, 180, 50, 4, 3);            // Pântano Negro -> Baía de Minato (leste-oeste)
+  // ramais que ligam as 3 vilas novas (Fase 2) às estradas acima
+  rect(200, 38, 50, 4, 3);             // estrada Iwamura->Picos -> Vila Takara
+  rect(90, 138, 4, 24, 3);             // estrada sul->Pântano -> Vila Kurogane
+  rect(290, 139, 4, 24, 3);            // estrada Picos->Baía -> Vila Minato
   // placas
   rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
+  rect(230, 38, 2, 2, 15); rect(74, 149, 2, 2, 15); rect(274, 149, 2, 2, 15);
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
   for (let y = 4; y < H - 4; y++) for (let x = 4; x < W - 4; x++) {
     if (t[y][x] !== 0) continue;
@@ -178,15 +246,25 @@ function genOverworld() {
   // `protegidos` pra um corredor de acesso nunca arrancar pedaço do prédio
   const protPeixaria = new Set();
   for (let y = 64; y <= 71; y++) for (let x = 76; x <= 83; x++) protPeixaria.add(x + ',' + y);
+  // vilas da Fase 2: protege o retângulo inteiro de cada uma (prédio nenhum
+  // pode virar corredor, mesmo que a estrada desenhada à mão falhe em
+  // alcançar algum canto) — mesma técnica de protPeixaria, só que cobrindo
+  // o footprint inteiro por ser bem maior que um prédio isolado
+  const protVilasFase2 = new Set();
+  const protRect = (x1, y1, x2, y2) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) protVilasFase2.add(x + ',' + y); };
+  protRect(228, 40, 265, 63);   // Vila Takara
+  protRect(60, 155, 93, 180);   // Vila Kurogane
+  protRect(260, 155, 293, 201); // Vila Minato + cais
   const protComuns = new Set([
     '20,66', '21,66', '20,67', '21,67', '170,72', '171,72', '170,73', '171,73', '168,104', '169,104', '168,105', '169,105',
-    ...protPeixaria
+    ...protPeixaria, ...protVilasFase2
   ]);
   garanteAcesso(t, W, H, [
     [28, 74], [164, 106],       // reislime, necromante
     [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
     [100, 108], [150, 80],      // amanojaku, yamauba
-    [79, 72]                    // acesso à porta da peixaria
+    [79, 72],                   // acesso à porta da peixaria
+    [246, 62], [77, 165], [277, 165], [274, 191]  // Takara, Kurogane, Minato, cais de Minato
   ], [40, 100], protComuns);
   // fecha qualquer bolsão minúsculo isolado que a floresta aleatória tenha
   // deixado pra trás (nenhum youkai nasce mais preso pra sempre no meio de
@@ -205,9 +283,15 @@ const REGIONS = [
   { x1: 112, y1: 66, x2: 180, y2: 98, name: 'Floresta de Aokigahara' },
   { x1: 4,  y1: 20, x2: 186, y2: 54, name: 'Planalto do Norte' },
   { x1: 4,  y1: 62, x2: 186, y2: 122, name: 'Campos de Arroz' },
-  // regiões da expansão (Fase 1) — cidades/youkai próprios entram nas fases seguintes
+  // regiões da expansão (Fase 1) — as caixas das 3 vilas da Fase 2 vêm
+  // ANTES da região selvagem que as contém (mesmo motivo de Sakuramura/
+  // Iwamura virem antes de Campos de Arroz): regionAt() usa a primeira
+  // caixa que bater, e a caixa da vila é um subconjunto da caixa selvagem
+  { x1: 228, y1: 40,  x2: 265, y2: 63,  name: 'Vila Takara' },
   { x1: 196, y1: 20,  x2: 380, y2: 124, name: 'Picos de Takara' },
+  { x1: 60,  y1: 155, x2: 93,  y2: 202, name: 'Vila Kurogane' },
   { x1: 4,   y1: 132, x2: 188, y2: 252, name: 'Pântano Negro' },
+  { x1: 260, y1: 155, x2: 293, y2: 202, name: 'Vila Minato' },
   { x1: 196, y1: 132, x2: 380, y2: 252, name: 'Baía de Minato' }
 ];
 function regionAt(tx, ty) {
@@ -369,7 +453,15 @@ const INTERIORES = {
   loja_rocha:  () => genInterior({ name: 'loja_rocha',  shopId: 'rocha',  exitTo: { map: 'overworld', x: 156 * TILE, y: 46 * TILE } }),
   peixaria:    () => genInterior({ name: 'peixaria',    exitTo: { map: 'overworld', x: 78 * TILE, y: 72 * TILE } }),
   casa_aldeia: () => genInterior({ name: 'casa_aldeia', exitTo: { map: 'overworld', x: 30 * TILE, y: 98 * TILE } }),
-  casa_rocha:  () => genInterior({ name: 'casa_rocha',  exitTo: { map: 'overworld', x: 138 * TILE, y: 36 * TILE } })
+  casa_rocha:  () => genInterior({ name: 'casa_rocha',  exitTo: { map: 'overworld', x: 138 * TILE, y: 36 * TILE } }),
+  // --- vilas da Fase 2
+  loja_takara:    () => genInterior({ name: 'loja_takara',    shopId: 'takara',    exitTo: { map: 'overworld', x: 252 * TILE, y: 60 * TILE } }),
+  casa_takara:    () => genInterior({ name: 'casa_takara',    exitTo: { map: 'overworld', x: 234 * TILE, y: 50 * TILE } }),
+  loja_kurogane:  () => genInterior({ name: 'loja_kurogane',  shopId: 'kurogane',  exitTo: { map: 'overworld', x: 84 * TILE,  y: 175 * TILE } }),
+  casa_kurogane:  () => genInterior({ name: 'casa_kurogane',  exitTo: { map: 'overworld', x: 66 * TILE,  y: 165 * TILE } }),
+  loja_minato:    () => genInterior({ name: 'loja_minato',    shopId: 'minato',    exitTo: { map: 'overworld', x: 284 * TILE, y: 175 * TILE } }),
+  casa_minato:    () => genInterior({ name: 'casa_minato',    exitTo: { map: 'overworld', x: 266 * TILE, y: 165 * TILE } }),
+  peixaria_minato:() => genInterior({ name: 'peixaria_minato',exitTo: { map: 'overworld', x: 274 * TILE, y: 191 * TILE } })
 };
 // portas do mundo aberto que levam a um interior (as demais mostram "trancada")
 const DOORS = {};
@@ -381,6 +473,13 @@ registraPorta('overworld', 156, 44, 2, 2, { to: 'loja_rocha' });
 registraPorta('overworld', 78, 70, 2, 2, { to: 'peixaria' });
 registraPorta('overworld', 30, 96, 2, 2, { to: 'casa_aldeia' });
 registraPorta('overworld', 138, 34, 2, 2, { to: 'casa_rocha' });
+registraPorta('overworld', 252, 58, 2, 2, { to: 'loja_takara' });
+registraPorta('overworld', 234, 48, 2, 2, { to: 'casa_takara' });
+registraPorta('overworld', 84, 173, 2, 2, { to: 'loja_kurogane' });
+registraPorta('overworld', 66, 163, 2, 2, { to: 'casa_kurogane' });
+registraPorta('overworld', 284, 173, 2, 2, { to: 'loja_minato' });
+registraPorta('overworld', 266, 163, 2, 2, { to: 'casa_minato' });
+registraPorta('overworld', 274, 189, 2, 2, { to: 'peixaria_minato' });
 
 // ---------- Mundo ----------
 function tileAt(map, tx, ty) {
@@ -526,12 +625,20 @@ function facingTile() {
   return { tx, ty, t: tileAt(G.map, tx, ty) };
 }
 
+// chaves em coordenada de tile — corrigidas para a escala 2x da Fase 1: o
+// mapa inteiro foi redesenhado em posições dobradas (ver comentário no topo
+// de genOverworld()), mas esta tabela tinha ficado pra trás na metade da
+// escala antiga, deixando as 5 placas originais mudas (SIGNS[key] nunca
+// batia com o tile de placa de verdade). Corrigido multiplicando por 2.
 const SIGNS = {
-  '19,46': 'Vila Sakuramura.\nQue as cerejeiras te abençoem,\nviajante.',
-  '19,32': 'Bosque de Bambu a oeste.\nDizem que Nurarihyon, mestre\ndos youkai, reina na clareira.',
-  '50,12': 'PERIGO! Caverna de Orochi.\nSó guerreiros de alma firme\ndevem cruzar este torii.',
-  '73,50': 'Templo Abandonado.\nOs mortos não descansam...\nKagemaru os comanda.',
-  '73,19': 'Vila Iwamura.\nFerreiros e bons negócios.'
+  '38,92': 'Vila Sakuramura.\nQue as cerejeiras te abençoem,\nviajante.',
+  '38,64': 'Bosque de Bambu a oeste.\nDizem que Nurarihyon, mestre\ndos youkai, reina na clareira.',
+  '100,24': 'PERIGO! Caverna de Orochi.\nSó guerreiros de alma firme\ndevem cruzar este torii.',
+  '146,100': 'Templo Abandonado.\nOs mortos não descansam...\nKagemaru os comanda.',
+  '146,38': 'Vila Iwamura.\nFerreiros e bons negócios.',
+  '230,38': 'Vila Takara.\nOuro e jade descem da montanha —\ne quem trabalha a pedra, também.',
+  '74,149': 'Vila Kurogane.\nOs que forjam aqui não voltam\npara as outras vilas. Nem querem.',
+  '274,149': 'Vila Minato.\nTudo que chega por água,\nchega primeiro aqui.'
 };
 
 function updateWorld(dt) {
@@ -755,7 +862,9 @@ function updateWorld(dt) {
 // de qualquer interação (Z). Cor ecoa a mesma paleta do desenho de cada um.
 const PONTOS_MAGICOS = [
   { x: 40.5, y: 100.5, tipo: 'fonte' }, { x: 148.5, y: 40.5, tipo: 'fonte' },
-  { x: 32.5, y: 106.5, tipo: 'altar' }, { x: 142.5, y: 44.5, tipo: 'altar' }
+  { x: 245.5, y: 55.5, tipo: 'fonte' }, { x: 77.5, y: 168.5, tipo: 'fonte' }, { x: 277.5, y: 168.5, tipo: 'fonte' },
+  { x: 32.5, y: 106.5, tipo: 'altar' }, { x: 142.5, y: 44.5, tipo: 'altar' },
+  { x: 239.5, y: 59.5, tipo: 'altar' }, { x: 69.5, y: 174.5, tipo: 'altar' }, { x: 269.5, y: 174.5, tipo: 'altar' }
 ];
 // ambiente: vagalumes, folhas, poeira — depende da região
 function updateAmbient(dt) {
@@ -802,7 +911,8 @@ function updateAmbient(dt) {
     });
   } else {
     // pétalas de sakura ao vento (mais densas perto das vilas)
-    const vila = G.region === 'Vila Sakuramura' || G.region === 'Vila Iwamura';
+    const vila = G.region === 'Vila Sakuramura' || G.region === 'Vila Iwamura' ||
+      G.region === 'Vila Takara' || G.region === 'Vila Kurogane' || G.region === 'Vila Minato';
     if (Math.random() < (vila ? 0.3 : 0.16)) spawnParticle({
       x: x0 + rnd(-8, VW), y: y0 - 6 + rnd(0, VH * 0.5),
       vx: rnd(8, 20), vy: rnd(6, 14), g: 2, drag: 0.4,
@@ -855,6 +965,44 @@ const NPC_DEFS = [
     look: { cabeca: 'onmyoji', pele: 1, corCabelo: 4, olhos: 2, roupa: 3 } },
   { id: 'morador_rocha', tipo: 'aldeao', nome: 'Jiisan Taku', x: 11, y: 5, map: 'casa_rocha', raio: 2, tema: 'forja',
     look: { cabeca: 'samurai', pele: 3, corCabelo: 4, olhos: 4, roupa: 6 } },
+  // --- Vila Takara: mestre de missão, moradores
+  { id: 'gemologa', tipo: 'quest', nome: 'Aiko', x: 252, y: 64, tema: 'takara',
+    look: { cabeca: 'onmyoji', pele: 2, corCabelo: 5, olhos: 3, roupa: 2 },
+    linha: 'A montanha só entrega jade a quem\nescuta antes de cavar.' },
+  { id: 'ald_kaito', tipo: 'aldeao', nome: 'Kaito', x: 244, y: 58, raio: 8, tema: 'takara',
+    look: { cabeca: 'samurai', pele: 1, corCabelo: 2, olhos: 0, roupa: 5 } },
+  { id: 'ald_emi',  tipo: 'aldeao', nome: 'Emi', x: 260, y: 68, raio: 10, tema: 'takara',
+    look: { cabeca: 'kyudoka', pele: 0, corCabelo: 6, olhos: 4, roupa: 3 } },
+  { id: 'ald_daichi', tipo: 'aldeao', nome: 'Daichi', x: 236, y: 70, raio: 12, tema: 'montanha',
+    look: { cabeca: 'shinobi', pele: 3, corCabelo: 0, olhos: 5, roupa: 6 } },
+  { id: 'morador_takara', tipo: 'aldeao', nome: 'Baa-san Yui', x: 11, y: 5, map: 'casa_takara', raio: 2, tema: 'takara',
+    look: { cabeca: 'onmyoji', pele: 2, corCabelo: 4, olhos: 2, roupa: 4 } },
+  // --- Vila Kurogane: mestre de missão, moradores
+  { id: 'ferreiro_negro', tipo: 'quest', nome: 'Sumi', x: 82, y: 169, tema: 'kurogane',
+    look: { cabeca: 'shinobi', pele: 3, corCabelo: 0, olhos: 5, roupa: 5 },
+    linha: 'O pântano cospe osso velho.\nEu forjo com o que ele cospe.' },
+  { id: 'ald_ryu', tipo: 'aldeao', nome: 'Ryu', x: 70, y: 173, raio: 8, tema: 'kurogane',
+    look: { cabeca: 'samurai', pele: 2, corCabelo: 0, olhos: 1, roupa: 6 } },
+  { id: 'ald_nao', tipo: 'aldeao', nome: 'Nao', x: 88, y: 175, raio: 10, tema: 'kurogane',
+    look: { cabeca: 'kyudoka', pele: 1, corCabelo: 1, olhos: 3, roupa: 5 } },
+  { id: 'ald_mei', tipo: 'aldeao', nome: 'Mei', x: 76, y: 159, raio: 12, tema: 'kurogane',
+    look: { cabeca: 'onmyoji', pele: 3, corCabelo: 3, olhos: 5, roupa: 2 } },
+  { id: 'morador_kurogane', tipo: 'aldeao', nome: 'Ojiisan Ittetsu', x: 11, y: 5, map: 'casa_kurogane', raio: 2, tema: 'kurogane',
+    look: { cabeca: 'samurai', pele: 3, corCabelo: 4, olhos: 4, roupa: 5 } },
+  // --- Vila Minato: mestre de missão, moradores, pescador do porto
+  { id: 'porteiro_minato', tipo: 'quest', nome: 'Tsukasa', x: 282, y: 169, tema: 'minato',
+    look: { cabeca: 'kyudoka', pele: 2, corCabelo: 2, olhos: 1, roupa: 6 },
+    linha: 'Todo barco que atraca aqui\ntraz uma história atrasada.' },
+  { id: 'ald_hiro', tipo: 'aldeao', nome: 'Hiro', x: 270, y: 173, raio: 8, tema: 'minato',
+    look: { cabeca: 'samurai', pele: 0, corCabelo: 1, olhos: 2, roupa: 1 } },
+  { id: 'ald_nami', tipo: 'aldeao', nome: 'Nami', x: 288, y: 175, raio: 10, tema: 'minato',
+    look: { cabeca: 'kyudoka', pele: 1, corCabelo: 3, olhos: 0, roupa: 2 } },
+  { id: 'ald_kenji', tipo: 'aldeao', nome: 'Kenji', x: 276, y: 159, raio: 12, tema: 'minato',
+    look: { cabeca: 'shinobi', pele: 2, corCabelo: 6, olhos: 4, roupa: 3 } },
+  { id: 'morador_minato', tipo: 'aldeao', nome: 'Baa-san Chiyo', x: 11, y: 5, map: 'casa_minato', raio: 2, tema: 'minato',
+    look: { cabeca: 'onmyoji', pele: 0, corCabelo: 4, olhos: 3, roupa: 1 } },
+  { id: 'pescador_minato', tipo: 'pesca', nome: 'Isamu, o Pescador do Porto', x: 11, y: 5, map: 'peixaria_minato', tema: 'minato',
+    look: { cabeca: 'kyudoka', pele: 3, corCabelo: 5, olhos: 5, roupa: 4 } },
   // --- mascates que circulam por trechos largos
   { id: 'merc_tobei', tipo: 'viajante', nome: 'Tobei, o mascate', x: 80, y: 100, raio: 24, tema: 'mascate',
     look: { cabeca: 'kyudoka', pele: 2, corCabelo: 1, olhos: 3, roupa: 5 }, margem: 0.62 },
