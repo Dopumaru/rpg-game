@@ -302,9 +302,9 @@ const REGIAO_INFO = {
   'Vila Takara':   { seguro: true },
   'Vila Kurogane': { seguro: true },
   'Vila Minato':   { seguro: true },
-  'Picos de Takara': { seguro: true },
-  'Pântano Negro':   { seguro: true },
-  'Baía de Minato':  { seguro: true }
+  'Picos de Takara': { nivel: [11, 15], mobs: ['tesso', 'yamabiko', 'kijo'] },
+  'Pântano Negro':   { nivel: [9, 12],  mobs: ['hyosube', 'nurikabe', 'ushioni'] },
+  'Baía de Minato':  { nivel: [8, 11],  mobs: ['funayurei', 'isonade', 'umibozu'] }
 };
 const REGIAO_COR = {
   'Vila Sakuramura': '#c98a5a', 'Vila Iwamura': '#a89a6a',
@@ -928,7 +928,16 @@ const CODEX_YOUKAI_FLAVOR = {
   elemental: 'Chama que pensa por si mesma.',
   reislime: 'Entra em casas como se fossem suas.',
   necromante: 'Um onmyoji que se perdeu no próprio ritual.',
-  dragao: 'Oito cabeças, uma fúria só.'
+  dragao: 'Oito cabeças, uma fúria só.',
+  funayurei: 'Marinheiros que nunca voltaram do mar batem no casco pedindo um balde — dizem que, se você entregar, eles afundam o barco com você.',
+  isonade: 'Nada em círculos ao redor de quem se afasta demais da costa. Poucos veem a barbatana chegar a tempo de fugir.',
+  umibozu: 'Ergue-se do mar liso como um monge sem rosto. Diz a lenda que só pede silêncio — quem grita, não volta.',
+  hyosube: 'Vive nas margens do Pântano Negro e rouba peixe de quem pesca sem oferenda. Fede a lodo a um quilômetro.',
+  nurikabe: 'Uma parede que não deveria existir aparece no caminho de quem se perde no pântano à noite — e não deixa mais ninguém passar.',
+  ushioni: 'Metade boi, metade fúria. Os ferreiros de Kurogane dizem que só param de forjar quando o ouvem berrar longe o suficiente.',
+  tesso: 'Um rato só é fácil de matar. Mil ratos de ferro descendo a mesma trilha já derrubaram caravanas inteiras.',
+  yamabiko: 'Grite algo na montanha e ele responde — mas nunca exatamente as mesmas palavras que você disse.',
+  kijo: 'Uma vez foi mulher. A montanha levou o resto. Os mineiros de Takara juram que ainda canta antes de atacar.'
 };
 const NPC_TIPO_LABEL = { quest: 'Figura importante', aldeao: 'Morador', pesca: 'Pescador', viajante: 'Mascate' };
 function codexList(tab) {

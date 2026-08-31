@@ -539,12 +539,15 @@ function enterMap(name, px, py) {
 // cada zona é dividida em uma faixa vertical por tipo (agrupa cada youkai
 // no seu próprio canto da zona, em vez de espalhar todos os tipos
 // misturados pela caixa inteira — ajuda a achar o alvo de uma missão)
-// os limites x/y de cada zona ficam dentro de [20,172]x[20,108] — a mesma
-// margem que a câmera do mundo usa pra travar antes da borda do mapa
-// (camMX/camMZ em desenhaMundo3D()). Fora dessa faixa a câmera não consegue
-// centralizar no jogador, então um youkai nascido ali fica visualmente
-// cortado/fora do quadro mesmo perto do jogador — bug relatado pelo usuário
-// na borda sul. Zonas que batiam nessa faixa foram recuadas.
+// os limites x/y de cada zona ficam dentro da margem que a câmera do mundo
+// usa pra travar antes da borda do mapa (camMX/camMZ em desenhaMundo3D()).
+// Fora dessa faixa a câmera não consegue centralizar no jogador, então um
+// youkai nascido ali fica visualmente cortado/fora do quadro mesmo perto do
+// jogador — bug relatado pelo usuário na borda sul, corrigido recuando as
+// zonas do mapa original. Com o mapa 384x256 da Fase 1 essa margem virou
+// [20,364]x[20,236] (era [20,172]x[20,108] no mapa 192x128 original) — as
+// zonas abaixo (mapa original) ficaram na faixa antiga porque cabem nela
+// sem folga a mais; as 3 zonas novas (Fase 3) já nascem na faixa nova.
 const SPAWN_ZONES = {
   overworld: [
     { x1: 20, y1: 64, x2: 140, y2: 108, types: ['slime', 'morcego', 'goblin'], lv: [1, 2], count: 12,
@@ -553,7 +556,16 @@ const SPAWN_ZONES = {
     { x1: 20, y1: 22, x2: 172, y2: 52, types: ['lobo', 'esqueleto', 'harpia', 'yukionna'], lv: [4, 6], count: 12,
       exclude: [{ x1: 130, y1: 24, x2: 170, y2: 50 }] },
     { x1: 112, y1: 68, x2: 172, y2: 96, types: ['esqueleto', 'aranha', 'harpia', 'nue'], lv: [5, 7], count: 10 },
-    { x1: 148, y1: 100, x2: 172, y2: 108, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 9 }
+    { x1: 148, y1: 100, x2: 172, y2: 108, types: ['zumbi', 'fantasma', 'esqueleto'], lv: [6, 8], count: 9 },
+    // regiões da expansão (Fase 3) — um trio de espécies próprias por
+    // região nova, excluindo o footprint de cada vila (mais uma margem)
+    // pra não nascer youkai dentro ou colado nas casas
+    { x1: 200, y1: 24, x2: 360, y2: 120, types: ['tesso', 'yamabiko', 'kijo'], lv: [11, 15], count: 15,
+      exclude: [{ x1: 224, y1: 36, x2: 269, y2: 67 }] },
+    { x1: 20, y1: 135, x2: 186, y2: 230, types: ['hyosube', 'nurikabe', 'ushioni'], lv: [9, 12], count: 13,
+      exclude: [{ x1: 55, y1: 150, x2: 98, y2: 205 }] },
+    { x1: 200, y1: 135, x2: 360, y2: 230, types: ['funayurei', 'isonade', 'umibozu'], lv: [8, 11], count: 13,
+      exclude: [{ x1: 255, y1: 150, x2: 298, y2: 205 }] }
   ],
   cave: [
     { x1: 3, y1: 9, x2: 33, y2: 22, types: ['orc', 'golem', 'elemental', 'fantasma'], lv: [7, 9], count: 13 }
