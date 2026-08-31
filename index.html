@@ -4003,7 +4003,10 @@ const MOB_FAMILY = {
   esqueleto: 'osso', zumbi: 'osso', necromante: 'osso',
   fantasma: 'espirito', elemental: 'espirito', yukionna: 'espirito', yamauba: 'espirito', nue: 'espirito',
   lobo: 'fera', morcego: 'fera', harpia: 'fera', aranha: 'fera', aranharainha: 'fera', tenguveterano: 'fera',
-  golem: 'metal', orc: 'metal', onigeneral: 'metal', tsuchigumo: 'metal', dragao: 'metal', amanojaku: 'metal'
+  golem: 'metal', orc: 'metal', onigeneral: 'metal', tsuchigumo: 'metal', dragao: 'metal', amanojaku: 'metal',
+  funayurei: 'espirito', umibozu: 'espirito', yamabiko: 'espirito',
+  isonade: 'fera', hyosube: 'fera', ushioni: 'fera', kijo: 'fera',
+  nurikabe: 'metal', tesso: 'metal'
 };
 // cada entrada é uma lista de chamadas a tone(freq,dur,type,vol,slide) —
 // mesmo formato/duração dos sons genéricos, só timbre e frequência mudam
@@ -4443,6 +4446,22 @@ const ENEMIES = {
   yukionna:   { name: 'Yuki-onna',      hp: 44, atk: 15, def: 7,  spd: 6,  xp: 29, gold: [13, 22], drop: 0.35, tier: 3, mat: 'jade', loot: ['caj9', 'amu11', 'bot8', 'elm3'], skill: { name: 'Sopro Glacial', mult: 1.5, chance: 0.3 } },
   rokuro:     { name: 'Rokurokubi',     hp: 28, atk: 11, def: 3,  spd: 9,  xp: 19, gold: [9, 15],  drop: 0.32, tier: 2, mat: 'seda', loot: ['amu9', 'luv9', 'elm4', 'arm17'], skill: { name: 'Pescoço Extensível', mult: 1.4, chance: 0.3 } },
   nue:        { name: 'Nue',            hp: 48, atk: 16, def: 6,  spd: 10, xp: 36, gold: [15, 26], drop: 0.36, tier: 3, mat: 'osso', loot: ['arc9', 'bot9', 'caj9', 'ada9', 'elm7'], skill: { name: 'Grito da Quimera', mult: 1.6, chance: 0.32 } },
+  // mobs da expansão (Fase 3) — um trio por região nova, todos espécies
+  // próprias (não reaproveitam youkai em nível mais alto). Reaproveitam o
+  // catálogo de equipamento e os 5 materiais já existentes (fora de escopo
+  // desta fase criar itens novos) — só entram ENEMIES + arte + spawn.
+  // Baía de Minato (nível 8-11)
+  funayurei:  { name: 'Funayurei',      hp: 40, atk: 16, def: 3,  spd: 9,  xp: 38, gold: [16, 26], drop: 0.34, tier: 3, mat: 'osso',   loot: ['caj7', 'arm17', 'elm4', 'amu3'], skill: { name: 'Maldição do Afogado', mult: 1.4, chance: 0.3, poison: true } },
+  isonade:    { name: 'Isonade',        hp: 46, atk: 19, def: 4,  spd: 14, xp: 42, gold: [18, 29], drop: 0.34, tier: 3, mat: 'escama', loot: ['ada9', 'arc6', 'bot8', 'luv9'] },
+  umibozu:    { name: 'Umibozu',        hp: 58, atk: 17, def: 8,  spd: 4,  xp: 46, gold: [20, 32], drop: 0.36, tier: 4, mat: 'jade',   loot: ['arm5', 'elm7', 'bot9', 'amu7'] },
+  // Pântano Negro (nível 9-12)
+  hyosube:    { name: 'Hyosube',        hp: 52, atk: 18, def: 6,  spd: 8,  xp: 50, gold: [21, 34], drop: 0.36, tier: 3, mat: 'seda',   loot: ['ada3', 'caj10', 'elm3', 'luv9'], skill: { name: 'Baba Peçonhenta', mult: 1.4, chance: 0.3, poison: true } },
+  nurikabe:   { name: 'Nurikabe',       hp: 80, atk: 14, def: 14, spd: 2,  xp: 54, gold: [23, 36], drop: 0.36, tier: 4, mat: 'ferro',  loot: ['arm3', 'arm16', 'elm11', 'bot4'] },
+  ushioni:    { name: 'Ushi-oni',       hp: 70, atk: 24, def: 9,  spd: 6,  xp: 58, gold: [25, 40], drop: 0.38, tier: 4, mat: 'osso',   loot: ['esp10', 'arm5', 'luv5', 'amu3'], skill: { name: 'Investida do Touro', mult: 1.7, chance: 0.28 } },
+  // Picos de Takara (nível 11-15)
+  tesso:      { name: 'Tesso',          hp: 60, atk: 20, def: 7,  spd: 15, xp: 62, gold: [26, 42], drop: 0.38, tier: 4, mat: 'jade',   loot: ['ada10', 'elm12', 'luv4', 'amu11'], skill: { name: 'Mordida Enxame', mult: 1.4, chance: 0.34 } },
+  yamabiko:   { name: 'Yamabiko',       hp: 56, atk: 22, def: 6,  spd: 16, xp: 66, gold: [28, 45], drop: 0.38, tier: 4, mat: 'ferro',  loot: ['caj10', 'arc9', 'elm3', 'amu8'], skill: { name: 'Eco Ensurdecedor', mult: 1.6, chance: 0.3 } },
+  kijo:       { name: 'Kijo',           hp: 90, atk: 26, def: 12, spd: 7,  xp: 72, gold: [30, 48], drop: 0.40, tier: 4, mat: 'escama', loot: ['esp11', 'arm6', 'bot9', 'amu12'], skill: { name: 'Fúria da Montanha', mult: 1.8, chance: 0.3 } },
   // mini-chefes (stats fixos como os chefes, mas sem item-assinatura
   // garantido — só ouro/material bônus em endBattleWin — e não bloqueiam fuga)
   aranharainha:   { name: 'Aranha-Rainha',       hp: 130, atk: 20, def: 9,  spd: 10, xp: 150, gold: [45, 65], drop: 0.55, tier: 3, mat: 'seda', mini: true, loot: ['ada4', 'arm17', 'arc9', 'luv9'], skill: { name: 'Fiada Mortal', mult: 1.6, chance: 0.35, poison: true } },

@@ -227,6 +227,37 @@ obrigatória antes de considerar qualquer alteração pronta para PR:
 - não iniciar uma segunda suíte completa enquanto outra já estiver
   ativa.
 
+### Quando `test.mjs` não está disponível
+
+Se o ambiente reiniciar (ou a sessão começar do zero) e `test.mjs` não
+existir no scratchpad — e não houver como reconstituí-lo por completo
+(não é código pequeno o bastante para recriar de memória com
+confiança) — **não parar para perguntar toda vez**. Seguir direto:
+
+1. Verificar sinais de perda mais ampla do ambiente (não só o
+   scratchpad): `uptime` mostrando poucos minutos, diretório de
+   scratchpad vazio, `git status` limpo quando deveria haver mudanças
+   não commitadas. Se houver mudanças de código perdidas por não
+   terem sido commitadas a tempo, reconstituí-las a partir do que já
+   foi escrito nesta conversa (diff antes/depois deve bater
+   exatamente com o que existia antes da perda — usar `git diff
+   --stat` como conferência).
+2. Rodar a verificação estrutural mais forte disponível sem
+   `test.mjs`: scripts avulsos de Playwright (`DBG.*`, leitura direta
+   de tabelas de dados como `ENEMIES`/`NPC_DEFS`/`SHOP_STOCK`/
+   `QUESTS`, BFS de conectividade quando for mudança de mapa,
+   validação de dimensão/paleta de sprite quando for arte nova) —
+   cobrindo o que a suíte completa checaria *para este tipo específico
+   de mudança*, não a suíte inteira.
+3. Confirmar zero erros de JavaScript nessa verificação.
+4. Prosseguir com commit/push/PR sem bloquear em uma pergunta,
+   registrando com transparência no corpo do PR que a suíte completa
+   de 200+ checks não pôde rodar nesta rodada (harness perdido no
+   restart) e o que foi verificado no lugar dela.
+5. Continua valendo: nunca abrir mão da suíte completa por preguiça
+   quando ela *está* disponível — este desvio é só para a ausência
+   real do arquivo, não uma alternativa de conveniência.
+
 ## 4. Protocolo de performance deste projeto
 
 - Para medir tempo por unidade/seção sem alterar `test.mjs`: gerar uma
@@ -926,6 +957,65 @@ redesenho do spawn de mobs
   documentado nesta seção — classificado como ambiente, não regressão
   (a 4ª execução completa, sem nenhuma mudança adicional, voltou a
   210/210 limpo).
+
+### 2026-08-31 — Ambiente reiniciou entre "posso commitar?" e o commit em
+si (Fase 3: 9 youkai novos); working tree perdida por não ter sido
+commitada a tempo; reconstituída de memória da própria conversa
+
+- O que aconteceu: usuário autorizou "commit push PR" da Fase 3 (9
+  espécies novas de youkai + spawn zones para as 3 regiões da
+  expansão). Entre a autorização e a execução do commit, o ambiente
+  reiniciou (`uptime` mostrou "up 0 min"). Como as mudanças ainda não
+  tinham sido commitadas, a working tree voltou ao estado do último
+  commit em `origin/main` — os 4 arquivos alterados (`index.html`,
+  `sprites/sprites.js`, `ui/screens.js`, `world/world.js`) ficaram
+  limpos (`git status` "nothing to commit"), e o diretório de
+  scratchpad inteiro (incluindo `test.mjs`) foi apagado junto.
+- Diagnóstico: confirmado por `uptime` (poucos minutos), `git status`
+  limpo quando deveria haver 4 arquivos modificados, e diretório de
+  scratchpad vazio simultaneamente — não foi um bug do editor nem
+  reversão acidental, foi perda de estado de container por reinício.
+- Ação: reconstituídas as 4 edições inteiras a partir do conteúdo já
+  escrito nesta própria conversa (as chamadas de `Edit` anteriores
+  continuavam no histórico), reaplicadas ponto a ponto. Conferido por
+  `git diff --stat` batendo **exatamente** com o diff de antes da
+  perda (mesmas contagens de linha por arquivo) — evidência forte de
+  reconstrução fiel, não só "parecida". Sprites revalidados
+  programaticamente de novo (16x16, paleta completa). Script de
+  verificação estrutural (ENEMIES/loot/mat válidos, sprite renderiza,
+  spawn nas 3 zonas dentro da caixa/margem de câmera/sem parede,
+  aparecem no Codex) recriado e rodado de novo — resultado idêntico ao
+  de antes da perda (mesma contagem 5/5/5 por zona, já que a geração
+  de mapa é determinística).
+- `test.mjs` (harness da suíte completa) **não pôde ser reconstituído**
+  — é grande demais para recriar de memória com confiança, e não é
+  versionado neste repositório por design (seção 3). Usuário
+  perguntado explicitamente como proceder; escolheu seguir com
+  commit/push/PR usando a verificação estrutural já feita como
+  substituto, em vez de bloquear esperando o harness completo.
+- Efeito colateral notado e corrigido: a importação `import {chromium}
+  from 'playwright-core'` que funcionava em scripts anteriores da
+  sessão parou de resolver depois do restart (`ERR_MODULE_NOT_FOUND`)
+  — o pacote só existe aninhado em
+  `/opt/node22/lib/node_modules/playwright/node_modules/playwright-core`,
+  não hoisted para o global resolvível por specifier nu. Correção:
+  importar pelo caminho absoluto do `index.mjs` desse pacote aninhado
+  em vez do specifier `'playwright-core'`. Vale para qualquer script
+  novo de Playwright criado depois de um restart nesta sessão.
+- Regra nova adicionada à seção 3 (Protocolo de testes) cobrindo esse
+  cenário para não repetir a mesma pausa a cada vez que acontecer: não
+  parar pra perguntar quando `test.mjs` está ausente e não é
+  reconstituível — seguir com a melhor verificação estrutural
+  disponível, documentar a lacuna com transparência no PR, e só
+  então prosseguir. Pedido explícito do usuário para editar o
+  CLAUDE.md nesse sentido.
+- Nenhuma perda de trabalho de fato ocorreu (o diff final ficou
+  idêntico), mas o INCIDENTE em si — depender de "vou commitar logo
+  em seguida" como proteção contra perda de estado — é o achado real
+  aqui: **commitar assim que autorizado, sem intervalo**, é mais seguro
+  do que fazer verificações adicionais entre a autorização e o commit
+  quando o ambiente já deu sinais de instabilidade ao longo da sessão
+  (restarts documentados repetidamente neste arquivo).
 
 ## graphify
 
