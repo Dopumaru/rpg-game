@@ -302,9 +302,9 @@ const REGIAO_INFO = {
   'Vila Takara':   { seguro: true },
   'Vila Kurogane': { seguro: true },
   'Vila Minato':   { seguro: true },
-  'Picos de Takara': { nivel: [11, 15], mobs: ['tesso', 'yamabiko', 'kijo'] },
-  'Pântano Negro':   { nivel: [9, 12],  mobs: ['hyosube', 'nurikabe', 'ushioni'] },
-  'Baía de Minato':  { nivel: [8, 11],  mobs: ['funayurei', 'isonade', 'umibozu'] }
+  'Picos de Takara': { nivel: [11, 15], mobs: ['tesso', 'yamabiko', 'kijo'], boss: 'yamanushi' },
+  'Pântano Negro':   { nivel: [9, 12],  mobs: ['hyosube', 'nurikabe', 'ushioni'], boss: 'inugami' },
+  'Baía de Minato':  { nivel: [8, 11],  mobs: ['funayurei', 'isonade', 'umibozu'], boss: 'wani' }
 };
 const REGIAO_COR = {
   'Vila Sakuramura': '#c98a5a', 'Vila Iwamura': '#a89a6a',
@@ -316,7 +316,8 @@ const REGIAO_COR = {
 };
 // ícone especial no mapa: entrada da caverna, perto do torii norte
 const CAVERNA_PONTO = { x: 96, y: 19 };
-const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 106], dragao: [48, 10] };
+const BOSS_PONTO = { reislime: [28, 74], necromante: [164, 106], dragao: [48, 10],
+  yamanushi: [320, 90], inugami: [150, 200], wani: [340, 200] };
 // cor por tipo de tile para a miniatura ilustrada do mapa (ver legenda em
 // world/world.js:22-25). Água/lagos ficam por conta do desenho de LAGOS por
 // cima, então a cor de água aqui é só o leito visto de longe.
@@ -937,7 +938,10 @@ const CODEX_YOUKAI_FLAVOR = {
   ushioni: 'Metade boi, metade fúria. Os ferreiros de Kurogane dizem que só param de forjar quando o ouvem berrar longe o suficiente.',
   tesso: 'Um rato só é fácil de matar. Mil ratos de ferro descendo a mesma trilha já derrubaram caravanas inteiras.',
   yamabiko: 'Grite algo na montanha e ele responde — mas nunca exatamente as mesmas palavras que você disse.',
-  kijo: 'Uma vez foi mulher. A montanha levou o resto. Os mineiros de Takara juram que ainda canta antes de atacar.'
+  kijo: 'Uma vez foi mulher. A montanha levou o resto. Os mineiros de Takara juram que ainda canta antes de atacar.',
+  yamanushi: 'Dono da veia mais funda de jade dos Picos de Takara. Ninguém que desceu até ele voltou pra contar o que viu.',
+  inugami: 'O que sobrou de um ferreiro amaldiçoado e do cão que ele mesmo enterrou vivo por engano. Ronda as cinzas da própria forja.',
+  wani: 'Afunda todo barco que tenta cruzar o estreito de Minato sem pagar tributo em peixe fresco — ou em sangue.'
 };
 const NPC_TIPO_LABEL = { quest: 'Figura importante', aldeao: 'Morador', pesca: 'Pescador', viajante: 'Mascate' };
 function codexList(tab) {

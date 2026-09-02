@@ -206,7 +206,8 @@ const QUESTS = {
     local: [160, 45], dica: 'amuletos desmontados devolvem Jade Bruta',
     ouro: 260, xp: 230,
     oferta: 'Aiko:\nSeis Jade Bruta desta vez — não é\nganância, é o preço de manter\nTakara de pé sem depender de ninguém.',
-    fim: 'Aiko:\nCom isso sustentamos o inverno.\nKuniyasu unificou os quatro povos,\nmas foi a pedra que sempre nos\nmanteve vivos aqui em cima.'
+    fim: 'Aiko:\nCom isso sustentamos o inverno.\nKuniyasu unificou os quatro povos,\nmas foi a pedra que sempre nos\nmanteve vivos aqui em cima.',
+    proxima: 'q_boss_takara'
   },
   q_osso_kurogane: {
     nome: 'Osso do pântano', npc: 'ferreiro_negro', nivel: 4,
@@ -223,7 +224,8 @@ const QUESTS = {
     local: [160, 104], dica: 'elmos e armas desmontados devolvem Osso Antigo',
     ouro: 260, xp: 230,
     oferta: 'Sumi:\nMais 6 Osso Antigo, e eu forjo algo\nque nenhuma vila de cima jamais vai\nter — porque nenhuma delas ousaria.',
-    fim: 'Sumi:\nAs outras vilas nos expulsaram por\nfumaça e cheiro. Kuniyasu nunca nos\nexpulsou. Isso eu não esqueço.'
+    fim: 'Sumi:\nAs outras vilas nos expulsaram por\nfumaça e cheiro. Kuniyasu nunca nos\nexpulsou. Isso eu não esqueço.',
+    proxima: 'q_boss_kurogane'
   },
   q_seda_minato: {
     nome: 'Seda para o comércio', npc: 'porteiro_minato', nivel: 4,
@@ -240,7 +242,34 @@ const QUESTS = {
     local: [42, 78], dica: 'corpo, luvas e botas desmontados devolvem Seda Youkai',
     ouro: 260, xp: 230,
     oferta: 'Tsukasa:\nSeis Seda Youkai abrem uma rota\nnova rio acima — direto até Iwamura,\nse tudo correr bem.',
-    fim: 'Tsukasa:\nRota aberta. Antes de Kuniyasu, cada\nvila comerciava sozinha e desconfiada.\nAgora um barco meu pode atracar em\nqualquer doca do vale.'
+    fim: 'Tsukasa:\nRota aberta. Antes de Kuniyasu, cada\nvila comerciava sozinha e desconfiada.\nAgora um barco meu pode atracar em\nqualquer doca do vale.',
+    proxima: 'q_boss_minato'
+  },
+  // chefes das 3 vilas da expansão (Fase 4) — fecham cada cadeia, no mesmo
+  // pé que q_nurarihyon/q_kagemaru fecham as cadeias originais
+  q_boss_takara: {
+    nome: 'O guardião da montanha', npc: 'gemologa', nivel: 12,
+    tipo: 'matar', alvo: 'yamanushi', qtd: 1,
+    local: [320, 90], dica: 'nas profundezas dos Picos de Takara',
+    ouro: 380, xp: 420, item: 'elixir',
+    oferta: 'Aiko:\nA veia mais funda de jade fica sob os pés\nde Yama-nushi. Ninguém que desceu até lá\nvoltou pra contar o que viu — só o eco de quem gritou.',
+    fim: 'Aiko:\nO guardião caiu. A montanha finalmente\nnos deixa cavar fundo sem pedir licença\na mais ninguém — nem a ele, nem a Iwamura.'
+  },
+  q_boss_kurogane: {
+    nome: 'O uivo nas cinzas', npc: 'ferreiro_negro', nivel: 9,
+    tipo: 'matar', alvo: 'inugami', qtd: 1,
+    local: [150, 200], dica: 'no fundo do Pântano Negro',
+    ouro: 320, xp: 350, item: 'elixir',
+    oferta: 'Sumi:\nAntes de nós, outro ferreiro forjou aqui — e\nmorreu maldizendo o próprio cão. O bicho\nainda ronda as cinzas da forja dele.',
+    fim: 'Sumi:\nSilêncio, finalmente. Vou forjar sobre as\ncinzas dele agora — parece justo.'
+  },
+  q_boss_minato: {
+    nome: 'A fera do estreito', npc: 'porteiro_minato', nivel: 8,
+    tipo: 'matar', alvo: 'wani', qtd: 1,
+    local: [340, 200], dica: 'nas águas fundas da Baía de Minato',
+    ouro: 280, xp: 300, item: 'elixir',
+    oferta: 'Tsukasa:\nNenhum barco atravessa o estreito leste.\nUm wani enorme afunda tudo que tenta.\nSem isso resolvido, a rota nova não serve de nada.',
+    fim: 'Tsukasa:\nO estreito está livre. Agora sim — Minato\npode comerciar com o mundo inteiro, não só\ncom quem já confiava na gente.'
   }
 };
 function questsDoNPC(npcId) { return Object.keys(QUESTS).filter(q => QUESTS[q].npc === npcId); }

@@ -4006,7 +4006,8 @@ const MOB_FAMILY = {
   golem: 'metal', orc: 'metal', onigeneral: 'metal', tsuchigumo: 'metal', dragao: 'metal', amanojaku: 'metal',
   funayurei: 'espirito', umibozu: 'espirito', yamabiko: 'espirito',
   isonade: 'fera', hyosube: 'fera', ushioni: 'fera', kijo: 'fera',
-  nurikabe: 'metal', tesso: 'metal'
+  nurikabe: 'metal', tesso: 'metal',
+  yamanushi: 'metal', inugami: 'osso', wani: 'fera'
 };
 // cada entrada é uma lista de chamadas a tone(freq,dur,type,vol,slide) —
 // mesmo formato/duração dos sons genéricos, só timbre e frequência mudam
@@ -4473,7 +4474,13 @@ const ENEMIES = {
   necromante: { name: 'Kagemaru, o Onmyoji Negro', hp: 170, atk: 24, def: 8, spd: 6, xp: 220, gold: [120, 160], drop: 1, tier: 4, mat: 'jade', boss: true, sig: 'amu4', skill: { name: 'Shikigami Sombrio', mult: 1.8, chance: 0.4 } },
   yamauba:    { name: 'Yamauba',        hp: 230, atk: 27, def: 11, spd: 7, xp: 280, gold: [150, 190], drop: 1, tier: 4, mat: 'osso', boss: true, sig: 'arm7', skill: { name: 'Maldição da Bruxa da Montanha', mult: 1.9, chance: 0.4 } },
   tsuchigumo: { name: 'Tsuchigumo',     hp: 300, atk: 30, def: 14, spd: 6, xp: 340, gold: [190, 230], drop: 1, tier: 4, mat: 'seda', boss: true, sig: 'luv10', skill: { name: 'Teia de Aço', mult: 2.0, chance: 0.4, poison: true } },
-  dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, mat: 'ferro', boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } }
+  dragao:     { name: 'Yamata-no-Orochi', hp: 360, atk: 34, def: 16, spd: 7, xp: 400, gold: [240, 280], drop: 1, tier: 4, mat: 'ferro', boss: true, sig: 'weapon', skill: { name: 'Sopro das Oito Cabeças', mult: 1.8, chance: 0.4 } },
+  // chefes das 3 vilas da expansão (Fase 4) — fecham a cadeia de missão de
+  // cada vila (Fase 2), no mesmo pé que reislime/necromante fecham as
+  // cadeias originais
+  yamanushi:  { name: 'Yama-nushi',     hp: 280, atk: 32, def: 14, spd: 8,  xp: 340, gold: [160, 200], drop: 1, tier: 4, mat: 'jade',   boss: true, sig: 'amu12', skill: { name: 'Avalanche de Takara', mult: 1.9, chance: 0.35 } },
+  inugami:    { name: 'Inugami das Cinzas', hp: 220, atk: 28, def: 11, spd: 9, xp: 280, gold: [130, 165], drop: 1, tier: 4, mat: 'ferro', boss: true, sig: 'arm11', skill: { name: 'Uivo Amaldiçoado', mult: 1.8, chance: 0.35, poison: true } },
+  wani:       { name: 'Wani do Estreito', hp: 190, atk: 25, def: 10, spd: 10, xp: 240, gold: [110, 145], drop: 1, tier: 4, mat: 'escama', boss: true, sig: 'elm12', skill: { name: 'Mordida da Maré', mult: 1.7, chance: 0.35 } }
 };
 // ---------- Materiais de forja ----------
 // Vêm dos youkai e de desmontar equipamento; usados nos encantos altos
@@ -4524,7 +4531,8 @@ const G = {
   shopIdx: 0,
   titleIdx: 0,
   optIdx: 0, optFrom: null, optConfirm: false,
-  flags: { reislime: false, necromante: false, dragao: false, amanojaku: false, yamauba: false, tsuchigumo: false, aranharainha: false, tenguveterano: false, onigeneral: false },
+  flags: { reislime: false, necromante: false, dragao: false, amanojaku: false, yamauba: false, tsuchigumo: false, aranharainha: false, tenguveterano: false, onigeneral: false,
+    yamanushi: false, inugami: false, wani: false },
   chests: {},         // id -> true (abertos)
   region: null,
   shopId: 'aldeia',
