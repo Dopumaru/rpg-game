@@ -264,7 +264,8 @@ function genOverworld() {
     [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
     [100, 108], [150, 80],      // amanojaku, yamauba
     [79, 72],                   // acesso à porta da peixaria
-    [246, 62], [77, 165], [277, 165], [274, 191]  // Takara, Kurogane, Minato, cais de Minato
+    [246, 62], [77, 165], [277, 165], [274, 191],  // Takara, Kurogane, Minato, cais de Minato
+    [320, 90], [150, 200], [340, 200]              // yamanushi, inugami, wani
   ], [40, 100], protComuns);
   // fecha qualquer bolsão minúsculo isolado que a floresta aleatória tenha
   // deixado pra trás (nenhum youkai nasce mais preso pra sempre no meio de
@@ -530,6 +531,10 @@ function enterMap(name, px, py) {
     if (!G.flags.aranharainha) G.entities.push(makeEntity('aranharainha', 42 * TILE, 78 * TILE, 5, true));
     if (!G.flags.tenguveterano) G.entities.push(makeEntity('tenguveterano', 120 * TILE, 34 * TILE, 6, true));
     if (!G.flags.onigeneral) G.entities.push(makeEntity('onigeneral', 160 * TILE, 102 * TILE, 7, true));
+    // chefes das 3 vilas da expansão (Fase 4)
+    if (!G.flags.yamanushi) G.entities.push(makeEntity('yamanushi', 320 * TILE, 90 * TILE, 14, true));
+    if (!G.flags.inugami) G.entities.push(makeEntity('inugami', 150 * TILE, 200 * TILE, 11, true));
+    if (!G.flags.wani) G.entities.push(makeEntity('wani', 340 * TILE, 200 * TILE, 10, true));
     G.region = null;
   }
   AU.setTrack(name === 'cave' ? AU.CAVE : AU.WORLD);

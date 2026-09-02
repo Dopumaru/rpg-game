@@ -1647,6 +1647,70 @@ const ENEMY_ART = {
       '.OdO........OdO.',
       '.OO..........OO.',
       '................']
+  },
+  // CHEFES DA EXPANSÃO (Fase 4) — fecham a cadeia de missão de cada vila
+  // nova. Mesma técnica das seções anteriores: silhueta de um mob já
+  // existente com paleta própria, pra ficar visualmente maiores/mais
+  // marcantes que os comuns sem redesenhar do zero.
+  yamanushi: {   // silhueta de orc, paleta de guardião de pedra e jade
+    pal: { O: '#1a1408', G: '#7a9060', g: '#a8c090', B: '#3a2e14', W: '#fff4d0', E: '#1a1408', Y: '#e8c850' },
+    rows: [
+      '................',
+      '..Y..OOOOOO..Y..',
+      '..YOOGGGGGGOOY..',
+      '..OGGGGGGGGGGO..',
+      '.OGgGGGGGGGGgGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGWEGGGGWEGGO.',
+      '.OGGGGGGGGGGGGO.',
+      '.OGGWWWWWWWWGGO.',
+      '.OGGWOWOOWOWGGO.',
+      '..OGGGGGGGGGGO..',
+      '..OGBBBBBBBBGO..',
+      '.OGgBBBBBBBBgGO.',
+      '.OGGBBOOOOBBGGO.',
+      '..OOBBO..OBBOO..',
+      '...OOO....OOO...']
+  },
+  inugami: {     // silhueta de zumbi, paleta de cão amaldiçoado em cinzas
+    pal: { O: '#0a0a0c', W: '#6a6870', w: '#454248', R: '#ff2a2a', E: '#0a0a0c', Y: '#ff2a2a' },
+    rows: [
+      '................',
+      '....OOOOOOOO....',
+      '...OWWWWWWWWO...',
+      '..OWWWWWWWWWWO..',
+      '..OWEYWWWWEYWO..',
+      '..OWERWWWWERWO..',
+      '..OWWWWWWWWWWO..',
+      '..OWWWwwwwWWWO..',
+      '...OWWwYYwWWO...',
+      '....OwwwwwwO....',
+      '...OwwOwwOwwO...',
+      '..OwwOwwwwOwwO..',
+      '..OO..OwwO..OO..',
+      '.....OwOOwO.....',
+      '.....OO..OO.....',
+      '................']
+  },
+  wani: {        // silhueta de harpia, paleta de monstro-marinho esverdeada
+    pal: { O: '#0a1c14', B: '#1e5a3a', b: '#3a9060', S: '#c8e8d0', Y: '#7ac8a0', R: '#ffb020', W: '#ffffff', H: '#0a1c14' },
+    rows: [
+      '................',
+      '......HHHH......',
+      '.....HbbbbH.....',
+      '.O..OHSSSSHO..O.',
+      'OBO.OSRWWRSO.OBO',
+      'OBBO.OSYYSO.OBBO',
+      'OBbBOOSSSSOOBbBO',
+      'OBbbBObbbbOBbbBO',
+      'OBbbbBbbbbBbbbBO',
+      '.OBbbBbbbbBbbBO.',
+      '..OBbBbbbbBbBO..',
+      '...OBObbbbOBO...',
+      '....OObbbbOO....',
+      '.....ObbbbO.....',
+      '.....OYOOYO.....',
+      '.....OO..OO.....']
   }
 };
 
