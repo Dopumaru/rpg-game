@@ -354,7 +354,9 @@ const R3 = {
     for (let i = 0; i < LUZ_LANTERNA_MAX; i++) {
       const l = new THREE.PointLight(0xffe6a0, 0, 4.2, 2);
       l.castShadow = false;
-      l.visible = false;
+      // sempre visible:true — só a intensidade (0 = apagada) muda por
+      // quadro; ver atualizaLuzesLanterna() pro motivo de nunca alternar
+      // `visible` depois de criada
       this.cena.add(l);
       this._poolLuzes.push(l);
     }
@@ -741,6 +743,13 @@ const R3 = {
     }
     perto.sort((a, b) => a[0] - b[0]);
     const pool = this._poolLuzes;
+    // nunca alterna `visible`: o three.js compila um shader por
+    // combinação exata de quantas luzes estão ativas na cena, então
+    // ligar/desligar luz do pool forçava recompilação toda hora que o
+    // jogador cruzava a borda do raio — travamento real, medido via
+    // rend.info.programs.length crescendo sem parar ao andar perto de
+    // vilas. As 10 permanecem `visible:true` pra sempre (shader compila
+    // uma vez só); só a intensidade muda por quadro, que é gratuito.
     for (let i = 0; i < pool.length; i++) {
       const l = pool[i];
       if (i < perto.length) {
@@ -749,9 +758,7 @@ const R3 = {
         // esmaece perto da borda do raio, em vez de acender/apagar de
         // repente quando o jogador cruza o limite
         l.intensity = 0.85 * Math.min(1, (LUZ_LANTERNA_RAIO - d) / 5);
-        l.visible = true;
       } else {
-        l.visible = false;
         l.intensity = 0;
       }
     }
