@@ -65,18 +65,22 @@ function escala4x(spr) { return escala2x(escala2x(spr)); }
 // Nada de cubo com a arte colada: cada coisa que ocupa espaço tem forma
 // própria (tronco, copa, telhado inclinado, pedra facetada, poste, viga).
 // As cores saem da mesma paleta da arte 2D, para o mundo continuar coerente.
+// pool máximo de luzes de lanterna simultâneas (Fase 3) — nunca uma por
+// lanterna do mapa inteiro, só as mais perto do jogador
+const LUZ_LANTERNA_MAX = 10;
+const LUZ_LANTERNA_RAIO = 16;
 const GEOS = {};
 function geo3(k) {
   if (GEOS[k]) return GEOS[k];
   const G2 = {
     caixa: () => new THREE.BoxGeometry(1, 1, 1),
-    cil:   () => new THREE.CylinderGeometry(0.5, 0.5, 1, 8),
+    cil:   () => new THREE.CylinderGeometry(0.5, 0.5, 1, 12),
     cil6:  () => new THREE.CylinderGeometry(0.5, 0.5, 1, 6),
-    cone:  () => new THREE.ConeGeometry(0.5, 1, 8),
+    cone:  () => new THREE.ConeGeometry(0.5, 1, 12),
     cone4: () => new THREE.ConeGeometry(0.5, 1, 4),
     cone5: () => new THREE.ConeGeometry(0.5, 1, 5),
     tronco:() => new THREE.CylinderGeometry(0.34, 0.5, 1, 6),   // afunila para cima
-    esf:   () => new THREE.SphereGeometry(0.5, 8, 6),
+    esf:   () => new THREE.SphereGeometry(0.5, 12, 10),
     pedra: () => new THREE.DodecahedronGeometry(0.5, 0),
     lasca: () => new THREE.TetrahedronGeometry(0.5, 0)
   };
@@ -250,6 +254,16 @@ const MODELOS3 = {
 };
 // saída de interior: mesmo modelo da porta shoji (19)
 MODELOS3[31] = MODELOS3[19];
+// recolorização por bioma (Fase 4) dos modelos 3D "altos" — bakeMountain()
+// (render/tiles.js) já dá tom próprio à VERSÃO EM TEXTURA 2D da montanha,
+// mas a montanha no mundo 3D usa MODELOS3[8] (geometria de verdade, cor
+// fixa), que bakeMountain() nunca toca. Sem isso, "Picos de Takara" teria
+// grama tingida mas montanhas sempre cinza-padrão — a peça mais visível da
+// região ficaria de fora da variedade por bioma. Mesma ordem de partes de
+// MODELOS3[8]: base, pico, detalhe de pedra.
+const MODELOS3_BIOME_COR = {
+  8: { 'Picos de Takara': [0x5c6478, 0x6a7488, 0x3e4658] }
+};
 
 // ---------- Renderizador 3D ----------
 // O mundo vira geometria: cada tile é um bloco cuja face de cima usa a MESMA
@@ -299,11 +313,19 @@ const R3 = {
       this.rend = new THREE.WebGLRenderer({ canvas: cvGl, antialias: true, alpha: false });
     } catch (e) { return false; }
     if (!this.rend) return false;
-    this.rend.setPixelRatio(1);
+    // antes fixo em 1: em telas de alta densidade (retina/HiDPI) a cena
+    // saía borrada mesmo com toda a geometria/luz corretas — cap em 2x
+    // pra não pagar custo de GPU desproporcional em telas 3x/4x.
+    this.rend.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     GL3.W = cv.width; GL3.H = cv.height;
     this.rend.setSize(GL3.W, GL3.H, false);
     this.rend.shadowMap.enabled = true;
     this.rend.shadowMap.type = THREE.PCFSoftShadowMap;
+    // (tentativa de tonemapping filmico revertida: este bundle vendorizado
+    // do three.js não exporta nenhuma constante *ToneMapping — confirmado
+    // via Object.keys(THREE) — então THREE.ACESFilmicToneMapping era
+    // sempre undefined; a linha não fazia nada além de gerar aviso de
+    // shader a cada material novo compilado. Achado durante a Fase 4.)
     this.cena = new THREE.Scene();
     this.ceu = new THREE.Color('#2a3a56');
     this.cena.background = this.ceu;
@@ -322,6 +344,20 @@ const R3 = {
     this.cena.add(this.sol, this.sol.target);
     this.hemi = new THREE.HemisphereLight('#bcd0ff', '#4a5a38', 1.35);
     this.cena.add(this.hemi);
+    // luzes de lanterna: um pool pequeno e fixo de PointLight, nunca uma
+    // por lanterna do mapa inteiro — culling() liga só as mais perto do
+    // jogador nos pontos guardados em this._lanternas. Sem sombra própria
+    // (uma luz de ponto com sombra custa um cubemap de profundidade inteiro;
+    // já existe 1 luz com sombra — o sol — não vale multiplicar isso).
+    this._lanternas = [];
+    this._poolLuzes = [];
+    for (let i = 0; i < LUZ_LANTERNA_MAX; i++) {
+      const l = new THREE.PointLight(0xffe6a0, 0, 4.2, 2);
+      l.castShadow = false;
+      l.visible = false;
+      this.cena.add(l);
+      this._poolLuzes.push(l);
+    }
     this.ok = true;
     return true;
   },
@@ -376,6 +412,7 @@ const R3 = {
     this.mapaAtual = map;
     this.chunks = [];
     this.chunksFeitos = new Set();
+    this._lanternas = [];   // pontos de âncora das lanternas deste mapa (luz de verdade, Fase 3)
     const grupo = new THREE.Group();
     this.grupoMapa = grupo;
     this.cena.add(grupo);
@@ -502,9 +539,14 @@ const R3 = {
         pedaco.add(mesh);
         continue;
       }
+      // região do primeiro tile do grupo — aproximação aceitável: um chefe
+      // de 16x16 tiles raramente atravessa duas regiões nomeadas
+      const biomaCor = MODELOS3_BIOME_COR[t] && map.name === 'overworld'
+        ? MODELOS3_BIOME_COR[t][regionAt(lista[0][0], lista[0][1])] : null;
       modelo.forEach((parte, pi) => {
         const mesh = new THREE.InstancedMesh(geo3(parte.k),
-          new THREE.MeshLambertMaterial({ color: parte.c, flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
+          new THREE.MeshLambertMaterial({ color: (biomaCor && biomaCor[pi] !== undefined) ? biomaCor[pi] : parte.c,
+            flatShading: parte.k === 'pedra' || parte.k === 'lasca' }),
           lista.length);
         mesh.castShadow = true; mesh.receiveShadow = true;
         lista.forEach(([x, y], k) => {
@@ -523,6 +565,9 @@ const R3 = {
         mesh.instanceMatrix.needsUpdate = true;
         pedaco.add(mesh);
       });
+      // lanterna (tile 27): guarda o ponto de luz de cada instância — vira
+      // luz de verdade em culling(), não só geometria com caixa "acesa"
+      if (t === 27) for (const [x, y] of lista) this._lanternas.push(new THREE.Vector3(x, 1.28, y));
     }
     for (const c of casas) {
       if (c.x0 < cx * CH || c.x0 >= (cx + 1) * CH || c.y0 < cz * CH || c.y0 >= (cz + 1) * CH) continue;
@@ -682,12 +727,40 @@ const R3 = {
       const d = Math.hypot(p.userData.centro.x - wx, p.userData.centro.y - wz);
       p.visible = d < 30;
     }
+    this.atualizaLuzesLanterna(wx, wz);
+  },
+  // reatribui o pool fixo de PointLight às lanternas mais perto do jogador
+  // (dentro de LUZ_LANTERNA_RAIO), reposicionando em vez de criar/destruir
+  atualizaLuzesLanterna(wx, wz) {
+    const pontos = this._lanternas;
+    if (!pontos || !pontos.length || !this._poolLuzes) return;
+    const perto = [];
+    for (const p of pontos) {
+      const d = Math.hypot(p.x - wx, p.z - wz);
+      if (d < LUZ_LANTERNA_RAIO) perto.push([d, p]);
+    }
+    perto.sort((a, b) => a[0] - b[0]);
+    const pool = this._poolLuzes;
+    for (let i = 0; i < pool.length; i++) {
+      const l = pool[i];
+      if (i < perto.length) {
+        const [d, p] = perto[i];
+        l.position.copy(p);
+        // esmaece perto da borda do raio, em vez de acender/apagar de
+        // repente quando o jogador cruza o limite
+        l.intensity = 0.85 * Math.min(1, (LUZ_LANTERNA_RAIO - d) / 5);
+        l.visible = true;
+      } else {
+        l.visible = false;
+        l.intensity = 0;
+      }
+    }
   },
 
   // céu, névoa e luz mudam conforme a região
   ambiente(map) {
     let ceu = '#2a3a56', luz = '#ffe6c0', forca = 1.85, hemiC = '#bcd0ff', hemiF = 1.35, perto = 34, longe = 82;
-    if (map.name === 'cave') { ceu = '#120e1e'; luz = '#8a6ad0'; forca = 0.7; hemiC = '#6a5a9a'; hemiF = 0.55; perto = 12; longe = 38; }
+    if (map.name === 'cave') { ceu = '#120e1e'; luz = '#8a6ad0'; forca = 0.95; hemiC = '#6a5a9a'; hemiF = 0.75; perto = 12; longe = 38; }
     else if (G.region === 'Templo Abandonado') { ceu = '#2a2440'; luz = '#c8b0ff'; forca = 1.1; hemiC = '#9a8ad0'; hemiF = 1.0; perto = 24; longe = 62; }
     else if (G.region === 'Bosque de Bambu' || G.region === 'Floresta de Aokigahara') { ceu = '#1e3a2a'; luz = '#d8f0b0'; forca = 1.4; hemiC = '#9ad0a0'; hemiF = 1.15; perto = 22; longe = 58; }
     this.ceu.set(ceu);

@@ -36,36 +36,84 @@ function seeded(seed) {
   };
 }
 
-// --- grama: 6 variantes com tufos e manchas de tom ---
+// --- grama: 10 variantes com tufos, manchas de tom e luz direcional ---
 // tons muito próximos: variam a textura sem deixar a grade de 16px visível
-const GRASS_BASE = ['#3f7a3a', '#407b3b', '#3e793a', '#417c3c', '#3f7a39', '#407a3b'];
-function bakeGrass(v) {
-  return bakeTile('grass' + v, g => {
-    px(g, GRASS_BASE[v % GRASS_BASE.length], 0, 0, TILE, TILE);
+const GRASS_BASE = ['#3f7a3a', '#407b3b', '#3e793a', '#417c3c', '#3f7a39', '#407a3b',
+  '#3d7838', '#427d3e', '#3e7a3b', '#3f7939'];
+// --- paletas por bioma (Fase 4) ---
+// regiões selvagens nomeadas (REGIONS/regionAt(), em world/world.js) ganham
+// tom de base próprio para grama/terra/montanha/pedra — o resto do bake
+// (salpicos, luz direcional, tufos) continua igual, só a cor-base muda.
+// Vilas e as duas regiões iniciais (Planalto do Norte, Campos de Arroz)
+// ficam com a paleta padrão de propósito — são a "casa" já vista/ajustada.
+const BIOME_GRASS = {
+  'Bosque de Bambu':          ['#3a7a4a', '#3b7c4c', '#397849', '#3c7d4d', '#3a7a4b'],
+  'Floresta de Aokigahara':   ['#2f5c38', '#305e3a', '#2e5a37', '#31603b', '#2f5c39'],
+  'Templo Abandonado':        ['#5a6a3f', '#5c6c41', '#586840', '#5e6e43', '#5a6a40'],
+  'Picos de Takara':          ['#5a7a68', '#5c7c6a', '#587866', '#5e7e6c', '#5a7a69'],
+  'Pântano Negro':            ['#5a6248', '#5c6449', '#586047', '#5e664b', '#5a6248'],
+  'Baía de Minato':           ['#6a8a52', '#6c8c54', '#688850', '#6e8e56', '#6a8a53']
+};
+const BIOME_DIRT = {
+  'Picos de Takara':   ['#a89c8a', '#a69a88', '#aa9e8c'],
+  'Pântano Negro':     ['#7a6a48', '#786846', '#7c6c4a'],
+  'Baía de Minato':    ['#d8c896', '#d6c694', '#dacb99'],
+  'Templo Abandonado': ['#a89e90', '#a69c8e', '#aaa092']
+};
+const BIOME_MOUNTAIN = {
+  'Picos de Takara': ['#6a7488', '#7e889e', '#565e74']
+};
+function paletaBioma(tabela, regiao) { return (regiao && tabela[regiao]) || null; }
+function bakeGrass(v, regiao) {
+  const paleta = paletaBioma(BIOME_GRASS, regiao) || GRASS_BASE;
+  return bakeTile('grass' + (regiao || '') + v, g => {
+    px(g, paleta[v % paleta.length], 0, 0, TILE, TILE);
+    // luz suave vindo de cima-esquerda: dá volume sem gastar cor nova
+    const grad = g.createLinearGradient(0, 0, TILE, TILE);
+    grad.addColorStop(0, 'rgba(255,255,255,0.07)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.09)');
+    g.fillStyle = grad; g.fillRect(0, 0, TILE, TILE);
     const r = seeded(v * 97 + 13);
-    // manchas de tom
-    for (let i = 0; i < 8; i++) {
-      px(g, i % 3 === 0 ? '#356e30' : '#4a8945',
+    // manchas de tom (sombra da folhagem)
+    for (let i = 0; i < 9; i++) {
+      px(g, i % 3 === 0 ? '#2f5f2b' : '#4a8945',
         Math.floor(r() * 14), Math.floor(r() * 15), 2, 1);
     }
-    // tufos de capim
-    for (let i = 0; i < 3; i++) {
+    // realces esparsos — segunda camada, mais claros e pontuais
+    for (let i = 0; i < 4; i++) {
+      px(g, '#5fa159', Math.floor(r() * 15), Math.floor(r() * 15), 1, 1);
+    }
+    // tufos de capim, com base mais escura pra dar profundidade
+    for (let i = 0; i < 4; i++) {
       const hx = 1 + Math.floor(r() * 13), hy = 2 + Math.floor(r() * 11);
+      px(g, '#39672f', hx, hy + 1, 1, 1);
       px(g, '#4d8b4a', hx, hy, 1, 2);
       px(g, '#569a56', hx + 1, hy + 1, 1, 1);
     }
   });
 }
-// --- caminho de terra ---
-function bakeDirt(v) {
-  return bakeTile('dirt' + v, g => {
-    px(g, '#b5a06e', 0, 0, TILE, TILE);
+// --- caminho de terra: 6 variantes, cada uma com tom-base próprio ---
+const DIRT_BASE = ['#b5a06e', '#b39d6a', '#b8a372', '#b19a67', '#b6a26f', '#b29c69'];
+function bakeDirt(v, regiao) {
+  const paleta = paletaBioma(BIOME_DIRT, regiao) || DIRT_BASE;
+  return bakeTile('dirt' + (regiao || '') + v, g => {
+    px(g, paleta[v % paleta.length], 0, 0, TILE, TILE);
+    const grad = g.createLinearGradient(0, 0, TILE, TILE);
+    grad.addColorStop(0, 'rgba(255,244,214,0.08)');
+    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(70,52,20,0.1)');
+    g.fillStyle = grad; g.fillRect(0, 0, TILE, TILE);
     const r = seeded(v * 131 + 29);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       px(g, i % 2 ? '#a89162' : '#c1ad7c', Math.floor(r() * 15), Math.floor(r() * 15), 2, 1);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       px(g, '#8e7a52', 1 + Math.floor(r() * 12), 1 + Math.floor(r() * 12), 2, 2);
+    }
+    // seixinhos claros — quebram a repetição de textura em terra batida
+    for (let i = 0; i < 3; i++) {
+      px(g, '#d4c295', Math.floor(r() * 15), Math.floor(r() * 15), 1, 1);
     }
   });
 }
@@ -117,19 +165,21 @@ function bakeTree(v, gv) {
   });
 }
 // --- pedra na grama ---
-function bakeRock(v) {
-  return bakeTile('rock' + v, g => {
-    g.drawImage(bakeGrass(v % 4), 0, 0);
+function bakeRock(v, regiao) {
+  return bakeTile('rock' + (regiao || '') + v, g => {
+    g.drawImage(bakeGrass(v % GRASS_BASE.length, regiao), 0, 0);
+    px(g, 'rgba(0,0,0,0.28)', 4, 12, 9, 2); // sombra de contato no chão
     px(g, '#1a1626', 3, 7, 10, 7);
     px(g, '#77778a', 4, 6, 8, 7);
     px(g, '#9393a6', 5, 6, 5, 3);
+    px(g, '#b0aac2', 6, 6, 2, 1); // brilho na face voltada pra luz
     px(g, '#5c5c6e', 4, 11, 8, 2);
   });
 }
 // --- arbusto ---
 function bakeBush(v) {
   return bakeTile('bush' + v, g => {
-    g.drawImage(bakeGrass(v % 6), 0, 0);
+    g.drawImage(bakeGrass(v % GRASS_BASE.length), 0, 0);
     // silhueta arredondada por camadas
     px(g, '#16331a', 4, 5, 8, 2);
     px(g, '#16331a', 2, 7, 12, 6);
@@ -138,15 +188,17 @@ function bakeBush(v) {
     px(g, '#28602c', 3, 8, 10, 4);
     px(g, '#348038', 5, 7, 4, 3);
     px(g, '#3f9042', 6, 7, 2, 1);
+    px(g, '#4aa14c', 7, 7, 1, 1); // ponto de luz na copa
     px(g, '#1e4a22', 4, 11, 8, 2);
-    if (v === 1) { px(g, '#d04848', 5, 9, 2, 2); px(g, '#e06060', 5, 9, 1, 1); px(g, '#d04848', 10, 8, 2, 2); }
+    if (v % 3 === 1) { px(g, '#d04848', 5, 9, 2, 2); px(g, '#e06060', 5, 9, 1, 1); px(g, '#d04848', 10, 8, 2, 2); }
   });
 }
-// --- flores (3 cores) ---
+// --- flores (4 cores) ---
 function bakeFlower(v) {
   return bakeTile('flower' + v, g => {
-    g.drawImage(bakeGrass(v % 4), 0, 0);
+    g.drawImage(bakeGrass(v % GRASS_BASE.length), 0, 0);
     const c = ['#e8e060', '#e07898', '#e8e8f0', '#8ab0f0'][v % 4];
+    px(g, 'rgba(0,0,0,0.2)', 6, 12, 5, 1); // sombra de contato
     px(g, '#4c8a44', 7, 8, 1, 4);
     px(g, c, 6, 5, 4, 4);
     px(g, '#f0d040', 7, 6, 2, 2);
@@ -157,7 +209,14 @@ function bakeFlower(v) {
 // --- cogumelos: vermelhos na floresta, luminosos na caverna ---
 function bakeMushroom(v, cave) {
   return bakeTile('shroom' + v + (cave ? 'c' : 'g'), g => {
-    g.drawImage(cave ? bakeCaveFloor(v % 4) : bakeGrass(v % 4), 0, 0);
+    g.drawImage(cave ? bakeCaveFloor(v % 4) : bakeGrass(v % GRASS_BASE.length), 0, 0);
+    if (cave) {
+      // halo bioluminescente suave em volta do chapéu
+      const glow = g.createRadialGradient(8, 8, 1, 8, 8, 6);
+      glow.addColorStop(0, 'rgba(154,122,232,0.35)');
+      glow.addColorStop(1, 'rgba(154,122,232,0)');
+      g.fillStyle = glow; g.fillRect(0, 0, TILE, TILE);
+    }
     px(g, cave ? '#c8c0e0' : '#e8e0d0', 7, 9, 3, 4);
     px(g, cave ? '#6a4ac0' : '#c04040', 5, 6, 7, 4);
     px(g, cave ? '#9a7ae8' : '#e06060', 6, 6, 4, 2);
@@ -171,8 +230,15 @@ function bakeMushroom(v, cave) {
 function bakeStoneWall(v) {
   return bakeTile('wall' + v, g => {
     px(g, '#ddd2bb', 0, 0, TILE, TILE);
+    const grad = g.createLinearGradient(0, 0, 0, TILE);
+    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.08)');
+    g.fillStyle = grad; g.fillRect(0, 0, TILE, TILE);
     px(g, '#eae0cc', 0, 0, TILE, 2);
     px(g, '#c4b79c', 0, 14, TILE, 2);
+    // veios finos de reboco, quebram a superfície lisa
+    const r = seeded((v || 0) * 151 + 7);
+    for (let i = 0; i < 3; i++) px(g, 'rgba(150,135,105,0.3)', 3 + Math.floor(r() * 10), 2 + Math.floor(r() * 11), 1, 1);
     // vigas de madeira escura
     px(g, '#6b4b30', 0, 0, 2, TILE);
     px(g, '#6b4b30', 14, 0, 2, TILE);
@@ -182,16 +248,24 @@ function bakeStoneWall(v) {
   });
 }
 // --- montanha ---
-function bakeMountain(v) {
-  return bakeTile('mtn' + v, g => {
-    px(g, '#6a6478', 0, 0, TILE, TILE);
-    px(g, '#7e788e', 2, 8, 5, 5);
-    px(g, '#7e788e', 8, 3, 6, 6);
-    px(g, '#565064', 1, 13, 6, 2);
-    px(g, '#565064', 9, 9, 6, 2);
+function bakeMountain(v, regiao) {
+  const bio = paletaBioma(BIOME_MOUNTAIN, regiao);
+  const base = bio ? bio[0] : '#6a6478', alto = bio ? bio[1] : '#7e788e', sombra = bio ? bio[2] : '#565064';
+  return bakeTile('mtn' + (regiao || '') + v, g => {
+    px(g, base, 0, 0, TILE, TILE);
+    const grad = g.createLinearGradient(0, 0, TILE, TILE);
+    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.12)');
+    g.fillStyle = grad; g.fillRect(0, 0, TILE, TILE);
+    px(g, alto, 2, 8, 5, 5);
+    px(g, alto, 8, 3, 6, 6);
+    px(g, sombra, 1, 13, 6, 2);
+    px(g, sombra, 9, 9, 6, 2);
     px(g, '#9a94ac', 9, 2, 4, 2);
+    px(g, '#b6b0c6', 10, 2, 2, 1); // aresta iluminada
     px(g, '#4a4458', 0, 0, TILE, 1);
     if (v % 3 === 0) { px(g, '#b0aac0', 10, 3, 2, 1); }
+    if (v % 4 === 1) { px(g, '#dcd8e8', 3, 8, 1, 1); } // faixa de neve/mineral ocasional
   });
 }
 // --- piso e parede de caverna ---
@@ -477,16 +551,19 @@ function drawCaveExitTile(x, y) {
 
 function drawTile(t, x, y, tx, ty, map) {
   const v = hash2(tx, ty);
+  // bioma só existe no overworld — regionAt() usa as caixas de REGIONS, que
+  // não fazem sentido pras coordenadas pequenas de caverna/interior
+  const regiao = map.name === 'overworld' ? regionAt(tx, ty) : null;
   switch (t) {
-    case 0:  ctx.drawImage(bakeGrass(Math.floor(v * 6) % 6), x, y); break;
-    case 1:  ctx.drawImage(bakeTree(treeSpecies(tx, ty), Math.floor(v * 6) % 6), x, y); break;
+    case 0:  ctx.drawImage(bakeGrass(Math.floor(v * 10) % 10, regiao), x, y); break;
+    case 1:  ctx.drawImage(bakeTree(treeSpecies(tx, ty), Math.floor(v * 10) % 10), x, y); break;
     case 2:  drawWaterTile(null, x, y, tx, ty, map); break;
-    case 3:  ctx.drawImage(bakeDirt(Math.floor(v * 4) % 4), x, y); break;
+    case 3:  ctx.drawImage(bakeDirt(Math.floor(v * 6) % 6, regiao), x, y); break;
     case 4:  ctx.drawImage(bakeFlower(Math.floor(v * 4) % 4), x, y); break;
     case 5:  ctx.drawImage(bakeStoneWall(0), x, y); break;
-    case 6:  ctx.drawImage(bakeDirt(2), x, y); break;
+    case 6:  ctx.drawImage(bakeDirt(2, regiao), x, y); break;
     case 7:  ctx.drawImage(bakeBridge(), x, y); break;
-    case 8:  ctx.drawImage(bakeMountain(Math.floor(hash2(tx * 13 + 2, ty * 29 + 7) * 3) % 3), x, y); break;
+    case 8:  ctx.drawImage(bakeMountain(Math.floor(hash2(tx * 13 + 2, ty * 29 + 7) * 3) % 3, regiao), x, y); break;
     case 9:  ctx.drawImage(bakeCaveFloor(Math.floor(hash2(tx * 37 + 1, ty * 19 + 9) * 4) % 4), x, y); break;
     case 10: ctx.drawImage(bakeCaveWall(Math.floor(hash2(tx * 23 + 5, ty * 41 + 11) * 8) % 8), x, y); break;
     case 11: ctx.drawImage(bakeCaveMouth(), x, y); break;
@@ -500,8 +577,8 @@ function drawTile(t, x, y, tx, ty, map) {
     case 19: ctx.drawImage(bakeDoor(), x, y); break;
     case 20: ctx.drawImage(bakeGrave(Math.floor(v * 3) + 1), x, y); break;
     case 21: drawAltarTile(x, y); break;
-    case 22: ctx.drawImage(bakeBush(Math.floor(v * 2)), x, y); break;
-    case 23: ctx.drawImage(bakeRock(Math.floor(v * 4) % 4), x, y); break;
+    case 22: ctx.drawImage(bakeBush(Math.floor(v * 6) % 6), x, y); break;
+    case 23: ctx.drawImage(bakeRock(Math.floor(v * 8) % 8, regiao), x, y); break;
     case 24: ctx.drawImage(bakeMushroom(Math.floor(v * 2), map.name === 'cave'), x, y); break;
     case 25: ctx.drawImage(bakeToriiTop(0), x, y); break;
     case 26: ctx.drawImage(bakeToriiTop(1), x, y); break;
