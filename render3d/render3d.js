@@ -33,7 +33,14 @@ function escala2x(spr) {
   const g = c.getContext('2d');
   const saida = g.createImageData(w * 2, h * 2);
   const px = (x, y) => {
-    if (x < 0 || y < 0 || x >= w || y >= h) return -1;
+    // fora do canvas conta como transparente (0), nunca um sentinela à
+    // parte — com -1 como sentinela, os 4 cantos do sprite (onde DOIS
+    // vizinhos caem fora do canvas ao mesmo tempo) faziam -1===-1 bater
+    // como "cor igual" e a lógica de arredondar canto escrevia o próprio
+    // -1 como pixel; -1 desempacotado vira rgba(255,255,255,255) — um
+    // ponto branco opaco sólido bem no canto de cada sprite. Achado ao
+    // investigar 4 pontos brancos soltos ao redor de herói/NPCs.
+    if (x < 0 || y < 0 || x >= w || y >= h) return 0;
     const i = (y * w + x) * 4;
     return (gi[i] << 24 | gi[i + 1] << 16 | gi[i + 2] << 8 | gi[i + 3]) >>> 0;
   };
