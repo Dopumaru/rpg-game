@@ -1017,6 +1017,98 @@ commitada a tempo; reconstituída de memória da própria conversa
   quando o ambiente já deu sinais de instabilidade ao longo da sessão
   (restarts documentados repetidamente neste arquivo).
 
+### 2026-09-11 — Auditoria de cenário: os 6 torii eram paredes sólidas
+(2 deles apagados por estrada) e 41% do mapa era grama nua
+
+- **Pedido do usuário**: mundo aberto com "muita área livre pra andar";
+  encher o que não é rota nem área de spawn; e revisar os "portais
+  asiáticos", que estavam "quebrados e inconsistentes".
+- **Torii — 4 defeitos independentes, todos medidos**:
+  1. *Ordem de desenho*: os torii eram pintados ANTES das estradas, e
+     `rect()` sobrescreve. Medido tile a tile: na caverna sobravam só
+     `{29:4}` dos 16 tiles (25/26/30 zerados) e em Sakuramura
+     `{25:2, 29:2}` — todos os perdidos viraram tile 3 (caminho). Os 12
+     tiles de cada um simplesmente não existiam no mapa gerado. O
+     comentário da estrada `rect(40,20,58,4,3)` dizia "alargada só para
+     cima: evita os pilares do torii em y=24-25", mas ela cobre y20-23,
+     que é exatamente onde ficavam os tiles 25/26 — o comentário estava
+     errado, não só desatualizado.
+  2. *Portão intransponível* (o pior, e o que nenhuma inspeção visual
+     tinha pego): os pilares eram dois blocos 2x2 encostados
+     (`[29][29][30][30]`), ambos em `SOLID` — uma parede sólida de 4
+     tiles sem abertura nenhuma. BFS norte→sul pelo portão: `vaos=0`
+     nos 4 torii "íntegros". Ironicamente só dava pra atravessar os 2
+     que a estrada tinha destruído.
+  3. *Travessa no chão*: `ALT3 = {25:.5, 26:.5}` contra `{29:3.0,
+     30:3.0}`. O layout viga-em-cima/pilar-embaixo é truque de
+     perspectiva 2D; em 3D cada tile vira geometria na sua posição XZ
+     real, então a viga deitava na grama 2 tiles ao norte dos pilares.
+  4. *Duplicação 4x*: cada peça era um `rect(...,2,2,...)`, e cada tile
+     instancia o modelo inteiro → 8 pilares + 8 pilhas de viga por
+     portão. Renderizava como uma cerca de estacas vermelhas, sem
+     travessa nenhuma (confirmado por screenshot em Iwamura e Takara).
+- **Correção do torii**: portão virou UMA fileira de 6 tiles — pilar 29
+  em x, pilar 30 em x+5, 4 tiles de vão atravessável no meio (largura
+  casada com a das estradas). A travessa inteira (nuki/shimaki/kasagi +
+  gaku) é geometria **em balanço** presa aos dois tiles de pilar, com as
+  duas metades se sobrepondo no centro — assim o vão não precisa de tile
+  próprio e o chão que passa por baixo (estrada, piso de templo)
+  continua aparecendo. Tiles 25/26 aposentados (saíram de `ALT3`,
+  `MODELOS3`, `LADO3` e do `drawTile`); `bakeToriiBase` reescrita pro
+  caminho 2D de reserva, com as duas metades espelhadas (verificado por
+  máscara de pixel). Torii agora são desenhados DEPOIS das estradas.
+- **Área aberta**: medido 58,6% do mapa como chão vazio, pior caso
+  Picos de Takara com 70,6% em 19.425 tiles (a maior região). Correção:
+  preenchimento por **bosques agrupados** numa grade jitterada de passo
+  11 (raio 2-5 por região), com máscara de proteção explícita (rotas
+  dilatadas em 3 tiles, estruturas, praças de vila, cemitério, alvos de
+  chefe) e um piso `minAberto` por região medido numa janela 13x13 —
+  bosque nenhum nasce onde a redondeza já está cheia, o que torna o
+  preenchimento auto-limitado. Perfis indexados por `regionAt()`, não
+  por faixa de coordenada. Resultado: mapa 58,6% → 41,5%; Picos 70,6% →
+  57,8%.
+- **Dois achados só possíveis por medição, que refutaram hipóteses
+  minhas**:
+  1. Aokigahara parecia ter adensado por causa do preenchimento
+     (19,9% → 15%). Instrumentação temporária por estágio (aditiva,
+     removida depois, arquivo conferido idêntico à cópia pré-probe)
+     mostrou **759 → 759**: o preenchimento não encostava nela. A queda
+     vinha de `seleBolsoesIsolados()` fechando 471 tiles — quase todo o
+     chão "livre" de Aokigahara são bolsões ilhados no meio das árvores.
+     A variação restante é ruído: `genOverworld()` usa `irnd()` nos
+     bolsões de árvore, então UMA geração não mede nada — daí o
+     validador passar a rodar N gerações independentes.
+  2. A zona de spawn de Aokigahara não preenchia a cota, e a primeira
+     tentativa de clareira não resolveu porque eu media chão
+     **não-sólido** no momento da decisão (33%), quando o valor que
+     importa é o chão **alcançável a pé** depois do `sele` (4%). Trocada
+     a métrica por BFS da mesma âncora do `garanteAcesso`, e as
+     clareiras passaram a ser adicionadas como alvos de acesso — o
+     próprio `garanteAcesso` limpa 7x7 e escava o corredor, então a
+     clareira nasce conectada e o `sele` não a fecha.
+- **Bug pré-existente encontrado de quebra**: as faixas por tipo de
+  `spawnEnemies()` (introduzidas em 2026-08-22) não conversam com os
+  `exclude` das zonas, que foram escritos quando o sorteio ainda era na
+  caixa inteira. A faixa do slime (x20-60) cai quase toda dentro dos 2
+  excludes da zona 0, e a da yukionna (x134-172) dentro do exclude de
+  Iwamura — nenhuma das duas gerava youkai de forma confiável. Corrigido
+  com uma 2ª rodada de sorteio na zona inteira quando a faixa falha; o
+  agrupamento por faixa continua sendo a regra.
+- **Validação** (sem `test.mjs`, ausente nesta sessão — protocolo da
+  seção 3): validador próprio rodando **N gerações independentes** e
+  checando alcançabilidade BFS de 18 pontos fixos, largura mínima de
+  corredor sobre cada tile de estrada, cota de spawn por zona/tipo e
+  integridade+travessia dos 6 torii. Antes: 0/10 em spawn, 0/10 em
+  torii. Depois: **15/15 em tudo** (e 20/20 numa rodada anterior).
+  Performance medida com instrumento determinístico em vez de fps (que
+  aqui fica em 2-6 quadros sob WebGL por software): triângulos por cena
+  subiram nas regiões antes vazias, mas o **pico** ficou igual ao que já
+  existia (244k antes → 268k depois, na mesma cena mais pesada), tempo
+  de construção de chunk **inalterado** (±10%, o custo lá é dominado
+  pelo bake do chão, não pela geometria instanciada) e contagem de
+  programas de shader estável em 8 — ou seja, nenhuma regressão no
+  caminho que causou o engasgo relatado em 2026-09.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

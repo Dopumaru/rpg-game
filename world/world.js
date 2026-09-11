@@ -23,8 +23,11 @@
 // 7 ponte 8 montanha 9 piso-caverna 10 parede-caverna 11 entrada-caverna
 // 12 saída-caverna 13 fonte 14 loja 15 placa 16 baú 17 baú-aberto 18 telhado 19 porta
 // 20 lápide · 21 altar · 22 arbusto · 23 pedra · 24 cogumelo (decorativos)
-// 31 saída de interior (some tiles further: 25/26 topo-torii, 27 lanterna,
-// 28 caminho-templo, 29/30 base-torii — já existiam, listados só por ordem)
+// 31 saída de interior · 27 lanterna · 28 caminho-templo
+// 29/30 pilar de torii (esquerdo/direito) — cada um carrega, em balanço, a sua
+//   metade das travessas do portão; o vão entre eles não tem tile próprio.
+//   Os antigos 25/26 (topo-torii) foram aposentados nessa mudança e não são
+//   mais gerados por mapa nenhum.
 // 32 estátua do Herói-Rei — monumento fixo nas duas vilas, sem interação (só
 // cenário: reforça a lore de Kuniyasu no próprio mapa, não só em diálogo)
 const SOLID = new Set([1, 2, 5, 8, 10, 14, 16, 17, 18, 20, 21, 23, 27, 29, 30, 32]);
@@ -46,8 +49,8 @@ function genOverworld() {
   // montanhas ao norte + entrada da caverna
   rect(0, 0, W, 20, 8);
   rect(96, 18, 2, 2, 11); rect(94, 20, 2, 2, 3); rect(96, 20, 2, 2, 3); rect(98, 20, 2, 2, 3);
-  rect(94, 22, 2, 2, 25); rect(96, 22, 2, 2, 26); // torii guardando a caverna (topo)
-  rect(94, 24, 2, 2, 29); rect(96, 24, 2, 2, 30); // pilares
+  // (o torii que guarda a caverna é desenhado no bloco de torii, lá embaixo,
+  // depois das estradas — ver comentário lá)
   // rio horizontal + pontes
   rect(4, 56, 184, 6, 2);
   rect(40, 56, 4, 6, 7); rect(96, 56, 4, 6, 7); rect(152, 56, 4, 6, 7);
@@ -91,8 +94,6 @@ function genOverworld() {
   rect(40, 88, 2, 26, 28); rect(26, 100, 30, 2, 28); // piso de pedra do templo
   rect(40, 100, 2, 2, 13);
   rect(32, 106, 2, 2, 21); // altar de encantamento
-  rect(38, 84, 2, 2, 25); rect(40, 84, 2, 2, 26);  // torii na entrada norte (topo)
-  rect(38, 86, 2, 2, 29); rect(40, 86, 2, 2, 30);  // pilares
   set(43, 92, 32); // estátua do Herói-Rei, à margem do caminho (um só tile — em bloco 2x2 o mesmo desenho se repetia 4 vezes)
   rect(36, 102, 2, 2, 27); rect(44, 102, 2, 2, 27);  // lanternas junto ao chozuya
   rect(28, 104, 2, 2, 27); rect(52, 104, 2, 2, 27);
@@ -105,8 +106,6 @@ function genOverworld() {
   rect(152, 26, 2, 24, 28); rect(134, 40, 34, 2, 28);
   rect(148, 40, 2, 2, 13);
   rect(142, 44, 2, 2, 21); // altar de encantamento
-  rect(150, 46, 2, 2, 25); rect(152, 46, 2, 2, 26);  // torii ao sul (topo)
-  rect(150, 48, 2, 2, 29); rect(152, 48, 2, 2, 30);  // pilares
   set(150, 34, 32); // estátua do Herói-Rei, à margem do caminho (um só tile)
   rect(144, 36, 2, 2, 27); rect(154, 36, 2, 2, 27);  // lanternas
   // PEIXARIA (margem leste da Lagoa Central, terreno aberto)
@@ -159,8 +158,6 @@ function genOverworld() {
   rect(248, 40, 2, 24, 28); rect(230, 54, 34, 2, 28);
   rect(244, 54, 2, 2, 13);
   rect(238, 58, 2, 2, 21); // altar
-  rect(246, 60, 2, 2, 25); rect(248, 60, 2, 2, 26);
-  rect(246, 62, 2, 2, 29); rect(248, 62, 2, 2, 30);
   set(246, 48, 32); // estátua
   rect(240, 50, 2, 2, 27); rect(250, 50, 2, 2, 27);
   // VILA KUROGANE (Pântano Negro) — vila de ferreiros exilados no pântano,
@@ -173,8 +170,6 @@ function genOverworld() {
   rect(76, 155, 2, 26, 28); rect(62, 167, 30, 2, 28);
   rect(76, 167, 2, 2, 13);
   rect(68, 173, 2, 2, 21); // altar
-  rect(74, 151, 2, 2, 25); rect(76, 151, 2, 2, 26);
-  rect(74, 153, 2, 2, 29); rect(76, 153, 2, 2, 30);
   set(79, 159, 32); // estátua
   rect(72, 169, 2, 2, 27); rect(80, 169, 2, 2, 27);
   rect(64, 171, 2, 2, 27); rect(88, 171, 2, 2, 27);
@@ -187,8 +182,6 @@ function genOverworld() {
   rect(282, 171, 6, 2, 18); rect(282, 173, 2, 2, 5); rect(284, 173, 2, 2, 19); rect(286, 173, 2, 2, 5); // loja
   rect(276, 155, 2, 26, 28); rect(262, 167, 30, 2, 28);
   rect(268, 173, 2, 2, 21); // altar
-  rect(274, 151, 2, 2, 25); rect(276, 151, 2, 2, 26);
-  rect(274, 153, 2, 2, 29); rect(276, 153, 2, 2, 30);
   set(279, 159, 32); // estátua
   rect(272, 169, 2, 2, 27); rect(280, 169, 2, 2, 27);
   rect(264, 171, 2, 2, 27); rect(288, 171, 2, 2, 27);
@@ -207,8 +200,8 @@ function genOverworld() {
   // estradas (largura 4 — 2 era estreito demais para desviar de inimigo no caminho)
   rect(39, 62, 4, 26, 3);              // ponte oeste -> Sakuramura
   rect(39, 22, 4, 34, 3);              // ponte oeste -> norte
-  rect(40, 20, 58, 4, 3);              // norte -> caverna (alargada só para cima: evita os pilares do torii em y=24-25)
-  rect(96, 22, 4, 34, 3);              // caverna -> ponte central (alargada só para a direita: evita o pilar esquerdo em x=94-95)
+  rect(40, 20, 58, 4, 3);              // norte -> caverna
+  rect(96, 22, 4, 34, 3);              // caverna -> ponte central
   rect(95, 62, 4, 38, 3);              // ponte central -> estrada sul
   rect(42, 99, 112, 4, 3);             // estrada sul: aldeia -> cemitério
   rect(151, 50, 4, 6, 3);              // Iwamura -> ponte leste
@@ -223,9 +216,212 @@ function genOverworld() {
   rect(200, 38, 50, 4, 3);             // estrada Iwamura->Picos -> Vila Takara
   rect(90, 138, 4, 24, 3);             // estrada sul->Pântano -> Vila Kurogane
   rect(290, 139, 4, 24, 3);            // estrada Picos->Baía -> Vila Minato
+  // ---------- Torii (portais) ----------
+  // Desenhados DEPOIS das estradas de propósito: antes vinham antes, e o
+  // `rect()` de cada estrada pintava por cima — a caverna ficava sem portal
+  // nenhum e Sakuramura só com metade das peças.
+  // Um torii ocupa UMA fileira de 6 tiles: pilar sólido nas duas pontas
+  // (29 à esquerda, 30 à direita) e 4 tiles de vão ATRAVESSÁVEL no meio,
+  // largura casada com a das estradas. Antes os pilares eram dois blocos 2x2
+  // encostados um no outro, formando uma parede sólida de 4 tiles sem
+  // abertura: nenhum dos portais dava passagem.
+  // A travessa inteira (nuki/shimaki/kasagi) é geometria em balanço presa aos
+  // dois tiles de pilar — o vão não precisa de tile próprio, então o chão que
+  // passa por baixo (estrada, piso de templo) continua aparecendo, e some o
+  // antigo par de tiles 25/26, que ficava deitado no chão dois tiles ao norte
+  // dos pilares em vez de em cima deles.
+  const protTorii = new Set();
+  const torii = (x, y) => {
+    // abre o vão e uma faixa curta de aproximação dos dois lados: nos portais
+    // do pântano (Kurogane/Minato) o ruído de árvore chega a encostar no
+    // portal e trancaria a passagem que ele deveria abrir
+    for (let j = y - 2; j <= y + 2; j++) for (let i = x + 1; i <= x + 4; i++) {
+      if (t[j] && SOLID.has(t[j][i])) set(i, j, 0);
+    }
+    set(x, y, 29); set(x + 5, y, 30);
+    protTorii.add(x + ',' + y); protTorii.add((x + 5) + ',' + y);
+  };
+  torii(95, 26);    // Caverna de Orochi (sobre a estrada x96-99)
+  torii(38, 86);    // Sakuramura, entrada norte (sobre a estrada x39-42)
+  torii(150, 51);   // Iwamura, entrada sul (sobre a estrada x151-154)
+  torii(246, 62);   // Vila Takara, fim do caminho do templo (x248-249)
+  torii(74, 152);   // Vila Kurogane, entrada norte (caminho do templo x76-77)
+  torii(274, 152);  // Vila Minato, entrada norte (caminho do templo x276-277)
   // placas
   rect(38, 92, 2, 2, 15); rect(38, 64, 2, 2, 15); rect(100, 24, 2, 2, 15); rect(146, 100, 2, 2, 15); rect(146, 38, 2, 2, 15);
   rect(230, 38, 2, 2, 15); rect(74, 149, 2, 2, 15); rect(274, 149, 2, 2, 15);
+  // pontos que PRECISAM continuar alcançáveis a pé — a mesma lista alimenta a
+  // máscara de proteção do preenchimento de cenário (abaixo) e o
+  // garanteAcesso() lá no fim, pra não haver risco de as duas divergirem
+  const ALVOS_ACESSO = [
+    [28, 74], [164, 106],              // reislime, necromante
+    [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
+    [100, 108], [150, 80],             // amanojaku, yamauba
+    [79, 72],                          // acesso à porta da peixaria
+    [248, 62], [77, 165], [277, 165], [274, 191],  // Takara (vão do torii), Kurogane, Minato, cais
+    [320, 90], [150, 200], [340, 200]  // yamanushi, inugami, wani
+  ];
+  // ---------- Preenchimento de cenário ----------
+  // O mapa tinha área aberta demais: 41% dele era grama nua, e os Picos de
+  // Takara (a maior região) chegavam a 70% de chão vazio — muito campo sem
+  // nada, o que deixa o mundo aberto sem leitura de terreno e sem lugar
+  // nenhum pra se orientar. Este bloco enche o vazio com bosques/afloramentos
+  // AGRUPADOS (não ruído uniforme), respeitando duas garantias:
+  //   1. rotas livres — estrada, ponte, piso de pedra e caminho de templo
+  //      ficam com 3 tiles de folga de cada lado, então nenhum corredor
+  //      fecha;
+  //   2. spawn livre — os bosques nascem numa grade jitterada de passo 11 com
+  //      raio de 2 a 5 conforme a região, então sempre sobra corredor aberto
+  //      entre eles, com folga maior que a coleira de 5 tiles que prende cada
+  //      youkai ao ponto onde nasceu.
+  // Roda DEPOIS das estradas/vilas/torii (pra poder lê-las na máscara) e
+  // ANTES de garanteAcesso() (que revalida a conectividade no fim).
+  const semBosque = new Uint8Array(W * H);
+  const marca = (x, y, r) => {
+    for (let j = Math.max(0, y - r); j <= Math.min(H - 1, y + r); j++)
+      for (let i = Math.max(0, x - r); i <= Math.min(W - 1, x + r); i++) semBosque[j * W + i] = 1;
+  };
+  const ROTA = new Set([3, 6, 7, 28]);                        // estrada, piso, ponte, caminho de templo
+  const ESTRUTURA = new Set([11, 12, 13, 14, 15, 16, 18, 19, 21, 27, 29, 30, 32]);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = t[y][x];
+    if (ROTA.has(v)) marca(x, y, 3);
+    else if (ESTRUTURA.has(v)) marca(x, y, 3);
+  }
+  // praças das 5 vilas + cais de Minato + o cemitério/templo abandonado (o
+  // pátio de lápides é aberto de propósito — o bloco do cemitério até remove
+  // árvore de lá; enchê-lo de bosque desfaria esse desenho)
+  for (const [x1, y1, x2, y2] of [
+    [24, 88, 58, 114], [132, 26, 170, 50], [228, 40, 266, 64],
+    [60, 155, 94, 181], [260, 155, 294, 202], [266, 180, 286, 192],
+    [146, 98, 184, 124]
+  ]) for (let y = y1; y <= Math.min(y2, H - 1); y++) for (let x = x1; x <= Math.min(x2, W - 1); x++) semBosque[y * W + x] = 1;
+  for (const [x, y] of ALVOS_ACESSO) marca(x, y, 6);          // clareira de cada chefe/alvo
+  // Perfil por região: `dens` = chance de a célula da grade virar bosque,
+  // `minAberto` = piso de chão aberto que a vizinhança do bosque tem que
+  // manter DEPOIS dele (medido antes de desenhar, numa janela 13x13), e
+  // `pecas` = de que o bosque daquela região é feito.
+  // O piso `minAberto` é o que garante, de forma medível, que nenhuma área
+  // fecha: bosque nenhum nasce onde a redondeza já está cheia. É ele também
+  // que protege as zonas de spawn — com 42%+ de chão aberto em qualquer
+  // vizinhança, sobra espaço de sobra pro youkai nascer e perambular dentro
+  // da coleira de 5 tiles. Sem esse piso, a Floresta de Aokigahara (que já
+  // era densa) fechava a ponto de a zona de spawn dela não preencher a cota.
+  // Indexado pelo nome de regionAt() (e não por faixa de coordenada) pra
+  // acompanhar as caixas de REGIONS sem duplicar os limites: as regiões que
+  // JÁ têm desenho denso próprio — Aokigahara, Bosque de Bambu, o pátio do
+  // Templo — ficam com dens 0 e não recebem bosque nenhum. Aokigahara em
+  // especial não pode adensar: com ~20% de chão aberto, a zona de spawn dela
+  // já opera no limite (mesmo antes desta mudança faltava 1 youkai).
+  const PERFIL_REGIAO = {
+    // Picos: quase só pedra baixa (23) e algum pinheiro. Montanha (8, 4.2 de
+    // altura) fica de fora — o ruído de terreno da região já espalha 20%
+    // dela, e somar mais deixava o horizonte só de lajes cinzas iguais.
+    'Picos de Takara':        { dens: .95, minAberto: .42, rMin: 3, pecas: [23, 23, 23, 1] },
+    'Planalto do Norte':      { dens: .85, minAberto: .46, rMin: 2, pecas: [1, 1, 1, 23] },
+    'Campos de Arroz':        { dens: .70, minAberto: .50, rMin: 2, pecas: [1, 1, 1, 22] },
+    'Baía de Minato':         { dens: .50, minAberto: .55, rMin: 2, pecas: [1, 1, 23, 1] },
+    'Pântano Negro':          { dens: .40, minAberto: .58, rMin: 2, pecas: [1, 1, 1, 23] },
+    'Floresta de Aokigahara': { dens: 0 },
+    'Bosque de Bambu':        { dens: 0 },
+    'Templo Abandonado':      { dens: 0 }
+  };
+  const PERFIL_PADRAO = { dens: .55, minAberto: .52, rMin: 2, pecas: [1, 1, 1, 22] };
+  const perfilBioma = (x, y) => PERFIL_REGIAO[regionAt(x, y)] || PERFIL_PADRAO;
+  const VAZIO_FILL = new Set([0, 4, 22, 24]);
+  const fracAberta = (cx, cy) => {
+    let v = 0, n = 0;
+    for (let y = cy - 6; y <= cy + 6; y++) for (let x = cx - 6; x <= cx + 6; x++) {
+      if (!t[y] || t[y][x] === undefined) continue;
+      n++; if (VAZIO_FILL.has(t[y][x])) v++;
+    }
+    return n ? v / n : 0;
+  };
+  const PASSO = 11;
+  for (let gy = 22; gy < H - 22; gy += PASSO) for (let gx = 6; gx < W - 6; gx += PASSO) {
+    const { dens, minAberto, rMin, pecas } = perfilBioma(gx, gy);
+    if (!dens || hash2(gx * 31 + 7, gy * 17 + 13) > dens) continue;
+    const cx = gx + Math.floor(hash2(gx * 5, gy * 9) * 7) - 3;
+    const cy = gy + Math.floor(hash2(gy * 5, gx * 9) * 7) - 3;
+    if (fracAberta(cx, cy) < minAberto) continue;                 // redondeza já cheia
+    const r = rMin + Math.floor(hash2(cx * 3 + 1, cy * 5 + 2) * 3);
+    for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+      if (x < 4 || y < 4 || x >= W - 4 || y >= H - 4) continue;
+      if (t[y][x] !== 0 || semBosque[y * W + x]) continue;        // só grama nua, e nunca na máscara
+      const d = Math.hypot(x - cx, y - cy);
+      if (d > r + .5) continue;
+      // borda esgarçada: quanto mais longe do centro, menor a chance — e a
+      // franja vira arbusto (atravessável), então o bosque não tem parede
+      // seca de árvore na borda
+      if (hash2(x * 7 + 3, y * 11 + 5) > 1 - d / (r + 1.2)) continue;
+      set(x, y, d > r - .8 ? 22 : pecas[Math.floor(hash2(x * 13, y * 13) * pecas.length)]);
+    }
+  }
+  // ---------- Clareiras de spawn ----------
+  // Contrapartida do bloco acima: o problema do mapa era sobra de campo
+  // aberto, mas a Floresta de Aokigahara tem o defeito oposto e já vinha
+  // com ele de antes — é tão fechada que quase todo o chão aberto dela são
+  // bolsões isolados no meio das árvores, que seleBolsoesIsolados() acaba
+  // fechando (medido: 751 tiles abertos viram 280 no fim da geração). Com
+  // isso a zona de spawn de lá não consegue sortear tile livre e entrega
+  // menos youkai do que a cota (11 de 12 já no estado anterior a esta
+  // mudança).
+  // Aqui cada faixa-de-tipo de cada zona de spawn é varrida atrás de trechos
+  // sufocados; onde houver, o ponto entra na lista de alvos de acesso. Quem
+  // abre a clareira de fato é o garanteAcesso() lá no fim — ele já limpa 7x7
+  // em volta de cada alvo E escava um corredor até o resto do mapa, então a
+  // clareira nasce conectada e não é fechada depois por
+  // seleBolsoesIsolados(). Onde a faixa já tem chão de sobra, nada é
+  // adicionado: o bloco é inteiramente auto-limitado.
+  // A medida é de chão ALCANÇÁVEL A PÉ, não de chão não-sólido: numa floresta
+  // fechada a maior parte do chão "livre" são bolsões ilhados no meio das
+  // árvores, que seleBolsoesIsolados() fecha no fim da geração de qualquer
+  // jeito (e onde um youkai nasceria preso). Medindo só "não-sólido", a
+  // faixa do nue aparecia com 33% de chão e passava no teste, mas terminava
+  // a geração com 4% — era exatamente ela que não preenchia a cota.
+  const alcance = (() => {
+    const vis = new Uint8Array(W * H);
+    const q = [[40, 100]];                    // mesma âncora do garanteAcesso
+    vis[100 * W + 40] = 1;
+    let h = 0;
+    while (h < q.length) {
+      const [x, y] = q[h++];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || vis[ny * W + nx] || SOLID.has(t[ny][nx])) continue;
+        vis[ny * W + nx] = 1; q.push([nx, ny]);
+      }
+    }
+    return vis;
+  })();
+  for (const z of (SPAWN_ZONES.overworld || [])) {
+    const nT = z.types.length, faixaW = (z.x2 - z.x1) / nT;
+    for (let i = 0; i < nT; i++) {
+      const fx1 = Math.round(z.x1 + i * faixaW), fx2 = Math.round(z.x1 + (i + 1) * faixaW);
+      let abertas = 0;
+      // teto de UMA clareira por faixa: cada uma vira um círculo 7x7 (49
+      // tiles) mais o corredor de ligação — o bastante pra faixa alcançar os
+      // ~13% de chão andável que o sorteio de spawnEnemies() precisa (30
+      // tentativas por youkai), sem descaracterizar a floresta. Medido em 12
+      // gerações: com teto 1 a Floresta de Aokigahara fica em 27% de chão
+      // aberto e todas as zonas batem a cota; com teto 2 ela vai a 34% e com
+      // teto 4 a 47%, sem ganho nenhum de spawn em troca.
+      for (let cy = z.y1 + 4; cy <= z.y2 - 4 && abertas < 1; cy += 7) {
+        for (let cx = fx1 + 4; cx <= fx2 - 4 && abertas < 1; cx += 7) {
+          let livre = 0, total = 0, tocaObra = false;
+          for (let y = cy - 4; y <= cy + 4; y++) for (let x = cx - 4; x <= cx + 4; x++) {
+            if (!t[y] || t[y][x] === undefined) continue;
+            total++;
+            if (semBosque[y * W + x]) tocaObra = true;   // estrada/prédio/praça perto: não abre aqui
+            if (alcance[y * W + x]) livre++;
+          }
+          if (tocaObra || !total || livre / total >= .22) continue;
+          ALVOS_ACESSO.push([cx, cy]);
+          abertas++;
+        }
+      }
+    }
+  }
   // decoração: flores, arbustos, pedras e cogumelos espalhados pela grama
   for (let y = 4; y < H - 4; y++) for (let x = 4; x < W - 4; x++) {
     if (t[y][x] !== 0) continue;
@@ -257,16 +453,9 @@ function genOverworld() {
   protRect(260, 155, 293, 201); // Vila Minato + cais
   const protComuns = new Set([
     '20,66', '21,66', '20,67', '21,67', '170,72', '171,72', '170,73', '171,73', '168,104', '169,104', '168,105', '169,105',
-    ...protPeixaria, ...protVilasFase2
+    ...protPeixaria, ...protVilasFase2, ...protTorii
   ]);
-  garanteAcesso(t, W, H, [
-    [28, 74], [164, 106],       // reislime, necromante
-    [42, 78], [120, 34], [160, 102],   // aranharainha, tenguveterano, onigeneral
-    [100, 108], [150, 80],      // amanojaku, yamauba
-    [79, 72],                   // acesso à porta da peixaria
-    [246, 62], [77, 165], [277, 165], [274, 191],  // Takara, Kurogane, Minato, cais de Minato
-    [320, 90], [150, 200], [340, 200]              // yamanushi, inugami, wani
-  ], [40, 100], protComuns);
+  garanteAcesso(t, W, H, ALVOS_ACESSO, [40, 100], protComuns);
   // fecha qualquer bolsão minúsculo isolado que a floresta aleatória tenha
   // deixado pra trás (nenhum youkai nasce mais preso pra sempre no meio de
   // árvores) — roda por último, depois de garanteAcesso já ter conectado
@@ -596,16 +785,32 @@ function spawnEnemies(initial) {
       const wantType = Math.ceil(z.count / nTypes);
       const want = initial ? wantType : Math.min(wantType, cur + 1);
       for (let i = cur; i < want; i++) {
-        for (let tries = 0; tries < 30; tries++) {
-          const tx = irnd(fx1, fx2), ty = irnd(z.y1, z.y2);
-          if (z.exclude && z.exclude.some(ex => tx >= ex.x1 && tx <= ex.x2 && ty >= ex.y1 && ty <= ex.y2)) continue;
-          if (isSolid(G.map, tx, ty)) continue;
-          const px = tx * TILE, py = ty * TILE;
-          if (Math.hypot(px - P.x, py - P.y) < TILE * 7) continue;
-          const e = makeEntity(type, px, py, irnd(z.lv[0], z.lv[1]));
-          e.zone = z;
-          G.entities.push(e);
-          break;
+        // duas rodadas: primeiro dentro da faixa do tipo (que é o que agrupa
+        // cada youkai no seu canto da zona), depois — só se a faixa não deu
+        // conta — em qualquer lugar da zona. Sem a segunda rodada, uma faixa
+        // que caia quase inteira dentro de um `exclude` simplesmente não
+        // gera youkai: é o caso do slime (faixa x20-60, coberta pelos dois
+        // excludes da zona) e da yukionna (faixa x134-172, coberta pelo
+        // exclude de Iwamura) — os dois já falhavam antes da revisão de
+        // cenário, porque os `exclude` foram escritos quando o sorteio ainda
+        // era na caixa inteira, antes de a zona passar a ser dividida em
+        // faixas por tipo. O agrupamento continua sendo a regra; a segunda
+        // rodada é só a rede de segurança pra nunca faltar youkai.
+        let posto = false;
+        for (let rodada = 0; rodada < 2 && !posto; rodada++) {
+          const rx1 = rodada === 0 ? fx1 : z.x1, rx2 = rodada === 0 ? fx2 : z.x2;
+          for (let tries = 0; tries < 30; tries++) {
+            const tx = irnd(rx1, rx2), ty = irnd(z.y1, z.y2);
+            if (z.exclude && z.exclude.some(ex => tx >= ex.x1 && tx <= ex.x2 && ty >= ex.y1 && ty <= ex.y2)) continue;
+            if (isSolid(G.map, tx, ty)) continue;
+            const px = tx * TILE, py = ty * TILE;
+            if (Math.hypot(px - P.x, py - P.y) < TILE * 7) continue;
+            const e = makeEntity(type, px, py, irnd(z.lv[0], z.lv[1]));
+            e.zone = z;
+            G.entities.push(e);
+            posto = true;
+            break;
+          }
         }
       }
     }

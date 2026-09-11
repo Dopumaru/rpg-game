@@ -417,39 +417,36 @@ function bakeCaveMouth() {
   });
 }
 
-// --- torii (portal xintoísta): 2 tiles de largura x 2 de altura ---
-// topo = travessas kasagi/nuki; base = pilares
-function bakeToriiTop(half) {
-  return bakeTile('toriiT' + half, g => {
-    g.drawImage(bakeGrass(2), 0, 0);
-    // kasagi (travessa curva superior) atravessa os dois tiles
-    px(g, '#8f2f28', 0, 3, TILE, 4);
-    px(g, '#c0392b', 0, 3, TILE, 3);
-    px(g, '#e05548', 0, 3, TILE, 1);
-    // ponta erguida nas extremidades
-    if (half === 0) { px(g, '#c0392b', 0, 1, 4, 2); px(g, '#e05548', 0, 1, 4, 1); }
-    else { px(g, '#c0392b', 12, 1, 4, 2); px(g, '#e05548', 12, 1, 4, 1); }
-    // nuki (travessa inferior)
-    px(g, '#8f2f28', 0, 10, TILE, 3);
-    px(g, '#c0392b', 0, 10, TILE, 2);
-    px(g, '#e05548', 0, 10, TILE, 1);
-    // pilares descendo
-    const cx = half === 0 ? 3 : 10;
-    px(g, '#8f2f28', cx, 7, 3, 9);
-    px(g, '#c0392b', cx, 7, 2, 9);
-    px(g, '#e05548', cx, 7, 1, 9);
-  });
-}
+// --- torii (portal xintoísta): uma fileira de 6 tiles ---
+// Meio torii: um tile de pilar com as travessas saindo em direção ao vão.
+// half 0 = pilar esquerdo (tile 29), travessas para a direita; half 1 = pilar
+// direito (tile 30), espelhado. O vão entre os dois pilares não tem tile
+// próprio — é estrada/piso comum, com a travessa passando por cima (no 3D ela
+// é geometria em balanço; aqui no caminho 2D de reserva ela só aparece nas
+// duas pontas mesmo).
 function bakeToriiBase(half) {
   return bakeTile('toriiB' + half, g => {
     g.drawImage(bakeGrass(3), 0, 0);
-    const cx = half === 0 ? 3 : 10;
-    px(g, '#8f2f28', cx, 0, 3, 14);
-    px(g, '#c0392b', cx, 0, 2, 14);
-    px(g, '#e05548', cx, 0, 1, 14);
-    // base de pedra
-    px(g, '#6e6e78', cx - 1, 13, 5, 3);
-    px(g, '#8a8a94', cx - 1, 13, 5, 1);
+    // espelha horizontalmente desenhando com x refletido quando half === 1
+    const fx = (x, w) => half === 0 ? x : TILE - x - w;
+    // kasagi (viga de topo) + shimaki, avançando para o vão
+    px(g, '#8f2f28', fx(3, 13), 1, 13, 4);
+    px(g, '#c0392b', fx(3, 13), 1, 13, 3);
+    px(g, '#e05548', fx(3, 13), 1, 13, 1);
+    // ponta erguida, virada para fora do vão
+    px(g, '#c0392b', fx(2, 3), 0, 3, 3);
+    px(g, '#e05548', fx(2, 3), 0, 3, 1);
+    // nuki (travessa de amarração)
+    px(g, '#8f2f28', fx(5, 11), 7, 11, 3);
+    px(g, '#c0392b', fx(5, 11), 7, 11, 2);
+    px(g, '#e05548', fx(5, 11), 7, 11, 1);
+    // hashira (pilar) descendo até a base
+    px(g, '#8f2f28', fx(5, 4), 1, 4, 13);
+    px(g, '#c0392b', fx(5, 3), 1, 3, 13);
+    px(g, '#e05548', fx(5, 1), 1, 1, 13);
+    // kamebara (base de pedra)
+    px(g, '#6e6e78', fx(4, 6), 13, 6, 3);
+    px(g, '#8a8a94', fx(4, 6), 13, 6, 1);
   });
 }
 // --- lanterna de pedra (toro) ---
@@ -580,8 +577,6 @@ function drawTile(t, x, y, tx, ty, map) {
     case 22: ctx.drawImage(bakeBush(Math.floor(v * 6) % 6), x, y); break;
     case 23: ctx.drawImage(bakeRock(Math.floor(v * 8) % 8, regiao), x, y); break;
     case 24: ctx.drawImage(bakeMushroom(Math.floor(v * 2), map.name === 'cave'), x, y); break;
-    case 25: ctx.drawImage(bakeToriiTop(0), x, y); break;
-    case 26: ctx.drawImage(bakeToriiTop(1), x, y); break;
     case 29: ctx.drawImage(bakeToriiBase(0), x, y); break;
     case 30: ctx.drawImage(bakeToriiBase(1), x, y); break;
     case 27: ctx.drawImage(bakeLantern(), x, y); break;
