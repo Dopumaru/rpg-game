@@ -33,7 +33,14 @@ function escala2x(spr) {
   const g = c.getContext('2d');
   const saida = g.createImageData(w * 2, h * 2);
   const px = (x, y) => {
-    if (x < 0 || y < 0 || x >= w || y >= h) return -1;
+    // fora do canvas conta como transparente (0), nunca um sentinela à
+    // parte — com -1 como sentinela, os 4 cantos do sprite (onde DOIS
+    // vizinhos caem fora do canvas ao mesmo tempo) faziam -1===-1 bater
+    // como "cor igual" e a lógica de arredondar canto escrevia o próprio
+    // -1 como pixel; -1 desempacotado vira rgba(255,255,255,255) — um
+    // ponto branco opaco sólido bem no canto de cada sprite. Achado ao
+    // investigar 4 pontos brancos soltos ao redor de herói/NPCs.
+    if (x < 0 || y < 0 || x >= w || y >= h) return 0;
     const i = (y * w + x) * 4;
     return (gi[i] << 24 | gi[i + 1] << 16 | gi[i + 2] << 8 | gi[i + 3]) >>> 0;
   };
@@ -210,18 +217,33 @@ const MODELOS3 = {
       M3('caixa', 0xe8e0c8, [0, .66, .64], [.64, 1.04, .04]),
       M3('caixa', 0x2a1c12, [0, .06, .6], [.9, .12, .28])
     ],
-  // --- torii: pilar e vigas laqueadas
-  29: v => [M3('cil', 0xc2352e, [.18, 1.3, 0], [.26, 2.6, .26], [0, 0, .03])],
-  30: v => [M3('cil', 0xc2352e, [-.18, 1.3, 0], [.26, 2.6, .26], [0, 0, -.03])],
-  25: v => [
-      M3('caixa', 0xc2352e, [.1, .2, 0], [1.1, .18, .34]),
-      M3('caixa', 0x8a1f1a, [.05, .52, 0], [1.2, .2, .42]),
-      M3('caixa', 0xc2352e, [.05, .68, 0], [1.24, .12, .5])
+  // --- torii: metade de um portão, em balanço a partir do tile do pilar
+  // O portão tem 6 tiles de largura: pilar 29 no tile x, pilar 30 no tile
+  // x+5, e 4 tiles de vão livre no meio (ver genOverworld). Cada pilar
+  // carrega a SUA metade das três travessas, projetada até o meio do vão
+  // (offset +2.5 a partir de 29, -2.5 a partir de 30) — as duas metades se
+  // sobrepõem um pouco no centro, então nunca aparece fresta. Assim o vão
+  // não precisa de tile próprio e a estrada/piso passa por baixo inteira.
+  // Anatomia (de baixo pra cima): kamebara (base de pedra), hashira (pilar),
+  // nuki (travessa de amarração), shimaki, kasagi (viga de topo, a que mais
+  // avança), mais o gaku (placa) pendurado no centro, só na metade esquerda.
+  29: v => [
+      M3('cil',   0x7d7a72, [0, .12, 0], [.44, .3, .44]),              // kamebara
+      M3('cil',   0xc2352e, [0, 1.55, 0], [.28, 3.0, .28], [0, 0, .022]), // hashira
+      M3('caixa', 0xa82a24, [1.15, 2.08, 0], [2.9, .2, .3]),           // nuki
+      M3('caixa', 0x8a1f1a, [1.05, 2.62, 0], [3.3, .24, .44]),         // shimaki
+      M3('caixa', 0xc2352e, [1.0, 2.84, 0], [3.6, .18, .54]),          // kasagi
+      M3('caixa', 0xc2352e, [-.86, 2.93, 0], [.5, .18, .54], [0, 0, .17]), // ponta erguida
+      M3('caixa', 0x3a2a1e, [2.5, 2.36, 0], [.42, .46, .1]),           // gaku (placa)
+      M3('caixa', 0xd8c48a, [2.5, 2.36, -.06], [.32, .34, .04])
     ],
-  26: v => [
-      M3('caixa', 0xc2352e, [-.1, .2, 0], [1.1, .18, .34]),
-      M3('caixa', 0x8a1f1a, [-.05, .52, 0], [1.2, .2, .42]),
-      M3('caixa', 0xc2352e, [-.05, .68, 0], [1.24, .12, .5])
+  30: v => [
+      M3('cil',   0x7d7a72, [0, .12, 0], [.44, .3, .44]),
+      M3('cil',   0xc2352e, [0, 1.55, 0], [.28, 3.0, .28], [0, 0, -.022]),
+      M3('caixa', 0xa82a24, [-1.15, 2.08, 0], [2.9, .2, .3]),
+      M3('caixa', 0x8a1f1a, [-1.05, 2.62, 0], [3.3, .24, .44]),
+      M3('caixa', 0xc2352e, [-1.0, 2.84, 0], [3.6, .18, .54]),
+      M3('caixa', 0xc2352e, [.86, 2.93, 0], [.5, .18, .54], [0, 0, -.17])
     ],
   // --- montanha: massa rochosa com pico, altura variando por tile
   8: v => [
@@ -275,7 +297,9 @@ const GL3 = { W: 640, H: 360 };          // atualizado no redimensionamento
 // personagem apoiar sempre na mesma cota.
 const ALT3 = {
   0: .5, 3: .5, 4: .5, 6: .5, 7: .5, 9: .5, 11: .5, 12: .5, 13: .5, 15: .5,
-  19: .5, 22: .5, 24: .5, 25: .5, 26: .5, 28: .5, 31: .5,
+  19: .5, 22: .5, 24: .5, 28: .5, 31: .5,   // 25/26 saíram: o torii virou uma
+                                            // fileira só, com a travessa em
+                                            // balanço nos tiles 29/30
   2: .3,                                    // água, rebaixada
   1: 2.6, 5: 2.4, 8: 4.2, 10: 3.6, 14: 2.6, 18: 2.4, 20: .95, 21: 1.2,
   16: .8, 17: .8, 23: .9, 27: 1.4, 29: 3.0, 30: 3.0, 32: 2.0
@@ -286,7 +310,7 @@ const LADO3 = {                            // cor das laterais do bloco
   9: 0x3a3448, 18: 0x6a2a24, 19: 0x4a3420, 31: 0x4a3420, 14: 0x6a2a24, 20: 0x6a6470,
   23: 0x5a5a66, 27: 0x4a3a2a, 21: 0x6a4a9a, 29: 0x8a2420, 30: 0x8a2420,
   11: 0x2a2438, 13: 0x4a6a8a, 16: 0x8a6a2a, 17: 0x8a6a2a, 24: 0x6a3a3a,
-  25: 0x8a2420, 26: 0x8a2420, 12: 0x3a3448, 15: 0x6a5238, 32: 0x6a6470
+  12: 0x3a3448, 15: 0x6a5238, 32: 0x6a6470   // 25/26 saíram junto com o tile
 };
 // grão de cada tipo de chão: quantidade, cores e se são fiapos verticais
 const GRAO3 = {
