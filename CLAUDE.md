@@ -1109,6 +1109,76 @@ commitada a tempo; reconstituída de memória da própria conversa
   programas de shader estável em 8 — ou seja, nenhuma regressão no
   caminho que causou o engasgo relatado em 2026-09.
 
+### 2026-09-11 — Fundo da arena de batalha ("limbo infinito sem
+horizonte"); e `THREE.BackSide` não existe no bundle embutido
+
+- **Relato do usuário**: o fundo das batalhas "fica um limbo infinito sem
+  horizonte". Confirmado por screenshot em 7 arenas: o chão verde
+  terminava numa **linha de corte dura** contra um azul chapado.
+- **Causas (4, todas medidas)**:
+  1. `cena.background = new THREE.Color(ceu)` — cor sólida do topo ao
+     rodapé. Não havia céu, havia uma parede de cor.
+  2. O piso é um `PlaneGeometry(30, 22)`; a borda de trás cai a ~24
+     unidades da câmera enquanto a névoa ia de 16 a 44 — no ponto em que
+     o chão acabava a névoa só tinha feito metade do trabalho, então o
+     corte aparecia inteiro.
+  3. Nada na linha do horizonte: depois da fileira de árvores, vazio.
+  4. Toda a decoração numa faixa rasa só de z, sem camadas.
+- **Quinta causa, separada: a arena ignorava o bioma.** Só existiam 3
+  variações (`cave`, Templo=dusk, Bambu/Aokigahara=mata). Picos de
+  Takara, Baía de Minato, Pântano Negro e as vilas renderizavam todos
+  como o mesmo campo verde com céu azul — a batalha nos Picos era
+  idêntica à do Campos de Arroz. Causa concreta: o piso era assado com
+  `mapaFake = { name: 'overworld' }` **sem região**, e `drawTile()`
+  resolve bioma por `regionAt(tx, ty)` — as coordenadas 0..29 do canvas
+  da arena não caem na caixa da região onde a luta acontece. O sistema
+  de paletas por bioma (Fase 4) nunca chegava na arena. Corrigido com
+  `map.regiao` opcional em `drawTile()` (mapas reais não têm a
+  propriedade, então o caminho antigo segue idêntico).
+- **Correção**: tabela `ARENA_BIOMA` por região (céu zênite/horizonte,
+  névoa, luzes, tile de piso, decoração, tipo de serra) + domo de céu
+  com gradiente + plano de chão distante de 300x300 na cor do bioma +
+  silhueta de serra/mata no horizonte + decoração em 3 faixas de
+  profundidade. A cor da base do domo, a da névoa e a do chão distante
+  são a MESMA — é isso que faz o terreno dissolver no céu em vez de
+  terminar.
+- **Bug de produto achado durante a investigação**: `montarArena()`
+  fazia `if (this.arenaRegiao === regiao) return;`. Como `G.region` só é
+  preenchido pelo primeiro `updateWorld()` DEPOIS do `enterMap` (e não
+  pelo `enterMap`), uma batalha iniciada nessa janela chamava
+  `montarArena(null)` com `arenaRegiao` ainda `null` → `null === null` →
+  a arena nunca era montada, `camBat` ficava null, `pontoNoChao()`
+  estourava em `projectionMatrixInverse` e **o laço de quadros morria**
+  (tela congelada). Corrigido testando `cenaBat` junto. Sem a correção,
+  7 de 7 arenas falhavam no harness; com ela, 7 de 7 montam sem erro.
+- **ARMADILHA IMPORTANTE — o three.js embutido é uma build reduzida.**
+  `THREE.BackSide` é **`undefined`** (só `FrontSide` e `DoubleSide` são
+  exportados; `Object.keys(THREE).filter(k => /Side$/.test(k))` devolve
+  exatamente `["DoubleSide","FrontSide"]`). `side: undefined` cai no
+  padrão FrontSide, então a esfera do domo vista por dentro era inteira
+  descartada por backface culling: o céu ficava invisível e o que
+  aparecia era o fundo preto do canvas, com as silhuetas claras da serra
+  recortadas contra ele (o efeito lido como "dentes pretos" nos
+  screenshots). Usar `THREE.DoubleSide`. **`RepeatWrapping` também é
+  `undefined`.** Esta é a segunda ocorrência da mesma classe de bug
+  (`ACESFilmicToneMapping`, 2026-08) — ao usar qualquer constante de
+  `THREE`, conferir que ela existe antes, porque a falha é **silenciosa**.
+- **Lição de método registrada**: perdi duas rodadas atribuindo os
+  "dentes pretos" à serra. O que resolveu foi um experimento decisivo em
+  runtime (pintar a serra de vermelho e o domo de verde via
+  `page.evaluate` e ver que **nenhum dos dois mudava**), que eliminou as
+  duas hipóteses de uma vez e apontou para a construção do domo. Antes
+  disso, um probe de posição já tinha achado um erro real e diferente: o
+  arco da serra estava centrado em π, colocando metade dos vultos ao
+  lado e atrás da câmera — e a névoa do three.js usa profundidade de
+  **view-space** (`-mvPosition.z`), não distância radial, então esses
+  ficavam com fator de névoa zero. Arco corrigido para 1.15π–1.85π.
+- **Custo medido** (determinístico, não fps): +3 draw calls e +2
+  programas de shader fixos; triângulos de ~15k para ~27k na cena mais
+  pesada — ainda ~10x mais leve que as cenas do mundo (100k–270k já
+  medidas). Tempo de `montarArena()` inalterado (±15%, ruído). Zero
+  erros de JavaScript nas 7 arenas e no mundo.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

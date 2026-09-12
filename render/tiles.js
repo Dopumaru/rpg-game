@@ -549,8 +549,13 @@ function drawCaveExitTile(x, y) {
 function drawTile(t, x, y, tx, ty, map) {
   const v = hash2(tx, ty);
   // bioma só existe no overworld — regionAt() usa as caixas de REGIONS, que
-  // não fazem sentido pras coordenadas pequenas de caverna/interior
-  const regiao = map.name === 'overworld' ? regionAt(tx, ty) : null;
+  // não fazem sentido pras coordenadas pequenas de caverna/interior.
+  // `map.regiao` permite forçar a região: a arena de batalha assa o piso dela
+  // num mapa falso, cujas coordenadas 0..29 não caem na caixa de REGIONS da
+  // região onde a luta está acontecendo — sem isso o chão da arena sempre
+  // saía com a paleta padrão, em qualquer bioma.
+  const regiao = map.regiao !== undefined ? map.regiao
+    : (map.name === 'overworld' ? regionAt(tx, ty) : null);
   switch (t) {
     case 0:  ctx.drawImage(bakeGrass(Math.floor(v * 10) % 10, regiao), x, y); break;
     case 1:  ctx.drawImage(bakeTree(treeSpecies(tx, ty), Math.floor(v * 10) % 10), x, y); break;

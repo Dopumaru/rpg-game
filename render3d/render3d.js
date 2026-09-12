@@ -890,6 +890,61 @@ const R3 = {
 };
 const _v3 = new THREE.Vector3();
 
+// Cenário da arena por região. Antes só existiam 3 variações (caverna,
+// Templo, mata), então Picos de Takara, Baía de Minato, Pântano Negro e as
+// vilas caíam todos no mesmo campo verde com céu azul — a batalha nos Picos
+// era pixel a pixel igual à do Campos de Arroz.
+//   ceu    [zênite, horizonte] do domo de céu
+//   nevoa  cor + início/fim; a cor é SEMPRE a do horizonte do domo, senão o
+//          chão distante não dissolve no céu e reaparece a linha de corte
+//   chao   tile que o piso da arena assa (0 grama, 3 terra, 9 piso de caverna)
+//   deco   [tile, variante] do cenário de fundo (mesmos modelos do mundo)
+//   serra  silhueta na linha do horizonte: 'picos', 'colinas', 'mata', null
+const ARENA_BIOMA = {
+  'cave': {
+    ceu: ['#120d1c', '#2a1f3c'], nevoa: '#241a33', n0: 8, n1: 30,
+    luz: '#a488e8', luzI: 1.0, hemiC: '#7a6ab0', hemiG: '#2a2038', hemiI: .6,
+    chao: 9, deco: [10, 1], serra: null
+  },
+  'Templo Abandonado': {
+    ceu: ['#1e1630', '#7a5570'], nevoa: '#5a3f66', n0: 13, n1: 38,
+    luz: '#e8b8d8', luzI: 1.6, hemiC: '#9a7aaa', hemiG: '#3a3a2a', hemiI: .95,
+    chao: 0, deco: [20, 0], serra: 'mata', serraCor: '#2b2038'
+  },
+  'Bosque de Bambu': {
+    ceu: ['#27553f', '#8fc79c'], nevoa: '#79b389', n0: 13, n1: 38,
+    luz: '#eaffd8', luzI: 1.8, hemiC: '#c6ecd0', hemiG: '#3a4a2a', hemiI: 1.15,
+    chao: 0, deco: [1, 1], serra: 'mata', serraCor: '#245c34'
+  },
+  'Floresta de Aokigahara': {
+    ceu: ['#16301d', '#5d8a63'], nevoa: '#4b7a53', n0: 11, n1: 34,
+    luz: '#daf0c8', luzI: 1.5, hemiC: '#a6cfae', hemiG: '#2a3a20', hemiI: 1.0,
+    chao: 0, deco: [1, 2], serra: 'mata', serraCor: '#1a3a22'
+  },
+  'Picos de Takara': {
+    ceu: ['#2a5f9e', '#b9d2e6'], nevoa: '#a9c2d8', n0: 18, n1: 54,
+    luz: '#fff6e6', luzI: 2.2, hemiC: '#d2e4ff', hemiG: '#5e6e6c', hemiI: 1.25,
+    chao: 0, deco: [23, 1], serra: 'picos', serraCor: '#5c6478'
+  },
+  'Pântano Negro': {
+    ceu: ['#333a2a', '#94926a'], nevoa: '#7a7a58', n0: 10, n1: 30,
+    luz: '#ece4b6', luzI: 1.35, hemiC: '#b6bd95', hemiG: '#3a3a28', hemiI: .95,
+    chao: 0, deco: [1, 2], serra: 'mata', serraCor: '#39412f'
+  },
+  'Baía de Minato': {
+    ceu: ['#2775bd', '#ffdcb0'], nevoa: '#eccb9f', n0: 20, n1: 58,
+    luz: '#fff2d8', luzI: 2.3, hemiC: '#dfeeff', hemiG: '#8a7a58', hemiI: 1.35,
+    chao: 3, deco: [1, 2], serra: 'colinas', serraCor: '#4d6f80'
+  }
+};
+// campos/planalto/vilas: o céu azul de sempre, agora com gradiente e horizonte
+const ARENA_PADRAO = {
+  ceu: ['#2f6fc0', '#bcd8ef'], nevoa: '#aecbe4', n0: 17, n1: 50,
+  luz: '#fff0d0', luzI: 2.0, hemiC: '#cfe0ff', hemiG: '#3a4a2a', hemiI: 1.25,
+  chao: 0, deco: [1, 2], serra: 'colinas', serraCor: '#4a6a5a'
+};
+const mixCor = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t);
+
 // ---------- Arena de batalha em 3D ----------
 // Os combatentes continuam sendo os mesmos sprites 2D, agora billboards numa
 // arena com volume. As posições 3D são obtidas desprojetando as coordenadas de
@@ -913,7 +968,13 @@ Object.assign(R3, {
   },
 
   montarArena(regiao, cave) {
-    if (this.arenaRegiao === regiao) return;
+    // `cenaBat` no teste, e não só a região: com `G.region` ainda null (o
+    // nome da região é preenchido pelo primeiro updateWorld() depois de
+    // enterMap, não pelo próprio enterMap), `arenaRegiao === regiao` dava
+    // null === null logo na primeira batalha e a arena nunca era montada —
+    // `camBat` ficava null, pontoNoChao() estourava em
+    // `projectionMatrixInverse` e o laço de quadros morria junto.
+    if (this.cenaBat && this.arenaRegiao === regiao) return;
     this.arenaRegiao = regiao;
     if (this.cenaBat) {
       this.cenaBat.traverse(o => {
@@ -922,13 +983,10 @@ Object.assign(R3, {
       });
       this.billBat.clear();
     }
-    const dusk = !cave && regiao === 'Templo Abandonado';
-    const mata = !cave && (regiao === 'Bosque de Bambu' || regiao === 'Floresta de Aokigahara');
+    const B = cave ? ARENA_BIOMA['cave'] : (ARENA_BIOMA[regiao] || ARENA_PADRAO);
     const cena = new THREE.Scene();
-    const ceu = cave ? '#1c1626' : dusk ? '#3a2848' : mata ? '#2e4a34' : '#5a92cc';
-    cena.background = new THREE.Color(ceu);
-    cena.fog = new THREE.Fog(ceu, 16, 44);
-    const luz = new THREE.DirectionalLight(cave ? '#a488e8' : dusk ? '#e0b0d0' : '#fff0d0', cave ? 1.0 : 2.0);
+    cena.fog = new THREE.Fog(B.nevoa, B.n0, B.n1);
+    const luz = new THREE.DirectionalLight(B.luz, B.luzI);
     luz.position.set(7, 11, 9);
     luz.castShadow = true;
     luz.shadow.mapSize.set(2048, 2048);
@@ -937,12 +995,60 @@ Object.assign(R3, {
     sc.updateProjectionMatrix();
     luz.shadow.bias = -0.0015; luz.shadow.normalBias = 0.05;
     cena.add(luz, luz.target);
-    cena.add(new THREE.HemisphereLight(cave ? '#7a6ab0' : '#cfe0ff', '#3a4a2a', cave ? 0.6 : 1.25));
+    cena.add(new THREE.HemisphereLight(B.hemiC, B.hemiG, B.hemiI));
+
+    // --- céu: domo com gradiente, não mais uma cor chapada ---
+    // `cena.background = Color` pintava um valor sólido do topo ao rodapé, e
+    // como o chão acabava num plano finito o resultado era uma linha de corte
+    // dura entre o verde e o azul, sem horizonte nenhum. O domo dá variação
+    // vertical de verdade; a base dele usa exatamente a cor da névoa, que é o
+    // que faz o chão distante sumir dentro do céu em vez de terminar.
+    const cvC = document.createElement('canvas');
+    cvC.width = 4; cvC.height = 160;
+    const gC = cvC.getContext('2d');
+    const grd = gC.createLinearGradient(0, 0, 0, 160);
+    grd.addColorStop(0, B.ceu[0]);
+    grd.addColorStop(.46, '#' + mixCor(B.ceu[0], B.ceu[1], .45).getHexString());
+    grd.addColorStop(.72, '#' + mixCor(B.ceu[0], B.ceu[1], .88).getHexString());
+    grd.addColorStop(.80, B.ceu[1]);
+    grd.addColorStop(1, B.nevoa);
+    gC.fillStyle = grd; gC.fillRect(0, 0, 4, 160);
+    const texC = new THREE.CanvasTexture(cvC);
+    // DoubleSide, e não BackSide: o bundle de three.js embutido neste projeto
+    // é uma build reduzida que NÃO exporta `THREE.BackSide` (só FrontSide e
+    // DoubleSide — confirmado por Object.keys). `side: undefined` cai no
+    // padrão FrontSide, e aí a esfera vista por dentro é inteira descartada
+    // por backface culling: o domo ficava invisível e o "céu" era o fundo
+    // preto do canvas. Mesma armadilha já registrada para
+    // THREE.ACESFilmicToneMapping. `RepeatWrapping` também não existe aqui.
+    const domo = new THREE.Mesh(
+      new THREE.SphereGeometry(90, 20, 14),
+      new THREE.MeshBasicMaterial({ map: texC, side: THREE.DoubleSide, fog: false, depthWrite: false })
+    );
+    domo.renderOrder = -1;          // desenha primeiro; tudo é pintado por cima
+    cena.add(domo);
+
+    // --- chão distante: leva o terreno até onde a névoa o apaga ---
+    // O piso detalhado tem só 30x22 e a borda dele caía a ~24 unidades da
+    // câmera, com a névoa indo até 44 — ou seja, o corte aparecia ainda bem
+    // visível. Este plano grande, na cor do chão do bioma, continua o terreno
+    // até passar do fim da névoa, então o que se vê no fundo é horizonte.
+    const corChaoLonge = mixCor(B.hemiG, B.nevoa, .5);
+    const chaoLonge = new THREE.Mesh(
+      new THREE.PlaneGeometry(300, 300),
+      new THREE.MeshLambertMaterial({ color: corChaoLonge })
+    );
+    chaoLonge.rotation.x = -Math.PI / 2;
+    chaoLonge.position.set(-0.5, 0.47, -0.5);   // 3cm abaixo do piso detalhado
+    cena.add(chaoLonge);
 
     // chão da arena: um plano só, com a arte do bioma assada de uma vez.
     // Blocos lado a lado deixavam uma grade de emendas bem visível.
-    const mapaFake = { name: cave ? 'cave' : 'overworld' };
-    const tChao = cave ? 9 : 0;
+    // `regiao` vai junto no mapa falso pra o piso finalmente assar com a
+    // paleta do bioma (BIOME_GRASS/BIOME_DIRT): antes ele ia sem região e
+    // saía sempre com a paleta padrão, em qualquer canto do mapa.
+    const mapaFake = { name: cave ? 'cave' : 'overworld', regiao: cave ? null : regiao };
+    const tChao = B.chao;
     const geo = new THREE.BoxGeometry(1, 1, 1);
     const nx = 30, nz = 22, SSA = 2;
     const cvA = document.createElement('canvas');
@@ -965,19 +1071,33 @@ Object.assign(R3, {
 
     // cenário ao fundo com os MESMOS modelos do mundo: mata de matsu ou bambu,
     // lápides no templo, rocha bruta na caverna. Nada de bloco com PNG colado.
-    const tDeco = cave ? 10 : dusk ? 20 : (regiao === 'Bosque de Bambu' ? 1 : 1);
-    const vDeco = cave ? 1 : dusk ? 0 : (regiao === 'Bosque de Bambu' ? 1 : 2);
+    const [tDeco, vDeco] = B.deco;
     const partes = MODELOS3[tDeco] ? MODELOS3[tDeco](vDeco) : null;
-    const N = 110;
     const rr = (a2, b3) => { const h = Math.sin(a2 * 127.1 + b3 * 311.7) * 43758.5; return h - Math.floor(h); };
-    // posições sorteadas nas laterais e ao fundo, longe da faixa de combate
+    // Três faixas de profundidade em vez de uma fileira só: perto (detalhe),
+    // meio e fundo (maior e mais espalhado, já bem tomado pela névoa). É a
+    // sobreposição entre as faixas que dá a leitura de distância — antes toda
+    // a decoração vivia na mesma cota de z e a cena ficava com cara de recorte
+    // plano colado no céu.
+    const FAIXAS = [
+      { n: 64,  z0: -nz / 2 + 2,  z1: -2,  e0: 0.75, e1: 1.25, lado: 7.2 },
+      { n: 54,  z0: -nz / 2 - 8,  z1: -nz / 2 + 2, e0: 1.0,  e1: 1.7, lado: 3.5 },
+      { n: 46,  z0: -nz / 2 - 26, z1: -nz / 2 - 8, e0: 1.3,  e1: 2.3, lado: 0 }
+    ];
     const pontos = [];
-    for (let k = 0; k < N; k++) {
-      const lado = k % 2 ? 1 : -1;
-      const fundo = k % 5 === 0;
-      const zz = fundo ? -nz / 2 + 1 + rr(k, 11) * 4 : -nz / 2 + 2 + rr(k, 3) * (nz - 4);
-      const xx = fundo ? (rr(k, 7) - 0.5) * nx * 0.9 : lado * (7.2 + rr(k, 9) * (nx / 2 - 8));
-      pontos.push([xx, zz - 4.5, 0.8 + rr(k, 5) * 0.7, rr(k, 13) * Math.PI * 2]);
+    let kk = 0;
+    for (const f of FAIXAS) {
+      for (let i = 0; i < f.n; i++, kk++) {
+        const lado = i % 2 ? 1 : -1;
+        const zz = f.z0 + rr(kk, 3) * (f.z1 - f.z0);
+        // `lado` mantém livre a faixa central onde os dois lutadores ficam;
+        // na faixa do fundo ela é 0, porque lá já está longe o bastante para
+        // passar por trás deles sem atrapalhar a leitura do combate
+        const xx = f.lado
+          ? lado * (f.lado + rr(kk, 9) * (nx / 2 - f.lado + 6))
+          : (rr(kk, 7) - 0.5) * nx * 2.2;
+        pontos.push([xx, zz - 4.5, f.e0 + rr(kk, 5) * (f.e1 - f.e0), rr(kk, 13) * Math.PI * 2]);
+      }
     }
     if (partes) {
       const _q2 = new THREE.Quaternion(), _e2 = new THREE.Euler();
@@ -1011,6 +1131,43 @@ Object.assign(R3, {
         const esc = 0.6 + rr(k, 27) * 0.7;
         m4.makeScale(parte.s[0] * esc, parte.s[1] * esc, parte.s[2] * esc);
         m4.setPosition(px2 + parte.p[0] * esc, 0.5 + parte.p[1] * esc, pz2 + parte.p[2] * esc);
+        mesh.setMatrixAt(k, m4);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      cena.add(mesh);
+    }
+
+    // --- silhueta na linha do horizonte ---
+    // A peça que faltava: sem nada entre a última árvore e o céu, o fundo
+    // lia como vazio mesmo com o chão estendido. Um arco de vultos a 46-68
+    // unidades, já quase todo comido pela névoa (que termina em 30-58), vira
+    // uma serra/mata distante e fecha o horizonte. `fog: true` é o que faz
+    // eles se dissolverem na cor do céu em vez de recortarem contra ele.
+    if (B.serra) {
+      const perfil = {
+        picos:   { g: 'cone5', n: 30, r0: 50, r1: 72, h0: 8,  h1: 17, l0: 8,  l1: 16 },
+        colinas: { g: 'esf',   n: 24, r0: 52, r1: 72, h0: 5,  h1: 10, l0: 18, l1: 32 },
+        mata:    { g: 'cone',  n: 40, r0: 40, r1: 58, h0: 6,  h1: 11, l0: 5,  l1: 10 }
+      }[B.serra];
+      const mesh = new THREE.InstancedMesh(geo3(perfil.g),
+        new THREE.MeshLambertMaterial({ color: new THREE.Color(B.serraCor), flatShading: true }),
+        perfil.n);
+      for (let k = 0; k < perfil.n; k++) {
+        // Arco na metade de TRÁS da cena (a câmera olha para -z), ou seja
+        // ângulos entre 1.15π e 1.85π, onde sin(ang) é negativo. Um arco
+        // centrado em π punha metade dos vultos ao lado e atrás da câmera —
+        // e a névoa do three.js mede profundidade em view-space (`-mvPosition.z`),
+        // não distância radial, então esses ficavam com fator de névoa zero:
+        // apareciam pretos e gigantes no alto do quadro em vez de sumirem no céu.
+        // passo jitterado: espaçamento exatamente regular desenhava um serrote
+        const passo = 0.70 / Math.max(1, perfil.n - 1);
+        const ang = Math.PI * (1.15 + k * passo + (rr(k, 47) - 0.5) * passo * 1.5);
+        const raio = perfil.r0 + rr(k, 31) * (perfil.r1 - perfil.r0);
+        const alt = perfil.h0 + rr(k, 37) * (perfil.h1 - perfil.h0);
+        const larg = perfil.l0 + rr(k, 41) * (perfil.l1 - perfil.l0);
+        m4.makeScale(larg, alt, larg);
+        // meio enterradas: só a crista aparece acima do horizonte
+        m4.setPosition(Math.cos(ang) * raio, 0.5 + alt / 2 - alt * 0.34, Math.sin(ang) * raio - 6);
         mesh.setMatrixAt(k, m4);
       }
       mesh.instanceMatrix.needsUpdate = true;
